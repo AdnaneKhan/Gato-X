@@ -155,6 +155,11 @@ class Recommender:
                 f"{Output.bright(repository.accessible_runners[0].runner_name)}"
                 f" and the machine name was "
                 f"{Output.bright(repository.accessible_runners[0].machine_name)}"
+                f" and the runner type was "
+                f"{Output.bright(repository.accessible_runners[0].runner_type)}"
+                f" in the {Output.bright(repository.accessible_runners[0].runner_group)} group"
+                f" with the following labels: "
+                f"{Output.bright(', '.join(repository.accessible_runners[0].labels))}"
             )
 
             for runner in repository.accessible_runners:

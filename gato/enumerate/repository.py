@@ -45,7 +45,13 @@ class RepositoryEnum():
         if wf_runs:
             for wf_run in wf_runs:
                 runner = Runner(
-                    wf_run['runner_name'], wf_run['machine_name'], non_ephemeral=wf_run['non_ephemeral']
+                    wf_run['runner_name'],
+                    wf_run['runner_type'],
+                    wf_run['token_permissions'],
+                    runner_group=wf_run['runner_group'],
+                    machine_name=wf_run['machine_name'],
+                    labels=wf_run['requested_labels'],
+                    non_ephemeral=wf_run['non_ephemeral']
                 )
 
                 repository.add_accessible_runner(runner)
@@ -192,9 +198,7 @@ class RepositoryEnum():
 
             # If we are doing internal enum, get the logs, because coverage is
             # more important here and it's ok if it takes time.
-            elif not repository.is_public() and self.__perform_runlog_enumeration(repository):
-                runner_detected = True
-            else:
+            elif not repository.is_public() or not large_org_enum:
                 runner_detected = self.__perform_runlog_enumeration(repository)
 
         if runner_detected:

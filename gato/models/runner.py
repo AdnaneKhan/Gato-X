@@ -8,6 +8,9 @@ class Runner:
     def __init__(
             self,
             runner_name,
+            runner_type=None,
+            token_permissions=None,
+            runner_group=None,
             machine_name=None,
             os=None,
             status=None,
@@ -25,6 +28,9 @@ class Runner:
         """
         self.runner_name = runner_name
         self.machine_name = machine_name
+        self.runner_group = runner_group
+        self.runner_type = runner_type
+        self.token_permissions = token_permissions
         self.os = os
         self.status = status
         self.labels = labels
@@ -37,6 +43,9 @@ class Runner:
             "name": self.runner_name,
             "machine_name": self.machine_name if self.machine_name
             else "Unknown",
+            "runner_type": self.runner_type if self.runner_type else "Unknown",
+            "runner_group_name": self.runner_group if self.runner_group else "Unknown",
+            "token_permissions": self.token_permissions,
             "os": self.os if self.os else "Unknown",
             "status": self.status if self.status else "Unknown",
             "labels": [label for label in self.labels],

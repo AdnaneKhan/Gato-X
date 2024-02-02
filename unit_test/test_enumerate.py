@@ -18,6 +18,21 @@ TEST_ORG_DATA = None
 
 Output(False, True)
 
+BASE_MOCK_RUNNER = [{
+        "machine_name": "unittest1",
+        "runner_name": "much_unit_such_test",
+        "runner_type": "organization",
+        "non_ephemeral": False,
+        "token_permissions": {
+            "Actions": "write"
+        },
+        "runner_group": "Default",
+        "requested_labels": [
+            "self-hosted",
+            "Linux",
+            "X64"
+        ]
+}]
 
 @pytest.fixture(scope="session", autouse=True)
 def load_test_files(request):
@@ -102,9 +117,7 @@ def test_enumerate_repo_admin(mock_api, capsys):
         "scopes": ['repo', 'workflow']
     }
 
-    mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     repo_data['permissions']['admin'] = True
@@ -142,9 +155,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
         "scopes": ['repo']
     }
 
-    mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     repo_data['permissions']['admin'] = True
@@ -182,9 +193,7 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
         "scopes": ['repo']
     }
 
-    mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     repo_data['permissions']['admin'] = False
@@ -221,9 +230,7 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
         "scopes": ['repo', 'workflow']
     }
 
-    mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
 
@@ -261,9 +268,7 @@ def test_enumerate_repo_only(mock_api, capsys):
         "scopes": ['repo', 'workflow']
     }
 
-    mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
 

@@ -44,9 +44,21 @@ def test_enumerate_repo():
         "scopes": ['repo', 'workflow']
     }
 
-    mock_api.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.retrieve_run_logs.return_value = [{
+        "machine_name": "unittest1",
+        "runner_name": "much_unit_such_test",
+        "runner_type": "organization",
+        "non_ephemeral": False,
+        "token_permissions": {
+            "Actions": "write"
+        },
+        "runner_group": "Default",
+        "requested_labels": [
+            "self-hosted",
+            "Linux",
+            "X64"
+        ]
+    }]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     test_repo = Repository(repo_data)
@@ -74,9 +86,21 @@ def test_enumerate_repo_admin():
         "scopes": ['repo', 'workflow']
     }
 
-    mock_api.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
-    ]
+    mock_api.retrieve_run_logs.return_value = [{
+        "machine_name": "unittest1",
+        "runner_name": "much_unit_such_test",
+        "runner_type": "organization",
+        "non_ephemeral": False,
+        "token_permissions": {
+            "Actions": "write"
+        },
+        "runner_group": "Default",
+        "requested_labels": [
+            "self-hosted",
+            "Linux",
+            "X64"
+        ]
+    }]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     repo_data['permissions']['admin'] = True
