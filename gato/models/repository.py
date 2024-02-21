@@ -30,8 +30,8 @@ class Repository():
         self.sh_runner_access = False
         self.accessible_runners: List[Runner] = []
         self.runners: List[Runner] = []
-        self.pwn_req_risk = None
-        self.injection_risk = None
+        self.pwn_req_risk = []
+        self.injection_risk = []
 
     def is_admin(self):
         return self.permission_data.get('admin', False)
@@ -53,6 +53,9 @@ class Repository():
 
     def is_public(self):
         return self.repo_data['visibility'] == 'public'
+    
+    def is_fork(self):
+        return self.repo_data['fork']
 
     def can_fork(self):
         return self.repo_data.get('allow_forking', False)
@@ -72,10 +75,10 @@ class Repository():
         self.org_secrets = secrets
 
     def set_pwn_request(self, pwn_request_package: dict):
-        self.pwn_req_risk = pwn_request_package
+        self.pwn_req_risk.append(pwn_request_package)
 
     def set_injection(self, injection_package: dict):
-        self.injection_risk = injection_package
+        self.injection_risk.append(injection_package)
 
     def set_secrets(self, secrets: List[Secret]):
         """Sets secrets that are attached to this repository.

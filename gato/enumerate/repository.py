@@ -6,6 +6,7 @@ from gato.cli import Output
 from gato.models import Repository, Secret, Runner
 from gato.github import Api
 from gato.workflow_parser import WorkflowParser
+from gato.workflow_parser import CompositeParser
 
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,36 @@ class RepositoryEnum():
             runner_detected = True
 
         return runner_detected
+    
+    def __augment_composite_info(self, repository, comp_actions, comp_action_contents):
+        """
+        """
+        for comp_action in comp_actions:
+            if comp_action['key'] in comp_action_contents:
+                contents = comp_action_contents[comp_action['key']]
+            
+                parsed_action = CompositeParser(contents)
+                if parsed_action.is_composite():
+                    composite_injection = parsed_action.check_injection()
+                    if composite_injection:
+                        Output.result(
+                            f"The composite action {Output.bright(comp_action['key'])} referenced by {repository.name} runs on a risky trigger "
+                            f"and uses values by context within run/script steps!"
+                        )
+
+                        #injection_package = {
+                        #    "composite_action_name": action,
+                        #    "details": composite_injection
+                        #}
+
+                        #repository.set_injection(injection_package)
+                        Output.tabbed(f"Examine the variables and gating: " + json.dumps(composite_injection, indent=4))
+                        Output.info(f"You can access the composite action at: "
+                            f"{repository.repo_data['html_url']}/blob/"
+                            f"{repository.repo_data['default_branch']}/"
+                            f"{comp_action['key']}"
+                        )
+
 
     def __perform_yml_enumeration(self, repository: Repository):
         """Enumerates the repository using the API to extract yml files. This
@@ -81,11 +112,30 @@ class RepositoryEnum():
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
                 self_hosted_jobs = parsed_yml.self_hosted()
 
+                composite_actions = parsed_yml.extract_composite_actions()
+                if composite_actions:
+                    comp_action_contents = self.api.retrieve_composite_actions(
+                        repository.name, composite_actions
+                    )
+                    if comp_action_contents:
+                        self.__augment_composite_info(repository, composite_actions, comp_action_contents)
+
                 wf_injection = parsed_yml.check_injection()
 
                 workflow_url = f"{repository.repo_data['html_url']}/blob/{repository.repo_data['default_branch']}/.github/workflows/{parsed_yml.wf_name}"
-                
-                if wf_injection:
+                pwn_reqs = parsed_yml.check_pwn_request()
+
+                # We aren't interested in pwn request or injection vulns in forks
+                # they are likely not viable due to actions being disabled or there
+                # is no impact.
+                skip_injection = False
+                if pwn_reqs or wf_injection:
+                    repo_info = self.api.get_repository(repository.name)
+                    if repo_info and repo_info['fork']:
+                        skip_injection = True
+            
+
+                if wf_injection and not skip_injection:
                     Output.result(
                         f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
                         f"and uses values by context within run/script steps!"
@@ -106,8 +156,8 @@ class RepositoryEnum():
                         f".github/workflows/{parsed_yml.wf_name}"
                     )
 
-                pwn_reqs = parsed_yml.check_pwn_request()
-                if pwn_reqs:
+
+                if wf_injection and not skip_injection:
                     Output.result(
                         f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
                         f"and might check out the PR code, see if it runs it!"
@@ -136,8 +186,9 @@ class RepositoryEnum():
                         if not success:
                             logger.warning("Failed to write yml to disk!")
 
+                
             # At this point we only know the extension, so handle and
-            #  ignore malformed yml files.
+            # ignore malformed yml files.
             except yaml.parser.ParserError as parse_error:
                 logger.warning("Attmpted to parse invalid yaml!")
             except Exception as general_error:

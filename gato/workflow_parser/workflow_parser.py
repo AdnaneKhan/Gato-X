@@ -4,6 +4,8 @@ from pathlib import Path
 import os
 import re
 
+from gato.workflow_parser.utility import check_sus, process_steps
+
 from yaml.resolver import Resolver
 
 logger = logging.getLogger(__name__)
@@ -102,6 +104,35 @@ class WorkflowParser():
                 dirpath, f'{self.repo_name}/{self.wf_name}'), 'w') as wf_out:
             wf_out.write(self.raw_yaml)
             return True
+        
+    def extract_composite_actions(self):
+        """
+        Extracts composite actions from the workflow file.
+        """
+        composite_actions = []
+        vulnerable_triggers = self.get_vulnerable_triggers()
+        if not vulnerable_triggers:
+            return []
+
+        if 'jobs' not in self.parsed_yml:
+            return composite_actions
+        
+        for _, job_details in self.parsed_yml['jobs'].items():
+            for step in job_details.get('steps', []):
+                if 'uses' in step and step['uses']:
+                    action_parts = {
+                        "key": step['uses'],
+                        "path": step['uses'].split('@')[0] if '@' in step['uses'] else step['uses'],
+                        "ref": step['uses'].split('@')[1] if '@' in step['uses'] else '',
+                        "local": step['uses'].startswith('./'),
+                        "args": step.get('with', {})
+                    }
+                    
+                    # Don't investigate GitHub maintained actions
+                    if not action_parts['path'].startswith('actions/'):
+                        composite_actions.append(action_parts)
+                            
+        return composite_actions
 
     def extract_step_contents(self):
         """Extract the contents of 'run' steps and steps that use actions/github-script.
@@ -123,13 +154,9 @@ class WorkflowParser():
                 "if_check": job_details.get('if', '')
             }
 
-            for step in job_details.get('steps', []):
-                step_name = step.get('name', 'NAME_NOT_SET')
-                step_if_check = step.get('if', '')
-                if 'run' in step:
-                    job_content["check_steps"].append({step_name: {"contents": step['run'], "if_check": step_if_check}})
-                elif step.get('uses', '') == 'actions/github-script' and 'with' in step and 'script' in step['with']:
-                    job_content["check_steps"].append({step_name: {"contents": step['with']['script'], "if_check": step_if_check}})
+            processed_steps = process_steps(job_details.get('steps', []))
+            if processed_steps:
+                job_content["check_steps"] = processed_steps
 
             jobs_contents[job_name] = job_content
         return jobs_contents
@@ -152,9 +179,15 @@ class WorkflowParser():
                 if trigger in risky_triggers:
                     vulnerable_triggers.append(trigger)
         elif isinstance(triggers, dict):
-            for trigger, _ in triggers.items():
+            for trigger, trigger_conditions in triggers.items():
                 if trigger in risky_triggers:
-                    vulnerable_triggers.append(trigger)
+                    if trigger_conditions and 'types' in trigger_conditions:
+                        # If the trigger is only for labeled events, we can ignore it,
+                        # but if there are other triggers there is the SE possibility.
+                        if 'labeled' in trigger_conditions['types'] and len(trigger_conditions['types']) == 1:
+                            continue
+                        
+                        vulnerable_triggers.append(trigger)
 
         return vulnerable_triggers
 
@@ -220,34 +253,6 @@ class WorkflowParser():
                 return True
         return False
 
-    @classmethod
-    def check_sus(cls, item):
-        """
-        Check if the given item starts with any of the predefined suspicious prefixes.
-
-        This method is used to identify potentially unsafe or suspicious variables in a GitHub Actions workflow.
-        It checks if the item starts with any of the prefixes defined in PREFIX_VALUES. These prefixes are typically
-        used to reference variables in a GitHub Actions workflow, and if a user-controlled variable is referenced
-        without proper sanitization, it could lead to a script injection vulnerability.
-
-        Args:
-            item (str): The item to check.
-
-        Returns:
-            bool: True if the item starts with any of the suspicious prefixes, False otherwise.
-        """
-
-        PREFIX_VALUES = [
-            "needs.",
-            "env.",
-            "steps.",
-            "jobs."
-        ]
-
-        for prefix in PREFIX_VALUES:
-            if item.lower().startswith(prefix):
-                return True
-        return False
 
     def check_injection(self):
         """Check for potential script injection vulnerabilities.
@@ -260,29 +265,29 @@ class WorkflowParser():
             return {}
 
         jobs_contents = self.extract_step_contents()
+
         injection_risk = {}
 
-        context_expression_regex = r'\$\{\{ ([A-Za-z0-9]+\.[A-Za-z0-9]+\..*?) \}\}'
+        context_expression_regex = r'\$\{\{ ([A-Za-z0-9]+\.[A-Za-z0-9]+.*?) \}\}'
 
         for job_name, job_content in jobs_contents.items():
             steps_risk = {}
-            for step in job_content['check_steps']:
-                for step_name, step_details in step.items():
-                    if step_details['contents']:
-                        tokens = re.findall(context_expression_regex, step_details['contents'])
-                    else:
-                        continue
-                    # First we get known unsafe
-                    tokens_knownbad = [item for item in tokens if item.lower() in self.UNSAFE_CONTEXTS]
-                    # And then we add anything referenced 
-                    tokens_sus = [item for item in tokens if self.check_sus(item)]
-                    tokens = tokens_knownbad + tokens_sus
-                    if tokens:
-                        steps_risk[step_name] = {
-                            "variables": list(set(tokens))             
-                        }
-                        if step_details.get('if_check', []):
-                            steps_risk[step_name]['if_checks'] = step_details['if_check']
+            for step in job_content['check_steps']: 
+                if step['contents']:
+                    tokens = re.findall(context_expression_regex, step['contents'])
+                else:
+                    continue
+                # First we get known unsafe
+                tokens_knownbad = [item for item in tokens if item.lower() in self.UNSAFE_CONTEXTS]
+                # And then we add anything referenced 
+                tokens_sus = [item for item in tokens if check_sus(item)]
+                tokens = tokens_knownbad + tokens_sus
+                if tokens:
+                    steps_risk[step['step_name']] = {
+                        "variables": list(set(tokens))             
+                    }
+                    if step.get('if_check', []):
+                        steps_risk[step['step_name']]['if_checks'] = step['if_check']
 
             if steps_risk:
                 injection_risk['triggers'] = vulnerable_triggers 

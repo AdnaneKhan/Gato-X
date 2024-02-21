@@ -1050,6 +1050,36 @@ class Api():
 
         return secrets
 
+    def retrieve_composite_actions(self, repo_name: str, composite_actions: list):
+        """Uses the repository contents API to retrieve the contents of the composite action.
+        """
+
+        referenced_actions = {}
+
+        for composite in composite_actions:
+            if composite['local']:
+                resp = self.call_get(
+                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml'
+                )
+
+            elif composite['ref']:
+                resp = self.call_get(
+                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml?ref={composite["ref"]}'
+                )
+                
+            else:
+                resp = self.call_get(
+                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml'
+                )
+
+            if resp.status_code == 200:
+                content = base64.b64decode(resp.json()['content']).decode()
+                referenced_actions[composite['key']] = content
+            else:
+                pass
+
+        return referenced_actions
+
     def get_repo_org_secrets(self, repo_name: str):
         """Issues an API call to the GitHub API to list org secrets for a
         repository. This will succeed as long as the token has the repo scope
