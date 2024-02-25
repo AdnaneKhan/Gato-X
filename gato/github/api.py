@@ -170,6 +170,11 @@ class Api():
                             log_package["non_ephemeral"] = non_ephemeral
 
                             index += 1
+                        
+                        # Continue if there is no runner name. This means
+                        # we picked up a pending workflow.
+                        if not runner_name:
+                            continue
 
                         log_package = {
                             "requested_labels": labels,
@@ -704,7 +709,7 @@ class Api():
         start_date = datetime.now() - timedelta(days = 60)
         runs = self.call_get(
             f'/repos/{repo_name}/actions/runs', params={
-                "per_page": "30",
+                "per_page": "50",
                 "status":"completed",
                 "exclude_pull_requests": "true",
                 "created":f">{start_date.isoformat()}"
@@ -1063,14 +1068,25 @@ class Api():
                 )
 
             elif composite['ref']:
-                resp = self.call_get(
-                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml?ref={composite["ref"]}'
-                )
                 
+                if len(composite["path"].split('/')) > 2:
+                    repo_path = "/".join(composite["path"].split("/", 2)[:2])
+                    composite_path = "/".join(composite["path"].split("/", 2)[2:])
+
+                    resp = self.call_get(
+                        f'/repos/{repo_path}/contents/{composite_path}/action.yml?ref={composite["ref"]}'
+                    )
+                else:
+                    resp = self.call_get(
+                    f'/repos/{composite["path"]}/contents/action.yml?ref={composite["ref"]}'
+                    )
+
+                if resp.status_code == 404:
+                    print(f'TEMP FOR DEV, Got 404: /repos/{composite["path"]}/contents/action.yml?ref={composite["ref"]}')
             else:
                 resp = self.call_get(
-                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml'
-                )
+                    f'/repos/{composite["path"]}/contents/action.yml'
+                    )
 
             if resp.status_code == 200:
                 content = base64.b64decode(resp.json()['content']).decode()

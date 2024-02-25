@@ -47,6 +47,9 @@ class Repository():
 
     def is_private(self):
         return self.repo_data['private']
+    
+    def is_archived(self):
+        return self.repo_data['archived']
 
     def is_internal(self):
         return self.repo_data['visibility'] == 'internal'

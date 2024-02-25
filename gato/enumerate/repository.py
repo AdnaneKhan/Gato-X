@@ -157,7 +157,7 @@ class RepositoryEnum():
                     )
 
 
-                if wf_injection and not skip_injection:
+                if pwn_reqs and not skip_injection:
                     Output.result(
                         f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
                         f"and might check out the PR code, see if it runs it!"
@@ -301,6 +301,9 @@ class RepositoryEnum():
                 continue
                 
             if 'nameWithOwner' not in result:
+                continue
+
+            if 'isArchived' in result and result['isArchived']:
                 continue
 
             owner = result['nameWithOwner']

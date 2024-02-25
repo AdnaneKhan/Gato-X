@@ -186,7 +186,8 @@ class WorkflowParser():
                         # but if there are other triggers there is the SE possibility.
                         if 'labeled' in trigger_conditions['types'] and len(trigger_conditions['types']) == 1:
                             continue
-                        
+                        vulnerable_triggers.append(trigger)
+                    else:
                         vulnerable_triggers.append(trigger)
 
         return vulnerable_triggers
@@ -203,7 +204,9 @@ class WorkflowParser():
 
         for job_name, job_details in self.parsed_yml['jobs'].items():
             for step in job_details.get('steps', []):
-                if 'uses' in step and step['uses'] and 'actions/checkout' in step['uses'] \
+                # Check more more than just actions/checkout in case there are alternatives
+                # in use.
+                if 'uses' in step and step['uses'] and '/checkout' in step['uses'] \
                         and 'with' in step and 'ref' in step['with']:
                     ref_values.append(step['with']['ref'])
 
@@ -216,6 +219,7 @@ class WorkflowParser():
             dict: A dictionary containing the job names as keys and a list of potentially vulnerable tokens as values.
         """
         vulnerable_triggers = self.get_vulnerable_triggers()
+
         if not vulnerable_triggers:
             return {}
 
@@ -249,6 +253,7 @@ class WorkflowParser():
         ]
 
         for prefix in PR_ISH_VALUES:
+            
             if prefix in item.lower():
                 return True
         return False

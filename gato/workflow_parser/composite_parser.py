@@ -75,8 +75,8 @@ class CompositeParser():
 
         steps = self.parsed_yml['runs'].get('steps', [])
         processed_steps = process_steps(steps)
-
         for step in processed_steps:
+            
             if step['contents']:
                 tokens = re.findall(context_expression_regex, step['contents'])
             else:

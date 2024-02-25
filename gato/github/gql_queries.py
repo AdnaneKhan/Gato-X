@@ -8,6 +8,7 @@ class GqlQueries():
     fragment repoWorkflows on Repository {
         nameWithOwner
         isPrivate
+        isArchived
         viewerPermission
         defaultBranchRef {
             name
@@ -35,6 +36,7 @@ class GqlQueries():
         nodes(ids: $node_ids) {
             ... on Repository {
                 nameWithOwner
+                isArchived
                 object(expression: "HEAD:.github/workflows/") {
                     ... on Tree {
                         entries {

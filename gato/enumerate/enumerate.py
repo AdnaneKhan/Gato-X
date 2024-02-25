@@ -186,11 +186,14 @@ class Enumerator:
             else:
                 Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
         for repo in enum_list:
+            if repo.is_archived():
+                continue
+            if self.skip_log and repo.is_fork():
+                continue
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
-
-            self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 100)
+            self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 25)
             self.repo_e.enumerate_repository_secrets(repo)
 
             Recommender.print_repo_secrets(
