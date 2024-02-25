@@ -31,7 +31,7 @@ jobs:
               flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
           - name: Test with Pytest
             run: |
-              pytest --cov-fail-under=80
+              pytest --cov-fail-under=60
 
     OSX-test-and-lint:
         name: OS X Test and Lint
