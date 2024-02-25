@@ -146,7 +146,6 @@ class RepositoryEnum():
                     }
 
                     update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
-                    print(update_date)
 
                     repository.set_injection(injection_package)
 
