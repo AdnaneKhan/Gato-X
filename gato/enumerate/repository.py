@@ -3,10 +3,11 @@ import json
 import yaml
 
 from gato.cli import Output
-from gato.models import Repository, Secret, Runner
+from gato.models import Repository, Secret, Runner, Workflow
 from gato.github import Api
 from gato.workflow_parser import WorkflowParser
 from gato.workflow_parser import CompositeParser
+from gato.caching import CacheManager
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,6 @@ class RepositoryEnum():
             api (Api): GitHub API wraper object.
         """
         self.api = api
-        self.workflow_cache = {}
         self.skip_log = skip_log
         self.output_yaml = output_yaml
 
@@ -88,8 +88,6 @@ class RepositoryEnum():
                             f"{repository.repo_data['default_branch']}/"
                             f"{comp_action['key']}"
                         )
-
-
     def __perform_yml_enumeration(self, repository: Repository):
         """Enumerates the repository using the API to extract yml files. This
         does not generate any git clone audit log events.
@@ -102,14 +100,14 @@ class RepositoryEnum():
         """
         runner_wfs = []
 
-        if repository.name in self.workflow_cache:
-            ymls = self.workflow_cache[repository.name]
+        if  CacheManager().is_repo_cached(repository.name):
+            ymls = CacheManager().get_workflows(repository.name)
         else:
             ymls = self.api.retrieve_workflow_ymls(repository.name)
 
-        for (wf, yml) in ymls:
+        for workflow in ymls:
             try:
-                parsed_yml = WorkflowParser(yml, repository.name, wf)
+                parsed_yml = WorkflowParser(workflow.workflow_contents, repository.name, workflow.workflow_name)
                 self_hosted_jobs = parsed_yml.self_hosted()
 
                 composite_actions = parsed_yml.extract_composite_actions()
@@ -147,6 +145,9 @@ class RepositoryEnum():
                         "details": wf_injection
                     }
 
+                    update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
+                    print(update_date)
+
                     repository.set_injection(injection_package)
 
                     Output.tabbed(f"Examine the variables and gating: " + json.dumps(wf_injection, indent=4))
@@ -155,8 +156,6 @@ class RepositoryEnum():
                         f"{repository.repo_data['default_branch']}/"
                         f".github/workflows/{parsed_yml.wf_name}"
                     )
-
-
                 if pwn_reqs and not skip_injection:
                     Output.result(
                         f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
@@ -179,7 +178,7 @@ class RepositoryEnum():
                     )
 
                 if self_hosted_jobs:
-                    runner_wfs.append(wf)
+                    runner_wfs.append(workflow.workflow_name)
 
                     if self.output_yaml:
                         success = parsed_yml.output(self.output_yaml)
@@ -195,7 +194,7 @@ class RepositoryEnum():
                 Output.error("Encountered a Gato error (likely a bug) while parsing a workflow:")
                 import traceback
                 traceback.print_exc()
-                print(f"{wf}: {str(general_error)}")
+                print(f"{workflow.workflow_name}: {str(general_error)}")
 
         return runner_wfs
 
@@ -294,6 +293,8 @@ class RepositoryEnum():
             yml_results (list): List of results from individual GraphQL queries
             (100 nodes at a time).
         """
+
+        cache = CacheManager()
         for result in yml_results:
             # If we get any malformed/missing data just skip it and 
             # Gato will fall back to the contents API for these few cases.
@@ -307,14 +308,14 @@ class RepositoryEnum():
                 continue
 
             owner = result['nameWithOwner']
+            cache.set_empty(owner)
             # Empty means no yamls, so just skip.
             if not result['object']:
-                self.workflow_cache[owner] = list()
                 continue
 
-            self.workflow_cache[owner] = list()
             for yml_node in result['object']['entries']:
                 yml_name = yml_node['name']
                 if yml_name.lower().endswith('yml') or yml_name.lower().endswith('yaml'):
                     contents = yml_node['object']['text']
-                    self.workflow_cache[owner].append((yml_name, contents))
+                    wf_wrapper = Workflow(owner, contents, yml_name)
+                    cache.set_workflow(owner, yml_name, wf_wrapper)

@@ -9,6 +9,7 @@ import io
 
 from gato.cli import Output
 from datetime import datetime, timezone, timedelta
+from gato.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -1002,7 +1003,7 @@ class Api():
                         resp_data = resp.json()
                         if 'content' in resp_data:
                             file_data = base64.b64decode(resp_data['content'])
-                            ymls.append((file['name'], file_data.decode()))
+                            ymls.append(Workflow(repo_name, file_data, file['name']))
 
         return ymls
 
@@ -1119,6 +1120,16 @@ class Api():
                 secrets = secrets_response['secrets']
 
         return secrets
+    
+
+    def get_file_last_updated(self, repo_name: str, file_path: str):
+        resp = self.call_get(
+            f'/repos/{repo_name}/commits',params={"path": file_path}
+        )
+
+        commit_date = resp.json()[0]['commit']['author']['date']
+
+        return commit_date
 
     def commit_workflow(self, repo_name: str,
                         target_branch: str,
