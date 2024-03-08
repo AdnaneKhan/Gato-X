@@ -63,6 +63,9 @@ class Repository():
     def can_fork(self):
         return self.repo_data.get('allow_forking', False)
 
+    def default_path(self):
+        return f"{self.repo_data['html_url']}/blob/{self.repo_data['default_branch']}"
+
     def update_time(self):
         """Update timestamp.
         """

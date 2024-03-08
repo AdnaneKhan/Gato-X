@@ -17,6 +17,15 @@ UNSAFE_CONTEXTS = [
         'github.head_ref'
     ]
 
+# TODO: Move this to a config file.
+SAFE_ISH_CONTEXTS = [
+    "label",
+    "flag",
+    "-number",
+    ".number",
+    "_url"
+]
+
 @staticmethod
 def check_sus(item):
     """
@@ -41,10 +50,31 @@ def check_sus(item):
         "jobs."
     ]
 
+    item_lower = item.lower()
     for prefix in PREFIX_VALUES:
-        if item.lower().startswith(prefix):
-            return True
+        if item_lower.startswith(prefix):
+            for safe_string in SAFE_ISH_CONTEXTS:
+                if safe_string in item:
+                    break
+            else:
+                return True
     return False
+
+@staticmethod
+def process_checkout_steps(steps):
+    """
+    """
+    step_details = []
+    for step in steps:
+        step_name = step.get('name', 'NAME_NOT_SET')
+        step_if_check = step.get('if', '')
+
+        
+        if 'run' in step:
+            step_details.append({"contents": step['run'], "if_check": step_if_check, "step_name": step_name})
+        elif step.get('uses', '') == 'actions/github-script' and 'with' in step and 'script' in step['with']:
+            step_details.append({"contents": step['with']['script'], "if_check": step_if_check, "step_name": step_name})
+    
 
 @staticmethod
 def process_steps(steps):

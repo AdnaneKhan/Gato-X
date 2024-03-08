@@ -1,4 +1,6 @@
 import logging
+import pickle
+import os
 
 from gato.github import Api
 from gato.github import GqlQueries
@@ -7,6 +9,7 @@ from gato.cli import Output
 from gato.enumerate.repository import RepositoryEnum
 from gato.enumerate.organization import OrganizationEnum
 from gato.enumerate.recommender import Recommender
+from gato.caching import CacheManager
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,12 @@ class Enumerator:
             github_url=github_url,
         )
 
+        # # Handle cache manager
+        # # Unpickle the CacheManager instance
+        # if os.path.exists('cache_manager.pkl'):
+        #     with open('cache_manager.pkl', 'rb') as f:
+        #         cache_manager = pickle.load(f)
+
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.skip_log = skip_log
@@ -58,6 +67,12 @@ class Enumerator:
 
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
         self.org_e = OrganizationEnum(self.api)
+
+    # def __del__(self):
+    #     """
+    #     Serialize the CacheManager instance"""
+    #     with open('cache_manager.pkl', 'wb') as f:
+    #         pickle.dump(CacheManager(), f)
 
     def __setup_user_info(self):
         if not self.user_perms:
@@ -223,10 +238,14 @@ class Enumerator:
         if not self.__setup_user_info():
             return False
 
-        repo_data = self.api.get_repository(repo_name)
-        if repo_data:
-            repo = Repository(repo_data)
+        repo = CacheManager().get_repository(repo_name)
 
+        if not repo:
+            repo_data = self.api.get_repository(repo_name)
+            if repo_data:
+                repo = Repository(repo_data)
+
+        if repo:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
@@ -273,7 +292,8 @@ class Enumerator:
                     self.repo_e.construct_workflow_cache(result.json()['data'].values())
                 else:
                     Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
-            except Exception:
+            except Exception as e:
+                print(e)
                 Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
 
         repo_wrappers = []

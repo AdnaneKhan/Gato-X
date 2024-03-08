@@ -2,11 +2,12 @@ import logging
 import json
 import yaml
 
+from datetime import datetime, timedelta
+
 from gato.cli import Output
 from gato.models import Repository, Secret, Runner, Workflow
 from gato.github import Api
 from gato.workflow_parser import WorkflowParser
-from gato.workflow_parser import CompositeParser
 from gato.caching import CacheManager
 
 
@@ -60,34 +61,34 @@ class RepositoryEnum():
 
         return runner_detected
     
-    def __augment_composite_info(self, repository, comp_actions, comp_action_contents):
-        """
-        """
-        for comp_action in comp_actions:
-            if comp_action['key'] in comp_action_contents:
-                contents = comp_action_contents[comp_action['key']]
+    # def __augment_composite_info(self, repository, comp_actions, comp_action_contents):
+    #     """
+    #     """
+    #     for comp_action in comp_actions:
+    #         if comp_action['key'] in comp_action_contents:
+    #             contents = comp_action_contents[comp_action['key']]
             
-                parsed_action = CompositeParser(contents)
-                if parsed_action.is_composite():
-                    composite_injection = parsed_action.check_injection()
-                    if composite_injection:
-                        Output.result(
-                            f"The composite action {Output.bright(comp_action['key'])} referenced by {repository.name} runs on a risky trigger "
-                            f"and uses values by context within run/script steps!"
-                        )
+    #             parsed_action = CompositeParser(contents)
+    #             if parsed_action.is_composite():
+    #                 composite_injection = parsed_action.check_injection()
+    #                 if composite_injection:
+    #                     Output.result(
+    #                         f"The composite action {Output.bright(comp_action['key'])} referenced by {repository.name} runs on a risky trigger "
+    #                         f"and uses values by context within run/script steps!"
+    #                     )
 
-                        #injection_package = {
-                        #    "composite_action_name": action,
-                        #    "details": composite_injection
-                        #}
+    #                     #injection_package = {
+    #                     #    "composite_action_name": action,
+    #                     #    "details": composite_injection
+    #                     #}
 
-                        #repository.set_injection(injection_package)
-                        Output.tabbed(f"Examine the variables and gating: " + json.dumps(composite_injection, indent=4))
-                        Output.info(f"You can access the composite action at: "
-                            f"{repository.repo_data['html_url']}/blob/"
-                            f"{repository.repo_data['default_branch']}/"
-                            f"{comp_action['key']}"
-                        )
+    #                     #repository.set_injection(injection_package)
+    #                     # Output.tabbed(f"Examine the variables and gating: " + json.dumps(composite_injection, indent=4))
+    #                     # Output.info(f"You can access the composite action at: "
+    #                     #     f"{repository.repo_data['html_url']}/blob/"
+    #                     #     f"{repository.repo_data['default_branch']}/"
+    #                     #     f"{comp_action['key']}"
+                        # )
     def __perform_yml_enumeration(self, repository: Repository):
         """Enumerates the repository using the API to extract yml files. This
         does not generate any git clone audit log events.
@@ -110,13 +111,13 @@ class RepositoryEnum():
                 parsed_yml = WorkflowParser(workflow.workflow_contents, repository.name, workflow.workflow_name)
                 self_hosted_jobs = parsed_yml.self_hosted()
 
-                composite_actions = parsed_yml.extract_composite_actions()
-                if composite_actions:
-                    comp_action_contents = self.api.retrieve_composite_actions(
-                        repository.name, composite_actions
-                    )
-                    if comp_action_contents:
-                        self.__augment_composite_info(repository, composite_actions, comp_action_contents)
+                # composite_actions = parsed_yml.extract_composite_actions()
+                # if composite_actions:
+                #     comp_action_contents = self.api.retrieve_composite_actions(
+                #         repository.name, composite_actions
+                #     )
+                #     if comp_action_contents:
+                #         self.__augment_composite_info(repository, composite_actions, comp_action_contents)
 
                 wf_injection = parsed_yml.check_injection()
 
@@ -128,8 +129,7 @@ class RepositoryEnum():
                 # is no impact.
                 skip_injection = False
                 if pwn_reqs or wf_injection:
-                    repo_info = self.api.get_repository(repository.name)
-                    if repo_info and repo_info['fork']:
+                    if repository.is_fork():
                         skip_injection = True
             
 
@@ -145,7 +145,9 @@ class RepositoryEnum():
                         "details": wf_injection
                     }
 
-                    update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
+                    # update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
+                    # if self.is_within_last_7_days(update_date):
+                    #     send_slack_webhook(injection_package)
 
                     repository.set_injection(injection_package)
 
@@ -160,13 +162,27 @@ class RepositoryEnum():
                         f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
                         f"and might check out the PR code, see if it runs it!"
                     )
-                    print(pwn_reqs)
-
+                    Output.info(f'Trigger(s): {pwn_reqs["triggers"]}')
+                    for candidate, details in pwn_reqs['candidates'].items():
+                        Output.info(f'Job: {candidate}')
+                        
+                        if details.get('if_check', ''):
+                            Output.info(f'Job if check: {details["if_check"]}')
+                        for step in details['steps']:
+                            Output.tabbed(f'Ref: {step["ref"]}')
+                            if 'if_check' in step and step['if_check']:
+                               Output.tabbed(f'If check: {step["if_check"]}')
+                            
+                        
                     pwn_request_package = {
                         "workflow_name": parsed_yml.wf_name,
                         "workflow_url": workflow_url,
                         "details": pwn_reqs
                     }
+
+                    # update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
+                    # if self.is_within_last_7_days(update_date):
+                    #     send_slack_webhook(pwn_request_package)
 
                     repository.set_pwn_request(pwn_request_package)
 
@@ -196,6 +212,19 @@ class RepositoryEnum():
                 print(f"{workflow.workflow_name}: {str(general_error)}")
 
         return runner_wfs
+
+    def is_within_last_7_days(self, timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
+        # Convert the timestamp string to a datetime object
+        date = datetime.strptime(timestamp_str, format)
+
+        # Get the current date and time
+        now = datetime.now()
+
+        # Calculate the date 7 days ago
+        seven_days_ago = now - timedelta(days=1)
+
+        # Return True if the date is within the last 7 days, False otherwise
+        return seven_days_ago <= date <= now
 
     def enumerate_repository(self, repository: Repository, large_org_enum=False):
         """Enumerate a repository, and check everything relevant to
@@ -318,3 +347,20 @@ class RepositoryEnum():
                     contents = yml_node['object']['text']
                     wf_wrapper = Workflow(owner, contents, yml_name)
                     cache.set_workflow(owner, yml_name, wf_wrapper)
+            repo_data = {
+                'full_name': result['nameWithOwner'],
+                'html_url': result['url'],
+                'visibility': 'private' if result['isPrivate'] else 'public',
+                'default_branch': result['defaultBranchRef']['name'],
+                'fork': result['isFork'],
+                'permissions': {
+                    'pull': result['viewerPermission'] == 'READ' or result['viewerPermission'] == 'TRIAGE' or result['viewerPermission'] == 'WRITE' or result['viewerPermission'] == 'ADMIN',
+                    'push': result['viewerPermission'] == 'WRITE' or result['viewerPermission'] == 'ADMIN',
+                    'admin': result['viewerPermission'] == 'ADMIN'
+                },
+                'archived': result['isArchived'],
+                'isFork': False
+            }
+
+            repo_wrapper = Repository(repo_data)
+            cache.set_repository(repo_wrapper)

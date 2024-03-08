@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import re
 
+from gato.configuration import ConfigurationManager
 from gato.workflow_parser.utility import check_sus, process_steps
 
 from yaml.resolver import Resolver
@@ -28,48 +29,6 @@ class WorkflowParser():
     This will allow for growing what kind of analytics this tool can perform
     as the project grows in capability.
     """
-
-    UNSAFE_CONTEXTS = [
-        'github.event.issue.title',
-        'github.event.issue.body',
-        'github.event.pull_request.title',
-        'github.event.pull_request.body',
-        'github.event.comment.body',
-        'github.event.review.body',
-        'github.event.head_commit.message',
-        'github.event.head_commit.author.email',
-        'github.event.head_commit.author.name',
-        'github.event.pull_request.head.ref',
-        'github.event.pull_request.head.label',
-        'github.event.pull_request.head.repo.default_branch',
-        'github.head_ref'
-    ]
-
-    # Safe refs, so that we can exclude false positives.
-    SAFE_REFS = [
-        'github.event.pull_request.base.sha'
-    ]
-
-    GITHUB_HOSTED_LABELS = [
-        'ubuntu-latest',
-        'macos-latest',
-        'macOS-latest',
-        'windows-latest',
-        'ubuntu-18.04', # deprecated, but we don't want false positives on older repos.
-        'ubuntu-20.04',
-        'ubuntu-22.04',
-        'windows-2022',
-        'windows-2019',
-        'windows-2016', # deprecated, but we don't want false positives on older repos.
-        'macOS-13',
-        'macOS-12',
-        'macOS-11',
-        'macos-11',
-        'macos-12',
-        'macos-13',
-        'macos-13-xl',
-        'macos-12',
-    ]
 
     LARGER_RUNNER_REGEX_LIST = r'(windows|ubuntu)-(22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb'
     MATRIX_KEY_EXTRACTION_REGEX = r'{{\s*matrix\.([\w-]+)\s*}}'
@@ -134,33 +93,6 @@ class WorkflowParser():
                             
         return composite_actions
 
-    def extract_step_contents(self):
-        """Extract the contents of 'run' steps and steps that use actions/github-script.
-
-        Returns:
-            dict: A dictionary containing the job names as keys and another dictionary as values.
-                  The inner dictionary contains two keys: 'check_steps' and 'if_check'.
-                  'check_steps' maps to a list of dictionaries where each dictionary contains the step name, its contents, and its 'if' check.
-                  'if_check' maps to the 'if' check of the job, if it exists.
-        """
-        jobs_contents = {}
-
-        if 'jobs' not in self.parsed_yml:
-            return jobs_contents
-
-        for job_name, job_details in self.parsed_yml['jobs'].items():
-            job_content = {
-                "check_steps": [],
-                "if_check": job_details.get('if', '')
-            }
-
-            processed_steps = process_steps(job_details.get('steps', []))
-            if processed_steps:
-                job_content["check_steps"] = processed_steps
-
-            jobs_contents[job_name] = job_content
-        return jobs_contents
-
     def get_vulnerable_triggers(self):
         """Analyze if the workflow is set to execute on potentially risky triggers.
 
@@ -198,19 +130,75 @@ class WorkflowParser():
         Returns:
         list: List of 'ref' values within the 'actions/checkout' steps.
         """
-        ref_values = []
+        job_checkouts = {}
         if 'jobs' not in self.parsed_yml:
-            return ref_values
+            return job_checkouts
 
         for job_name, job_details in self.parsed_yml['jobs'].items():
+
+            job_content = {
+                "check_steps": [],
+                "if_check": job_details.get('if', '')
+            }
+            step_details = []
+    
+            early_exit = False
             for step in job_details.get('steps', []):
+                # Start trying to cut down on false positives by catching gating.
+                if 'uses' in step and step['uses'] and ('permission' in step['uses'] or "membership" in step['uses']):
+                    early_exit = True
+                    break
                 # Check more more than just actions/checkout in case there are alternatives
                 # in use.
                 if 'uses' in step and step['uses'] and '/checkout' in step['uses'] \
                         and 'with' in step and 'ref' in step['with']:
-                    ref_values.append(step['with']['ref'])
+                    step_name = step.get('name', 'NAME_NOT_SET')
+                    step_if_check = step.get('if', '')
+                    step_details.append({"ref": step['with']['ref'], "if_check": step_if_check, "step_name": step_name})
+                elif 'run' in step and step['run'] and ('git checkout' in step['run'] or 'gh pr checkout' in step['run']):
+                    pattern = r'checkout ([$.\w]*(?:head|merge|number)[.\w]*)'
+                    match = re.search(pattern, step['run'], re.IGNORECASE)
+                    if match:
+                        ref = match.group(1)
+                        step_name = step.get('name', 'NAME_NOT_SET')
+                        step_if_check = step.get('if', '')
+                        step_details.append({"ref": ref, "if_check": step_if_check, "step_name": step_name})
 
-        return ref_values
+
+            if early_exit:
+                early_exit = False
+                continue
+            job_content["check_steps"] = step_details
+            job_checkouts[job_name] = job_content
+
+        return job_checkouts
+
+    def extract_step_contents(self):
+        """Extract the contents of 'run' steps and steps that use actions/github-script.
+
+        Returns:
+            dict: A dictionary containing the job names as keys and another dictionary as values.
+                  The inner dictionary contains two keys: 'check_steps' and 'if_check'.
+                  'check_steps' maps to a list of dictionaries where each dictionary contains the step name, its contents, and its 'if' check.
+                  'if_check' maps to the 'if' check of the job, if it exists.
+        """
+        jobs_contents = {}
+
+        if 'jobs' not in self.parsed_yml:
+            return jobs_contents
+
+        for job_name, job_details in self.parsed_yml['jobs'].items():
+            job_content = {
+                "check_steps": [],
+                "if_check": job_details.get('if', '')
+            }
+
+            processed_steps = process_steps(job_details.get('steps', []))
+            if processed_steps:
+                job_content["check_steps"] = processed_steps
+
+            jobs_contents[job_name] = job_content
+        return jobs_contents
 
     def check_pwn_request(self):
         """Check for potential script injection vulnerabilities.
@@ -219,18 +207,29 @@ class WorkflowParser():
             dict: A dictionary containing the job names as keys and a list of potentially vulnerable tokens as values.
         """
         vulnerable_triggers = self.get_vulnerable_triggers()
-
         if not vulnerable_triggers:
             return {}
+        checkout_risk = {}
+        candidates = {}
+        
+        checkout_info = self.analyze_checkouts()
+        for job_name, job_content in checkout_info.items():
+            steps_risk = [step for step in job_content['check_steps'] if self.check_pr_ref(step['ref'])]
+   
+            if steps_risk:
+                candidates[job_name] = {}
+                candidates[job_name]['steps'] = steps_risk
+                if 'if_check' in job_content and job_content['if_check']:
+                     
+                    candidates[job_name]['if_check'] = job_content['if_check']
+                else:
+                    candidates[job_name]['if_check'] = ''
+                
+        if candidates:
+            checkout_risk['candidates'] = candidates
+            checkout_risk['triggers'] = vulnerable_triggers
 
-        checkout_refs = self.analyze_checkouts()
-
-        if checkout_refs:
-            cleaned_refs = list(set([ref for ref in checkout_refs if self.check_pr_ref(ref)]))
-            if cleaned_refs:
-                return 'Refs: ' + ' '.join(cleaned_refs)
-            else:
-                return {}
+        return checkout_risk
 
     @classmethod
     def check_pr_ref(cls, item):
@@ -249,7 +248,8 @@ class WorkflowParser():
         PR_ISH_VALUES = [
             "head",
             "pr",
-            "pull"
+            "pull",
+            "merge"
         ]
 
         for prefix in PR_ISH_VALUES:
@@ -283,7 +283,7 @@ class WorkflowParser():
                 else:
                     continue
                 # First we get known unsafe
-                tokens_knownbad = [item for item in tokens if item.lower() in self.UNSAFE_CONTEXTS]
+                tokens_knownbad = [item for item in tokens if item.lower() in ConfigurationManager().WORKFLOW_PARSING['UNSAFE_CONTEXTS']]
                 # And then we add anything referenced 
                 tokens_sus = [item for item in tokens if check_sus(item)]
                 tokens = tokens_knownbad + tokens_sus
@@ -348,24 +348,25 @@ class WorkflowParser():
                         # GitHub hosted
                         for key in os_list:
                             if type(key) == str:
-                                if key not in self.GITHUB_HOSTED_LABELS and not re.match(self.LARGER_RUNNER_REGEX_LIST, key):
+                                if key not in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS'] and not re.match(self.LARGER_RUNNER_REGEX_LIST, key):
                                     sh_jobs.append((jobname, job_details))
                                     break
                     pass
                 else:
                     if type(runs_on) == list:
                         for label in runs_on:
-                            if label in self.GITHUB_HOSTED_LABELS:
+                            if label in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS']:
                                 break
                             if re.match(self.LARGER_RUNNER_REGEX_LIST, label):
                                 break
                         else:
                             sh_jobs.append((jobname, job_details))
                     elif type(runs_on) == str:
-                        if runs_on in self.GITHUB_HOSTED_LABELS:
+                        if runs_on in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS']:
                             break
                         if re.match(self.LARGER_RUNNER_REGEX_LIST, runs_on):
                             break
                         sh_jobs.append((jobname, job_details))
 
         return sh_jobs
+    

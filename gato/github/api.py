@@ -125,11 +125,10 @@ class Api():
 
         with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
-                if zipinfo.filename.startswith('0_'):
+                if re.match('[0-9]{1}_.*', zipinfo.filename):
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
                         content_lines = content.split('\n')
-
                         if "Image Release: https://github.com/actions/runner-images" in content or \
                             "Job is about to start running on the hosted runner: GitHub Actions" in content:
                             # Larger runners will appear to be self-hosted, but
@@ -140,8 +139,7 @@ class Api():
                         index = 0
                         while index < len(content_lines) and content_lines[index]: 
                             line = content_lines[index]
-
-                            if "Requested labels: " in line: 
+                            if "Requested labels: " in line:
                                 labels = line.split("Requested labels: ")[1].split(', ')
 
                             if "Runner name: " in line:
@@ -150,7 +148,7 @@ class Api():
                             if "Machine name: " in line:
                                 machine_name = line.split("Machine name: ")[1].replace("'", "")
 
-                            if "Runner group name:" in line: 
+                            if "Runner group name:" in line:
                                 runner_group = line.split("Runner group name: ")[1].replace("'", "")
 
                             if "Job is about to start running on" in line:
@@ -1130,6 +1128,27 @@ class Api():
         commit_date = resp.json()[0]['commit']['author']['date']
 
         return commit_date
+
+    def get_environment_protection_rules(self, repo_name: str, environment_name: str):
+        """
+        Query if a specific environment exists for a GitHub repository and return the protection rules array.
+
+        Args:
+            owner (str): The owner of the repository.
+            repo (str): The name of the repository.
+            environment_name (str): The name of the environment.
+
+        Returns:
+            list: The protection rules array if the environment exists, None otherwise.
+        """
+        url = f"/repos/{repo_name}/environments/{environment_name}"
+        response = self.call_get(url)
+
+        if response.status_code == 200:
+            environment_info = response.json()
+            return environment_info.get('protection_rules', None)
+
+        return None
 
     def commit_workflow(self, repo_name: str,
                         target_branch: str,

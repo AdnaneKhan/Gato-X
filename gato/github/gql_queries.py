@@ -10,6 +10,9 @@ class GqlQueries():
         isPrivate
         isArchived
         viewerPermission
+        url
+        isFork
+        pushedAt
         defaultBranchRef {
             name
         }
@@ -36,7 +39,15 @@ class GqlQueries():
         nodes(ids: $node_ids) {
             ... on Repository {
                 nameWithOwner
+                isPrivate
                 isArchived
+                viewerPermission
+                pushedAt
+                url
+                isFork
+                defaultBranchRef {
+                    name
+                }
                 object(expression: "HEAD:.github/workflows/") {
                     ... on Tree {
                         entries {
