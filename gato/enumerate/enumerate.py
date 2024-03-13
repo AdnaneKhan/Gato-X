@@ -1,4 +1,6 @@
 import logging
+import pickle
+import os
 
 from gato.github import Api
 from gato.github import GqlQueries
@@ -7,6 +9,7 @@ from gato.cli import Output
 from gato.enumerate.repository import RepositoryEnum
 from gato.enumerate.organization import OrganizationEnum
 from gato.enumerate.recommender import Recommender
+from gato.caching import CacheManager
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,12 @@ class Enumerator:
             github_url=github_url,
         )
 
+        # # Handle cache manager
+        # # Unpickle the CacheManager instance
+        # if os.path.exists('cache_manager.pkl'):
+        #     with open('cache_manager.pkl', 'rb') as f:
+        #         cache_manager = pickle.load(f)
+
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.skip_log = skip_log
@@ -58,6 +67,12 @@ class Enumerator:
 
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
         self.org_e = OrganizationEnum(self.api)
+
+    # def __del__(self):
+    #     """
+    #     Serialize the CacheManager instance"""
+    #     with open('cache_manager.pkl', 'wb') as f:
+    #         pickle.dump(CacheManager(), f)
 
     def __setup_user_info(self):
         if not self.user_perms:
@@ -176,8 +191,9 @@ class Enumerator:
 
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
-  
-        for wf_query in wf_queries:
+
+        for i, wf_query in enumerate(wf_queries):
+            Output.info(f"Querying {i} out of {len(wf_queries)} batches!")
             result = self.org_e.api.call_post('/graphql', wf_query)
             # Sometimes we don't get a 200, fall back in this case.
             if result.status_code == 200:
@@ -185,11 +201,14 @@ class Enumerator:
             else:
                 Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
         for repo in enum_list:
+            if repo.is_archived():
+                continue
+            if self.skip_log and repo.is_fork():
+                continue
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
-
-            self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 100)
+            self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 25)
             self.repo_e.enumerate_repository_secrets(repo)
 
             Recommender.print_repo_secrets(
@@ -207,26 +226,30 @@ class Enumerator:
 
         return organization
 
-    def enumerate_repo_only(self, repo_name: str):
+    def enumerate_repo_only(self, repo_name: str, large_enum=False):
         """Enumerate only a single repository. No checks for org-level
         self-hosted runners will be performed in this case.
 
         Args:
             repo_name (str): Repository name in {Org/Owner}/Repo format.
-            clone (bool, optional): Whether to clone the repo
-            in order to analayze the yaml files. Defaults to True.
+            large_enum (bool, optional): Whether to only download
+            run logs when workflow analysis detects runners. Defaults to False.
         """
         if not self.__setup_user_info():
             return False
 
-        repo_data = self.api.get_repository(repo_name)
-        if repo_data:
-            repo = Repository(repo_data)
+        repo = CacheManager().get_repository(repo_name)
 
+        if not repo:
+            repo_data = self.api.get_repository(repo_name)
+            if repo_data:
+                repo = Repository(repo_data)
+
+        if repo:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
-            self.repo_e.enumerate_repository(repo)
+            self.repo_e.enumerate_repository(repo, large_org_enum=large_enum)
             self.repo_e.enumerate_repository_secrets(repo)
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
@@ -241,7 +264,7 @@ class Enumerator:
         else:
             Output.warn(
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
-                " exist or the user does not have access."
+                "exist or the user does not have access."
             )
 
     def enumerate_repos(self, repo_names: list):
@@ -258,9 +281,24 @@ class Enumerator:
             Output.error("The list of repositories was empty!")
             return
 
+        Output.info(f"Querying and caching workflow YAML files from {len(repo_names)} repositories!")
+        queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
+
+        for i, wf_query in enumerate(queries):
+            Output.info(f"Querying {i} out of {len(queries)} batches!")
+            try:
+                result = self.repo_e.api.call_post('/graphql', wf_query)
+                if result.status_code == 200:
+                    self.repo_e.construct_workflow_cache(result.json()['data'].values())
+                else:
+                    Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
+            except Exception as e:
+                print(e)
+                Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
+
         repo_wrappers = []
         for repo in repo_names:
-            repo_obj = self.enumerate_repo_only(repo)
+            repo_obj = self.enumerate_repo_only(repo, len(repo_names) > 100)
             if repo_obj:
                 repo_wrappers.append(repo_obj)
 

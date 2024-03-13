@@ -30,6 +30,8 @@ class Repository():
         self.sh_runner_access = False
         self.accessible_runners: List[Runner] = []
         self.runners: List[Runner] = []
+        self.pwn_req_risk = []
+        self.injection_risk = []
 
     def is_admin(self):
         return self.permission_data.get('admin', False)
@@ -45,15 +47,24 @@ class Repository():
 
     def is_private(self):
         return self.repo_data['private']
+    
+    def is_archived(self):
+        return self.repo_data['archived']
 
     def is_internal(self):
         return self.repo_data['visibility'] == 'internal'
 
     def is_public(self):
         return self.repo_data['visibility'] == 'public'
+    
+    def is_fork(self):
+        return self.repo_data['fork']
 
     def can_fork(self):
         return self.repo_data.get('allow_forking', False)
+
+    def default_path(self):
+        return f"{self.repo_data['html_url']}/blob/{self.repo_data['default_branch']}"
 
     def update_time(self):
         """Update timestamp.
@@ -68,6 +79,12 @@ class Repository():
             secrets (List[Secret]): List of Secret wrapper objects.
         """
         self.org_secrets = secrets
+
+    def set_pwn_request(self, pwn_request_package: dict):
+        self.pwn_req_risk.append(pwn_request_package)
+
+    def set_injection(self, injection_package: dict):
+        self.injection_risk.append(injection_package)
 
     def set_secrets(self, secrets: List[Secret]):
         """Sets secrets that are attached to this repository.
@@ -112,6 +129,8 @@ class Repository():
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],
+            "pwn_request_risk": self.pwn_req_risk,
+            "injection_risk": self.injection_risk
         }
 
         return representation

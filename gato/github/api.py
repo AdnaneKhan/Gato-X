@@ -9,6 +9,7 @@ import io
 
 from gato.cli import Output
 from datetime import datetime, timezone, timedelta
+from gato.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +125,10 @@ class Api():
 
         with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
-                if zipinfo.filename.startswith('0_'):
+                if re.match('[0-9]{1}_.*', zipinfo.filename):
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
                         content_lines = content.split('\n')
-
                         if "Image Release: https://github.com/actions/runner-images" in content or \
                             "Job is about to start running on the hosted runner: GitHub Actions" in content:
                             # Larger runners will appear to be self-hosted, but
@@ -139,8 +139,7 @@ class Api():
                         index = 0
                         while index < len(content_lines) and content_lines[index]: 
                             line = content_lines[index]
-
-                            if "Requested labels: " in line: 
+                            if "Requested labels: " in line:
                                 labels = line.split("Requested labels: ")[1].split(', ')
 
                             if "Runner name: " in line:
@@ -149,7 +148,7 @@ class Api():
                             if "Machine name: " in line:
                                 machine_name = line.split("Machine name: ")[1].replace("'", "")
 
-                            if "Runner group name:" in line: 
+                            if "Runner group name:" in line:
                                 runner_group = line.split("Runner group name: ")[1].replace("'", "")
 
                             if "Job is about to start running on" in line:
@@ -170,6 +169,11 @@ class Api():
                             log_package["non_ephemeral"] = non_ephemeral
 
                             index += 1
+                        
+                        # Continue if there is no runner name. This means
+                        # we picked up a pending workflow.
+                        if not runner_name:
+                            continue
 
                         log_package = {
                             "requested_labels": labels,
@@ -214,7 +218,7 @@ class Api():
             expected_code (int): Expected status code from the request.
         """
         if response.status_code != expected_code:
-            logger.warn(
+            logger.warning(
                 f"Expected status code {expected_code}, but got "
                 f"{response.status_code}!"
             )
@@ -242,10 +246,17 @@ class Api():
         if strip_auth:
             del get_header['Authorization']
 
-        logger.debug(f'Making GET API request to {request_url}!')
-        api_response = requests.get(request_url, headers=get_header,
-                                    proxies=self.proxies, params=params,
-                                    verify=self.verify_ssl)
+        for i in range(0, 5):
+            try:
+                logger.debug(f'Making GET API request to {request_url}!')
+                api_response = requests.get(request_url, headers=get_header,
+                                            proxies=self.proxies, params=params,
+                                            verify=self.verify_ssl)
+                break
+            except Exception:
+                logger.warning("GET request failed due to transport error re-trying!")
+                continue
+
         logger.debug(
             f'The GET request to {request_url} returned a'
             f' {api_response.status_code}!')
@@ -697,7 +708,7 @@ class Api():
         start_date = datetime.now() - timedelta(days = 60)
         runs = self.call_get(
             f'/repos/{repo_name}/actions/runs', params={
-                "per_page": "30",
+                "per_page": "50",
                 "status":"completed",
                 "exclude_pull_requests": "true",
                 "created":f">{start_date.isoformat()}"
@@ -990,7 +1001,7 @@ class Api():
                         resp_data = resp.json()
                         if 'content' in resp_data:
                             file_data = base64.b64decode(resp_data['content'])
-                            ymls.append((file['name'], file_data.decode()))
+                            ymls.append(Workflow(repo_name, file_data, file['name']))
 
         return ymls
 
@@ -1043,6 +1054,47 @@ class Api():
 
         return secrets
 
+    def retrieve_composite_actions(self, repo_name: str, composite_actions: list):
+        """Uses the repository contents API to retrieve the contents of the composite action.
+        """
+
+        referenced_actions = {}
+
+        for composite in composite_actions:
+            if composite['local']:
+                resp = self.call_get(
+                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml'
+                )
+
+            elif composite['ref']:
+                
+                if len(composite["path"].split('/')) > 2:
+                    repo_path = "/".join(composite["path"].split("/", 2)[:2])
+                    composite_path = "/".join(composite["path"].split("/", 2)[2:])
+
+                    resp = self.call_get(
+                        f'/repos/{repo_path}/contents/{composite_path}/action.yml?ref={composite["ref"]}'
+                    )
+                else:
+                    resp = self.call_get(
+                    f'/repos/{composite["path"]}/contents/action.yml?ref={composite["ref"]}'
+                    )
+
+                if resp.status_code == 404:
+                    print(f'TEMP FOR DEV, Got 404: /repos/{composite["path"]}/contents/action.yml?ref={composite["ref"]}')
+            else:
+                resp = self.call_get(
+                    f'/repos/{composite["path"]}/contents/action.yml'
+                    )
+
+            if resp.status_code == 200:
+                content = base64.b64decode(resp.json()['content']).decode()
+                referenced_actions[composite['key']] = content
+            else:
+                pass
+
+        return referenced_actions
+
     def get_repo_org_secrets(self, repo_name: str):
         """Issues an API call to the GitHub API to list org secrets for a
         repository. This will succeed as long as the token has the repo scope
@@ -1066,6 +1118,37 @@ class Api():
                 secrets = secrets_response['secrets']
 
         return secrets
+    
+
+    def get_file_last_updated(self, repo_name: str, file_path: str):
+        resp = self.call_get(
+            f'/repos/{repo_name}/commits',params={"path": file_path}
+        )
+
+        commit_date = resp.json()[0]['commit']['author']['date']
+
+        return commit_date
+
+    def get_environment_protection_rules(self, repo_name: str, environment_name: str):
+        """
+        Query if a specific environment exists for a GitHub repository and return the protection rules array.
+
+        Args:
+            owner (str): The owner of the repository.
+            repo (str): The name of the repository.
+            environment_name (str): The name of the environment.
+
+        Returns:
+            list: The protection rules array if the environment exists, None otherwise.
+        """
+        url = f"/repos/{repo_name}/environments/{environment_name}"
+        response = self.call_get(url)
+
+        if response.status_code == 200:
+            environment_info = response.json()
+            return environment_info.get('protection_rules', None)
+
+        return None
 
     def commit_workflow(self, repo_name: str,
                         target_branch: str,

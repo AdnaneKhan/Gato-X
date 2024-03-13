@@ -796,7 +796,9 @@ def test_workflow_ymls(mock_get):
     ymls = api.retrieve_workflow_ymls("testOrg/testRepo")
 
     assert len(ymls) == 1
-    assert ymls[0][1] == "FooBarBaz"
+    assert ymls[0].workflow_name == "integration.yaml"
+    assert ymls[0].workflow_contents == "FooBarBaz"
+    
 
 
 @patch("gato.github.api.requests.get")

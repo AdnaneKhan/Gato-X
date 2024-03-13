@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "praetorian-gato"
-version = "1.5.1"
+version = "1.6.0"
 description = "GitHub Actions Enumeration and Attack Framework"
 readme = "readme.md"
 authors = [

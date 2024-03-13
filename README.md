@@ -8,28 +8,43 @@
 
 
 Gato, or GitHub Attack Toolkit, is an enumeration and attack tool that allows both 
-blue teamers and offensive security practitioners to evaluate the blast radius 
-of a compromised personal access token within a GitHub organization.
+blue teamers and offensive security practitioners to identify and exploit 
+pipeline vulnerabilities within a GitHub organization's public and private 
+repositories.
 
-The tool also allows searching for and thoroughly enumerating public
-repositories that utilize self-hosted runners. GitHub recommends that
-self-hosted runners only be utilized for private repositories, however, there
-are thousands of organizations that utilize self-hosted runners.
+The tool has post-exploitation features to leverage a compromised personal
+access token in addition to enumeration features to identify poisoned pipeline
+execution vulnerabilities against public repositories that use self-hosted GitHub Actions 
+runners.
 
-## Version 1.5 Released
+GitHub recommends that self-hosted runners only be utilized for private repositories, however, there are thousands of organizations that utilize self-hosted runners. Default configurations are often vulnerable, and Gato uses a mix of workflow file analysis and run-log analysis to identify potentially vulnerable repositories at scale.
 
-Gato version 1.5 was released on June 27th, 2023!
+## Version 1.6
 
-#### New Features
+Gato version 1.6 improves the public repository enumeration feature set.
 
-* Secrets Enumeration
-* Secrets Exfiltration
-* API-only Enumeration
-* JSON Output
-* Improved Code Search
-* GitHub Enterprise Server Support
-* PAT Validation Only Mode
-* Quality of life and UX improvements
+Previously, Gato's code search functionality by default only looked for
+yaml files that explicitly had "self-hosted" in the name. Now, the
+code search functionality supports a SourceGraph query. This query has a 
+lower false negative rate and is not limited by GitHub's code search limit.
+
+For example, the following query will identify public repositories that use 
+self-hosted runners:
+
+`gato search --sourcegraph --output-text public_repos.txt`
+
+This can be fed back into Gato's enumeration feature:
+
+`gato enumerate --repositories public_repos.txt --output-json enumeration_results.json`
+
+Additionally the release contains several improvements under the hood to speed up the enumeration process. This includes changes to limit redundant run-log downloads (which are the slowest part of Gato's enumeration process) and using the GraphQL API to download workflow files when enumerating an entire organization. Finally, Gato will use a heuristic to detect if an attached runner is non-ephemeral. Most poisoned pipeline execution attacks require a non-ephemeral runner in order to exploit.
+
+### New Features
+
+* SourceGraph Search Functionality
+* Improved Public Repository Enumeration Speed
+* Improved Workflow File Analysis
+* Non-ephemeral self-hosted runner detection
 
 ## Who is it for?
 
@@ -44,6 +59,7 @@ Gato version 1.5 was released on June 27th, 2023!
 
 * GitHub Classic PAT Privilege Enumeration
 * GitHub Code Search API-based enumeration
+* SourceGraph Search enumeration
 * GitHub Action Run Log Parsing to identify Self-Hosted Runners
 * Bulk Repo Sparse Clone Features
 * GitHub Action Workflow Parsing

@@ -81,11 +81,12 @@ class Searcher:
         headers = {"Content-Type": "application/json"}
         params = {
             "q": (
-                "('self-hosted' OR "
-                "(/runs-on/ AND NOT "
+                "context:global "
+                "self-hosted OR "
+                "(runs-on AND NOT "
                 "/(ubuntu-16.04|ubuntu-18.04|ubuntu-20.04|ubuntu-22.04|ubuntu-latest|"
                 "windows-2019|windows-2022|windows-latest|macos-11|macos-12|macos-13|"
-                "macos-12-xl|macos-13-xl|macos-latest|matrix.[a-zA-Z]\\s)/)) "
+                "macos-12-xl|macos-13-xl|macos-latest)/) "
                 f"{repo_filter}"
                 "lang:YAML file:.github/workflows/ count:30000"
             )
@@ -101,19 +102,29 @@ class Searcher:
             )
         response = requests.get(url, headers=headers, params=params, stream=True)
         results = set()
-
         if response.status_code == 200:
             for line in response.iter_lines():
                 if line and line.decode().startswith("data:"):
                     json_line = line.decode().replace("data:", "").strip()
                     event = json.loads(json_line)
+
+                    if "title" in event and event["title"] == "Unable To Process Query":
+                        Output.error("SourceGraph was unable to process the query!")
+                        Output.error(f"Error: {Output.bright(event['description'])}")
+                        return False
+
                     for element in event:
                         if "repository" in element:
                             results.add(
                                 element["repository"].replace("github.com/", "")
                             )
+        else:
+            Output.error(
+                f"SourceGraph returned an error: {Output.bright(response.status_code)}"
+            )
+            return False
 
-        return results
+        return sorted(results)
 
     def use_search_api(self, organization: str, query=None):
         """Utilize GitHub Code Search API to try and identify repositories
@@ -153,7 +164,7 @@ class Searcher:
             organization, custom_query=query
         )
 
-        return candidates
+        return sorted(candidates)
 
     def present_results(self, results, output_text=None):
         """

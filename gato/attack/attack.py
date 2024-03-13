@@ -582,7 +582,7 @@ class Attacker:
                 if len(blob) == 2:
                     cleartext = Attacker.__decrypt_secrets(priv_key, blob)
                     Output.owned("Decrypted and Decoded Secrets:")
-                    print(cleartext)
+                    print(cleartext.decode())
 
                 else:
                     Output.error(
