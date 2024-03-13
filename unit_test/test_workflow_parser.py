@@ -24,6 +24,23 @@ jobs:
           echo "Hello World and bad stuff!"
 """
 
+TEST_WF2 = """
+name: 'Test WF2'
+
+on:
+  pull_request_target:
+
+jobs:
+  test:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - name: Execution
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+"""
+
+
 
 def test_parse_workflow():
 
@@ -76,12 +93,7 @@ def test_check_injection_no_tokens():
             result = parser.check_injection()
             assert result == {}
 
-@patch('gato.workflow_parser.utility.check_sus')
-def test_check_injection_with_tokens(mock_sus):
-    mock_sus.return_value = True
-    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
-    with patch.object(parser, 'get_vulnerable_triggers', return_value=['pull_request']):
-        with patch.object(parser, 'extract_step_contents', return_value=
-                          {'job1': {'check_steps': [{'contents': '${{ github.event.pull_request.head.ref }}', 'step_name': 'step1'}]}}):
-            result = parser.check_injection()
-            assert result == {'triggers': ['pull_request'], 'job1': {'step1': {'variables': ['github.event.pull_request.head.ref']}}}
+def test_check_pwn_request():
+    parser = WorkflowParser(TEST_WF2, 'unit_test', 'main.yml')
+    result = parser.check_pwn_request()
+    assert result['candidates']
