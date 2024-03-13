@@ -156,10 +156,10 @@ class WorkflowParser():
                     step_if_check = step.get('if', '')
                     step_details.append({"ref": step['with']['ref'], "if_check": step_if_check, "step_name": step_name})
                 elif 'run' in step and step['run'] and ('git checkout' in step['run'] or 'gh pr checkout' in step['run']):
-                    pattern = r'checkout ([$.\w]*(?:head|merge|number)[.\w]*)'
+                    pattern = r'checkout\s+(\$\{\{)?\s*(\S*(head|merge|number)\S*)\s*(\}\})?'
                     match = re.search(pattern, step['run'], re.IGNORECASE)
                     if match:
-                        ref = match.group(1)
+                        ref = match.group(2)
                         step_name = step.get('name', 'NAME_NOT_SET')
                         step_if_check = step.get('if', '')
                         step_details.append({"ref": ref, "if_check": step_if_check, "step_name": step_name})
