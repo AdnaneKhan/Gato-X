@@ -12,7 +12,7 @@ from gato.cli import Output
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
 
-Output(False, True)
+Output(True)
 
 
 @pytest.fixture(scope="session", autouse=True)

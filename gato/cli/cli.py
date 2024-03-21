@@ -73,12 +73,10 @@ def cli(args):
 
     arguments = parser.parse_args(args)
 
-    Output(arguments.supress, not arguments.no_color)
+    Output(not arguments.no_color)
 
     validate_arguments(arguments, parser)
     validate_git_config(parser)
-
-    Output.splash()
 
     arguments.func(arguments, subparsers)
 
@@ -331,12 +329,6 @@ def configure_parser_general(parser):
             f" {Style.RESET_ALL}format."
         ),
         required=False
-    )
-
-    parser.add_argument(
-        "--supress", "-s",
-        help="Supresses the ASCII art.",
-        action='store_true'
     )
 
     parser.add_argument(

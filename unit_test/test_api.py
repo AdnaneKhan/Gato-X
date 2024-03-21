@@ -11,7 +11,7 @@ from gato.cli import Output
 
 logging.root.setLevel(logging.DEBUG)
 
-output = Output(True, False)
+output = Output(False)
 
 
 @pytest.fixture

@@ -16,7 +16,7 @@ TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
 TEST_ORG_DATA = None
 
-Output(False, True)
+Output(True)
 
 BASE_MOCK_RUNNER = [{
         "machine_name": "unittest1",

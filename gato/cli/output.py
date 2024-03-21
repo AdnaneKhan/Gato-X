@@ -1,7 +1,7 @@
 import json
 
 from gato.cli import (RED_DASH, GREEN_PLUS, GREEN_EXCLAIM, RED_EXCLAIM,
-                      BRIGHT_DASH, YELLOW_EXCLAIM, SPLASH, YELLOW_DASH)
+                      BRIGHT_DASH, YELLOW_EXCLAIM, YELLOW_DASH)
 
 
 from colorama import Style, Fore
@@ -20,8 +20,7 @@ class Singleton (type):
 
 class Output(metaclass=Singleton):
 
-    def __init__(self, silent: bool, color: bool):
-        self.silent = silent
+    def __init__(self, color: bool):
         self.color = color
 
         self.red_dash = RED_DASH if color else '[-]'
@@ -49,13 +48,6 @@ class Output(metaclass=Singleton):
                     json.dumps(execution_wrapper.toJSON(), indent=4)
                 )
             return True
-
-    @classmethod
-    def splash(cls):
-        """Prints the Gato mascot.
-        """
-        if not Output().silent:
-            print(SPLASH)
 
     @classmethod
     def error(cls, message: str):

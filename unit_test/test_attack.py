@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from gato.attack import Attacker
 from gato.cli import Output
 
-output = Output(False, True)
+output = Output(True)
 
 
 # From https://stackoverflow.com/questions/14693701/

@@ -4,7 +4,7 @@ from gato.search import Searcher
 from gato.cli import Output
 
 
-Output(False, True)
+Output(True)
 
 
 @patch("gato.github.search.time.sleep")
