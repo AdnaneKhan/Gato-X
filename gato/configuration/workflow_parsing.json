@@ -28,7 +28,12 @@
             "macos-12",
             "macos-13",
             "macos-13-xl",
-            "macos-12"
+            "macos-13-xlarge",
+            "macos-latest-xlarge",
+            "macos-12",
+            "macos-14",
+            "macos-14-large",
+            "macos-14-xlarge"
         ],
         "UNSAFE_CONTEXTS": [
             "github.event.issue.title",
