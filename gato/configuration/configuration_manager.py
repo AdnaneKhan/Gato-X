@@ -23,16 +23,11 @@ class ConfigurationManager:
         """
         if cls._instance is None:
             cls._instance = super(ConfigurationManager, cls).__new__(cls, *args, **kwargs)
+            script_dir = os.path.dirname(os.path.realpath(__file__))
+            json_files = glob.glob(os.path.join(script_dir, '*.json'))
+            for file_path in json_files:
+                cls._instance.load(file_path)
         return cls._instance
-
-    def __init__(self):
-        """
-        Initializes the ConfigurationManager instance by loading all JSON files in the script directory.
-        """
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        json_files = glob.glob(os.path.join(script_dir, '*.json'))
-        for file_path in json_files:
-            self.load(file_path)
 
     def load(self, file_path):
         """

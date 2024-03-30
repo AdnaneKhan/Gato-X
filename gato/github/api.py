@@ -118,7 +118,7 @@ class Api():
         token_permissions = dict()
         runner_type = None
         non_ephemeral = False
-        labels = None
+        labels = []
         runner_name = None
         machine_name = None
         runner_group = None
@@ -139,6 +139,7 @@ class Api():
                         index = 0
                         while index < len(content_lines) and content_lines[index]: 
                             line = content_lines[index]
+                           
                             if "Requested labels: " in line:
                                 labels = line.split("Requested labels: ")[1].split(', ')
 
@@ -155,9 +156,9 @@ class Api():
                                 runner_type = line.split()[-1]
                                 matches = Api.RUNNERTYPE_RE.search(runner_type)
                                 runner_type = matches.group(1)
-
+                            
                             if "GITHUB_TOKEN Permission" in line:
-                                while "##[endgroup]" not in content_lines[index+1]:
+                                while "[endgroup]" not in content_lines[index+1]:
                                     index += 1
                                     scope = content_lines[index].split()[1].replace(':', '')
                                     permission = content_lines[index].split()[2]
@@ -429,7 +430,7 @@ class Api():
             "title": pr_title,
             "head": f"{source_user}:{source_branch}",
             "base": f"{target_branch}",
-            "body": "This is a test pull request greated for CI/CD"
+            "body": "This is a test pull request created for CI/CD"
                     " vulnerability testing purposes.",
             "maintainer_can_modify": False,
             "draft": True
@@ -693,69 +694,89 @@ class Api():
 
         return None
 
-    def retrieve_run_logs(self, repo_name: str, short_circuit: str = True):
+    def retrieve_run_logs(self, repo_name: str, short_circuit: str = True,
+                          workflows: list = []):
         """Retrieve the most recent run log associated with a repository.
 
         Args:
             repo_name (str): Full name of the repository.
             short_circuit (bool, optional): Whether to return as soon as the
-            first instance of a self-hosted runner is detected. Defaults to
-            True.
-
+            first instance of a non-ephemeral self-hosted runner is detected. 
+            Defaults to True.
+            workflows (list, optional): List of workflows to check for. Defaults
+            to empty list.
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
         start_date = datetime.now() - timedelta(days = 60)
-        runs = self.call_get(
-            f'/repos/{repo_name}/actions/runs', params={
-                "per_page": "50",
-                "status":"completed",
-                "exclude_pull_requests": "true",
-                "created":f">{start_date.isoformat()}"
-            }
-        )
+        runs = []
+
+        for workflow in workflows:
+            # Get workflow runs for workflows we think have a sh runner.
+            run_result = self.call_get(
+                f'/repos/{repo_name}/actions/workflows/{workflow}/runs', params={
+                    "per_page": "10",
+                    "status":"completed",
+                    "exclude_pull_requests": "true",
+                    "created":f">{start_date.isoformat()}"
+                }
+            )
+
+            if run_result.status_code == 200:
+                runs.extend(run_result.json()['workflow_runs'])
+        if not runs:
+            bulk_result = self.call_get(
+                f'/repos/{repo_name}/actions/runs', params={
+                    "per_page": "25",
+                    "status":"completed",
+                    "exclude_pull_requests": "true",
+                    "created":f">{start_date.isoformat()}"
+                }
+            )
+            if bulk_result.status_code == 200:
+                runs.extend(bulk_result.json()['workflow_runs'])
 
         # This is a dictionary so we can de-duplicate runner IDs based on
         # the machine_name:runner_name.
         run_logs = {}
         names = set()
 
-        if runs.status_code == 200:
+        if runs:
             logger.debug(f'Enumerating runs within {repo_name}')
-            for run in runs.json()['workflow_runs']:
-                # We are only interested in runs that actually executed.
-                if run['conclusion'] != 'success' and \
-                    run['conclusion'] != 'failure':
-                    continue
+        for run in runs:
+            # We are only interested in runs that actually executed.
+            if run['conclusion'] != 'success' and \
+                run['conclusion'] != 'failure':
+                continue
 
-                if short_circuit:
-                    # If we are only looking for the presence of SH runners and
-                    # not trying to determine ephmeral vs not from repeats, then
-                    # we just need to look at each branch + wf combination once.
-                    workflow_key = f"{run['head_branch']}:{run['path']}"
-                    if workflow_key in names:
-                        continue                
-                    names.add(workflow_key)
+            # We only look at one workflow run (for yaml) per branch
+            workflow_key = f"{run['head_branch']}:{run['path']}"
+            if workflow_key in names:
+                continue                
+            names.add(workflow_key)
 
-                run_log = self.call_get(
-                    f'/repos/{repo_name}/actions/runs/{run["id"]}/'
-                    f'attempts/{run["run_attempt"]}/logs')
+            run_log = self.call_get(
+                f'/repos/{repo_name}/actions/runs/{run["id"]}/'
+                f'attempts/{run["run_attempt"]}/logs')
+            if run_log.status_code == 200:
+                try:
 
-                if run_log.status_code == 200:
                     run_log = self.__process_run_log(run_log.content, run)
                     if run_log:
                         key = f"{run_log['machine_name']}:{run_log['runner_name']}"
                         run_logs[key] = run_log
 
-                        if short_circuit:
+                        if short_circuit and run_log['non_ephemeral']:
                             return run_logs.values()
-                elif run_log.status_code == 410:
-                    break
-                else:
-                    logger.debug(
-                        f"Call to retrieve run logs from {repo_name} run "
-                        f"{run['id']} attempt {run['run_attempt']} returned "
-                        f"{run_log.status_code}!")
+                except Exception as e:
+                    logger.warn(f"Failed to process run log for {repo_name} run {run['id']} attempt {run['run_attempt']}!")
+            elif run_log.status_code == 410:
+                break
+            else:
+                logger.debug(
+                    f"Call to retrieve run logs from {repo_name} run "
+                    f"{run['id']} attempt {run['run_attempt']} returned "
+                    f"{run_log.status_code}!")
 
         return run_logs.values()
 

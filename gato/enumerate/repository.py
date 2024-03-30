@@ -1,9 +1,11 @@
 import logging
 import json
 import yaml
+import signal
 
 from datetime import datetime, timedelta
 
+from gato.notifications import send_slack_webhook
 from gato.cli import Output
 from gato.models import Repository, Secret, Runner, Workflow
 from gato.github import Api
@@ -29,19 +31,22 @@ class RepositoryEnum():
         self.skip_log = skip_log
         self.output_yaml = output_yaml
 
-    def __perform_runlog_enumeration(self, repository: Repository):
+    def __perform_runlog_enumeration(self, repository: Repository, workflows: list):
         """Enumerate for the presence of a self-hosted runner based on
         downloading historical runlogs.
 
         Args:
             repository (Repository): Wrapped repository object.
+            workflows (list): List of workflows that execute on self-hosted runner.
 
         Returns:
             bool: True if a self-hosted runner was detected.
         """
         runner_detected = False
+        wf_runs = []
+
         wf_runs = self.api.retrieve_run_logs(
-            repository.name, short_circuit=True
+            repository.name, short_circuit=True, workflows=workflows
         )
 
         if wf_runs:
@@ -145,9 +150,9 @@ class RepositoryEnum():
                         "details": wf_injection
                     }
 
-                    # update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
-                    # if self.is_within_last_7_days(update_date):
-                    #     send_slack_webhook(injection_package)
+                    update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
+                    if self.is_within_last_3_days(update_date):
+                        send_slack_webhook(injection_package)
 
                     repository.set_injection(injection_package)
 
@@ -203,8 +208,8 @@ class RepositoryEnum():
                 
             # At this point we only know the extension, so handle and
             # ignore malformed yml files.
-            except yaml.parser.ParserError as parse_error:
-                logger.warning("Attmpted to parse invalid yaml!")
+            except (yaml.parser.ParserError, yaml.scanner.ScannerError) as parse_error:
+                Output.warn(f"Attempted to parse invalid yaml for {workflow.workflow_name}!")
             except Exception as general_error:
                 Output.error("Encountered a Gato error (likely a bug) while parsing a workflow:")
                 import traceback
@@ -213,7 +218,7 @@ class RepositoryEnum():
 
         return runner_wfs
 
-    def is_within_last_7_days(self, timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
+    def is_within_last_3_days(self, timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
         # Convert the timestamp string to a datetime object
         date = datetime.strptime(timestamp_str, format)
 
@@ -221,7 +226,7 @@ class RepositoryEnum():
         now = datetime.now()
 
         # Calculate the date 7 days ago
-        seven_days_ago = now - timedelta(days=1)
+        seven_days_ago = now - timedelta(days=3)
 
         # Return True if the date is within the last 7 days, False otherwise
         return seven_days_ago <= date <= now
@@ -242,7 +247,7 @@ class RepositoryEnum():
         repository.update_time()
 
         if not repository.can_pull():
-            Output.error("The user cannot push or pull, skipping.")
+            Output.error("The user cannot pull, skipping.")
             return
 
         if repository.is_admin():
@@ -272,12 +277,12 @@ class RepositoryEnum():
             # If we are enumerating an organization, only enumerate runlogs if
             # the workflow suggests a sh_runner.
             if large_org_enum and runner_detected:
-                self.__perform_runlog_enumeration(repository)
+                self.__perform_runlog_enumeration(repository, workflows)
 
             # If we are doing internal enum, get the logs, because coverage is
             # more important here and it's ok if it takes time.
             elif not repository.is_public() or not large_org_enum:
-                runner_detected = self.__perform_runlog_enumeration(repository)
+                runner_detected = self.__perform_runlog_enumeration(repository, workflows)
 
         if runner_detected:
             # Only display permissions (beyond having none) if runner is

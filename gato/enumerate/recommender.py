@@ -144,28 +144,46 @@ class Recommender:
             )
 
         if repository.accessible_runners:
-
-            Output.result(
-                f"The repository {Output.bright(repository.name)} contains a "
-                "previous workflow run that executed on a self-hosted runner!"
-            )
-
-            Output.tabbed(
-                "The runner name was: "
-                f"{Output.bright(repository.accessible_runners[0].runner_name)}"
-                f" and the machine name was "
-                f"{Output.bright(repository.accessible_runners[0].machine_name)}"
-                f" and the runner type was "
-                f"{Output.bright(repository.accessible_runners[0].runner_type)}"
-                f" in the {Output.bright(repository.accessible_runners[0].runner_group)} group"
-                f" with the following labels: "
-                f"{Output.bright(', '.join(repository.accessible_runners[0].labels))}"
-            )
-
+            non_ephemeral = False
+            
             for runner in repository.accessible_runners:
                 if runner.non_ephemeral:
-                    Output.owned("The repository contains a non-ephemeral self-hosted runner!")
+                    Output.owned(
+                        "The repository contains a non-ephemeral self-hosted runner!"
+                    )
+                    Output.tabbed(
+                        "The runner name was: "
+                        f"{Output.bright(runner.runner_name)}"
+                        f" and the machine name was "
+                        f"{Output.bright(runner.machine_name)}"
+                        f" and the runner type was "
+                        f"{Output.bright(runner.runner_type)}"
+                        f" in the {Output.bright(runner.runner_group)} group"
+                        f" with the following labels: "
+                        f"{Output.bright(', '.join(runner.labels))}"
+                    )
+                    non_ephemeral = True
+                    # Only print one non-ephemeral runner
                     break
+            
+            # We don't need to print the ephemeral runners - this will
+            # still be captured in JSON output.
+            if not non_ephemeral:
+                Output.result(
+                    f"The repository {Output.bright(repository.name)} contains a "
+                    "previous workflow run that executed on a self-hosted runner!"
+                )
+                Output.tabbed(
+                    "The runner name was: "
+                    f"{Output.bright(repository.accessible_runners[0].runner_name)}"
+                    f" and the machine name was "
+                    f"{Output.bright(repository.accessible_runners[0].machine_name)}"
+                    f" and the runner type was "
+                    f"{Output.bright(repository.accessible_runners[0].runner_type)}"
+                    f" in the {Output.bright(repository.accessible_runners[0].runner_group)} group"
+                    f" with the following labels: "
+                    f"{Output.bright(', '.join(repository.accessible_runners[0].labels))}"
+                )
 
         if repository.runners:
             Output.result(
