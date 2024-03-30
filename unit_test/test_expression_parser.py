@@ -35,7 +35,6 @@ def test_tokenize():
 
     print(tokens)
 
-    assert False
 
 def test_contains_fromjson():
     if_check = "github.event.issue.pull_request\n&& contains(github.event.comment.body, '[test]')\n&& contains(fromJson('[\"OWNER\", \"MEMBER\"]'), github.event.comment.author_association)\n"
@@ -47,4 +46,3 @@ def test_contains_fromjson():
     ast = Parser(tokens).parse()
     print_ast(ast)
     
-    assert False
