@@ -6,6 +6,7 @@ import re
 
 from gato.configuration import ConfigurationManager
 from gato.workflow_parser.utility import check_sus, process_steps
+from gato.workflow_parser.expression_analyzer import tokenize, Parser
 
 from yaml.resolver import Resolver
 
@@ -43,6 +44,7 @@ class WorkflowParser():
             workflow_name (str): name of the workflow file
         """
         self.parsed_yml = yaml.safe_load(workflow_yml.replace('\t','  '))
+
         self.raw_yaml = workflow_yml
         self.repo_name = repo_name
         self.wf_name = workflow_name
@@ -140,6 +142,7 @@ class WorkflowParser():
                 "check_steps": [],
                 "if_check": job_details.get('if', '')
             }
+
             step_details = []
     
             early_exit = False
@@ -161,6 +164,7 @@ class WorkflowParser():
                     if match:
                         ref = match.group(2)
                         step_name = step.get('name', 'NAME_NOT_SET')
+                        
                         step_if_check = step.get('if', '')
                         step_details.append({"ref": ref, "if_check": step_if_check, "step_name": step_name})
 

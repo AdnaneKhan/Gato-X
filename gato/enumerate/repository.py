@@ -151,7 +151,7 @@ class RepositoryEnum():
                     }
 
                     update_date = self.api.get_file_last_updated(repository.name, f".github/workflows/{parsed_yml.wf_name}")
-                    if self.is_within_last_7_days(update_date):
+                    if self.is_within_last_3_days(update_date):
                         send_slack_webhook(injection_package)
 
                     repository.set_injection(injection_package)
@@ -208,8 +208,8 @@ class RepositoryEnum():
                 
             # At this point we only know the extension, so handle and
             # ignore malformed yml files.
-            except yaml.parser.ParserError as parse_error:
-                logger.warning("Attmpted to parse invalid yaml!")
+            except (yaml.parser.ParserError, yaml.scanner.ScannerError) as parse_error:
+                Output.warn(f"Attempted to parse invalid yaml for {workflow.workflow_name}!")
             except Exception as general_error:
                 Output.error("Encountered a Gato error (likely a bug) while parsing a workflow:")
                 import traceback
@@ -218,7 +218,7 @@ class RepositoryEnum():
 
         return runner_wfs
 
-    def is_within_last_7_days(self, timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
+    def is_within_last_3_days(self, timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
         # Convert the timestamp string to a datetime object
         date = datetime.strptime(timestamp_str, format)
 
