@@ -4,13 +4,6 @@ from gatox.models.repository import Repository
 
 class DataIngestor:
 
-    def __init__(self, queue):
-        """
-        Args:
-            queue (queue): Queue to use for processing data.
-        """
-        self.queue = queue
-
     @staticmethod
     def construct_workflow_cache(yml_results):
         """Creates a cache of workflow yml files retrieved from graphQL. Since
