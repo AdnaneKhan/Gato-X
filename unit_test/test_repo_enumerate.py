@@ -5,9 +5,9 @@ import json
 
 from unittest.mock import MagicMock
 
-from gato.models.repository import Repository
-from gato.enumerate.repository import RepositoryEnum
-from gato.cli import Output
+from gatox.models.repository import Repository
+from gatox.enumerate.repository import RepositoryEnum
+from gatox.cli.output import Output
 
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None

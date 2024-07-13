@@ -6,9 +6,9 @@ import re
 
 from unittest.mock import patch
 
-from gato.models.repository import Repository
-from gato.enumerate import Enumerator
-from gato.cli import Output
+from gatox.models.repository import Repository
+from gatox.enumerate.enumerate import Enumerator
+from gatox.cli.output import Output
 
 from unit_test.utils import escape_ansi as escape_ansi
 
@@ -54,7 +54,7 @@ def load_test_files(request):
         TEST_WORKFLOW_YML = wf_data.read()
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_init(mock_api):
     """Test constructor for enumerator.
     """
@@ -70,7 +70,7 @@ def test_init(mock_api):
     assert gh_enumeration_runner.http_proxy == "localhost:8080"
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_self_enumerate(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -99,7 +99,7 @@ def test_self_enumerate(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enumerate_repo_admin(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -137,7 +137,7 @@ def test_enumerate_repo_admin(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -175,7 +175,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -212,7 +212,7 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
         escape_ansi(print_output)
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -250,11 +250,12 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enumerate_repo_only(mock_api, capsys):
     """Test constructor for enumerator.
     """
 
+    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     gh_enumeration_runner = Enumerator(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
@@ -269,8 +270,7 @@ def test_enumerate_repo_only(mock_api, capsys):
     }
 
     mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
-
-    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
+    mock_api.return_value.get_repository.return_value = repo_data
 
     gh_enumeration_runner.enumerate_repo_only(
         repo_data['full_name']
@@ -279,16 +279,22 @@ def test_enumerate_repo_only(mock_api, capsys):
     captured = capsys.readouterr()
 
     print_output = captured.out
-    assert "The runner name was: much_unit_such_test" in escape_ansi(
+
+
+    assert "Runner Name: much_unit_such_test" in escape_ansi(
         print_output
     )
 
-    assert "the machine name was unittest1" in escape_ansi(
+    assert "Machine Name: unittest1" in escape_ansi(
+        print_output
+    )
+
+    assert "Labels: self-hosted, Linux, X64" in escape_ansi(
         print_output
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enum_validate(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -314,7 +320,7 @@ def test_enum_validate(mock_api, capfd):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enum_repo(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -340,7 +346,7 @@ def test_enum_repo(mock_api, capfd):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enum_org(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -424,15 +430,14 @@ def test_enum_org(mock_api, capfd):
     gh_enumeration_runner.enumerate_organization('github')
 
     out, err = capfd.readouterr()
-    print(out)
 
     escaped_output = escape_ansi(out)
-    assert "The repository can access 1 secrets and the token can use a workflow to read them!" in escaped_output
+    assert "The repository can access 1 secret(s) and the token can use a workflow to read them!" in escaped_output
     assert "TEST_SECRET" in escaped_output
     assert "ghrunner-test" in escaped_output
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enum_repo_runner(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -496,8 +501,9 @@ def test_enum_repo_runner(mock_api, capfd):
         escaped_output
 
 
-@patch("gato.enumerate.enumerate.Api")
-def test_enum_repos(mock_api, capfd):
+@patch('gatox.enumerate.enumerate.time')
+@patch("gatox.enumerate.enumerate.Api")
+def test_enum_repos(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": 'testUser',
@@ -522,7 +528,7 @@ def test_enum_repos(mock_api, capfd):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_enum_repos_empty(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -546,7 +552,7 @@ def test_enum_repos_empty(mock_api, capfd):
     mock_api.return_value.get_repository.assert_not_called()
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_bad_token(mock_api):
 
     gh_enumeration_runner = Enumerator(
@@ -564,7 +570,7 @@ def test_bad_token(mock_api):
     assert val is False
 
 
-@patch("gato.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api")
 def test_unscoped_token(mock_api, capfd):
 
     gh_enumeration_runner = Enumerator(

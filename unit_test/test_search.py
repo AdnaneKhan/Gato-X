@@ -1,14 +1,14 @@
 from unittest.mock import patch, MagicMock
-from gato.github.search import Search
-from gato.search import Searcher
-from gato.cli import Output
+from gatox.github.search import Search
+from gatox.search.search import Searcher
+from gatox.cli.output import Output
 
 
 Output(True)
 
 
-@patch("gato.github.search.time.sleep")
-@patch("gato.github.search.Api")
+@patch("gatox.github.search.time.sleep")
+@patch("gatox.github.search.Api")
 def test_search_api(mock_api, mock_time):
 
     mock_api.call_get.return_value.status_code = 200
@@ -35,8 +35,8 @@ def test_search_api(mock_api, mock_time):
     assert 'testOrg/testRepo' in res
 
 
-@patch("gato.github.search.time.sleep")
-@patch("gato.github.search.Api")
+@patch("gatox.github.search.time.sleep")
+@patch("gatox.github.search.Api")
 def test_search_api_cap(mock_api, mock_time, capfd):
 
     mock1 = MagicMock()
@@ -71,8 +71,8 @@ def test_search_api_cap(mock_api, mock_time, capfd):
     out, err = capfd.readouterr()
     assert "[-] Search failed with response code 422" in out
 
-@patch("gato.github.search.time.sleep")
-@patch("gato.github.search.Api")
+@patch("gatox.github.search.time.sleep")
+@patch("gatox.github.search.Api")
 def test_search_api_ratelimit(mock_api, mock_time, capfd):
 
     mock1 = MagicMock()
@@ -115,7 +115,7 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
     assert "[!] Secondary API Rate Limit Hit." in out
 
 
-@patch("gato.github.search.Api")
+@patch("gatox.github.search.Api")
 def test_search_api_permission(mock_api, capfd):
 
     mock1 = MagicMock()
@@ -147,8 +147,8 @@ def test_search_api_permission(mock_api, capfd):
     assert " listed users and repositories cannot be searched " in out
 
 
-@patch("gato.github.search.time.sleep")
-@patch("gato.github.search.Api")
+@patch("gatox.github.search.time.sleep")
+@patch("gatox.github.search.Api")
 def test_search_api_iniitalrl(mock_api, mock_time, capfd):
 
     mock1 = MagicMock()
@@ -186,8 +186,8 @@ def test_search_api_iniitalrl(mock_api, mock_time, capfd):
     assert "[!] Secondary API Rate Limit Hit." in out
 
 
-@patch('gato.github.Search.search_enumeration')
-@patch("gato.search.search.Api")
+@patch('gatox.github.search.Search.search_enumeration')
+@patch("gatox.search.search.Api")
 def test_search(mock_api, mock_search):
     mock_search.return_value = ['candidate1', 'candidate2']
     gh_search_runner = Searcher('ghp_AAAA')
@@ -197,8 +197,8 @@ def test_search(mock_api, mock_search):
     assert res is not False
 
 
-@patch('gato.github.Search.search_enumeration')
-@patch("gato.search.search.Api")
+@patch('gatox.github.search.Search.search_enumeration')
+@patch("gatox.search.search.Api")
 def test_search_query(mock_api, mock_search, capfd):
     mock_search.return_value = ['candidate1', 'candidate2']
     gh_search_runner = Searcher('ghp_AAAA')
@@ -209,7 +209,7 @@ def test_search_query(mock_api, mock_search, capfd):
     assert "GitHub with the following query: pull_request_target self-hosted" in out
 
 
-@patch("gato.search.search.Api.check_user")
+@patch("gatox.search.search.Api.check_user")
 def test_search_bad_token(mock_api):
     mock_api.return_value = False
     gh_search_runner = Searcher('ghp_AAAA')

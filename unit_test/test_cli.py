@@ -1,13 +1,12 @@
-import argparse
 import pytest
 import os
 import pathlib
 
 from unittest import mock
-from gato.cli import cli
+from gatox.cli import cli
 
-from gato.util.arg_utils import read_file_and_validate_lines
-from gato.util.arg_utils import is_valid_directory
+from gatox.util.arg_utils import read_file_and_validate_lines
+from gatox.util.arg_utils import is_valid_directory
 
 
 @pytest.fixture(autouse=True)
@@ -17,20 +16,6 @@ def mock_settings_env_vars(request):
                 "GH_TOKEN": "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }):
         yield
-
-
-@mock.patch("gato.git.utils.shutil.which")
-def test_cli_git_check(mock_run, capfd):
-    """Test case where git is not on path.
-    """
-    mock_run.return_value = None
-
-    with pytest.raises(SystemExit):
-        cli.cli(["enumerate", "-t", "test"])
-
-    mock_run.assert_called_once()
-    out, err = capfd.readouterr()
-    assert "not installed" in err
 
 
 def test_cli_no_gh_token(capfd):
@@ -56,7 +41,7 @@ def test_cli_fine_grained_pat(capfd):
     assert "not supported" in err
 
 
-@mock.patch("gato.enumerate.Enumerator.enumerate_organization")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_organization")
 def test_cli_oauth_token(mock_enumerate, capfd):
     """Test case where a GitHub oauth token is provided.
     """
@@ -68,7 +53,7 @@ def test_cli_oauth_token(mock_enumerate, capfd):
     mock_enumerate.assert_called_once()
 
 
-@mock.patch("gato.enumerate.Enumerator.enumerate_organization")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_organization")
 def test_cli_old_token(mock_enumerate, capfd):
     """Test case where an old, but still potentially valid GitHub token is provided.
     """
@@ -198,15 +183,25 @@ def test_invalid_dir(capfd):
             )
         )
 
-@mock.patch("gato.attack.Attacker.fork_pr_attack")
+@mock.patch("gatox.attack.runner.webshell.WebShell.runner_on_runner")
 def test_attack_pr(mock_attack):
     """Test attack command using the pr method.
     """
-    cli.cli(["attack", "-t", "test", "-pr"])
+    cli.cli(["attack", "-t", "test", "-pr", '--target-os', 'linux', '--target-arch', 'x64'])
     mock_attack.assert_called_once()
 
 
-@mock.patch("gato.attack.Attacker.shell_workflow_attack")
+@mock.patch("gatox.attack.runner.webshell.WebShell.runner_on_runner")
+def test_attack_pr_bados(mock_attack, capfd):
+    """Test attack command using the pr method.
+    """
+    with pytest.raises(SystemExit):
+        cli.cli(["attack", "-t", "test", "-pr", '--target-os', 'solaris', '--target-arch', 'x64'])
+
+    out, err = capfd.readouterr()
+    assert "invalid choice: 'solaris'" in err
+
+@mock.patch("gatox.attack.attack.Attacker.push_workflow_attack")
 def test_attack_workflow(mock_attack):
     """Test attack command using the workflow method.
     """
@@ -248,7 +243,7 @@ def test_enum_bad_args3(capfd):
     assert "select one enumeration" in err
 
 
-@mock.patch("gato.enumerate.Enumerator.self_enumeration")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.self_enumeration")
 def test_enum_self(mock_enumerate):
     """Test enum command using the self enumerattion.
     """
@@ -257,7 +252,7 @@ def test_enum_self(mock_enumerate):
     mock_enumerate.assert_called_once()
 
 
-@mock.patch("gato.enumerate.Enumerator.enumerate_organization")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_organization")
 def test_enum_org(mock_enumerate):
     """Test enum command using the organization enumerattion.
     """
@@ -266,8 +261,8 @@ def test_enum_org(mock_enumerate):
     mock_enumerate.assert_called_once()
 
 
-@mock.patch("gato.enumerate.Enumerator.enumerate_repos")
-@mock.patch("gato.util.read_file_and_validate_lines")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repos")
+@mock.patch("gatox.util.read_file_and_validate_lines")
 def test_enum_repos(mock_read, mock_enumerate):
     """Test enum command using the repo list.
     """
@@ -281,7 +276,7 @@ def test_enum_repos(mock_read, mock_enumerate):
     mock_enumerate.assert_called_once()
 
 
-@mock.patch("gato.enumerate.Enumerator.enumerate_repo_only")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repo_only")
 def test_enum_repo(mock_enumerate):
     """Test enum command using the organization enumerattion.
     """
@@ -289,7 +284,7 @@ def test_enum_repo(mock_enumerate):
     mock_enumerate.assert_called_once()
 
 
-@mock.patch("gato.search.Searcher.use_search_api")
+@mock.patch("gatox.search.search.Searcher.use_search_api")
 def test_search(mock_search):
     """Test search command
     """
@@ -297,38 +292,6 @@ def test_search(mock_search):
     cli.cli(["search", "-t", "test"])
     mock_search.assert_called_once()
 
-
-@mock.patch("gato.git.version_check")
-def test_git_version_old(git_version, capfd):
-    """Test the handling of the git version check
-    """
-    git_version.return_value = "2.25"
-
-    with pytest.raises(SystemExit):
-        cli.cli(["enumerate", "-t", "someorg"])
-    out, err = capfd.readouterr()
-
-    assert " This tool requires a 'git' version of at least 2.27" in err
-
-@mock.patch("gato.git.path_check")
-@mock.patch("gato.git.version_check")
-def test_invalid_timeout(git_version, git_bin, capfd):
-    """Test invalid timeout value.
-    """
-    git_version.return_value = "2.36"
-    git_bin.return_value = "/usr/local/bin/git"
-
-    with pytest.raises(SystemExit):
-        cli.cli(
-            [
-                "a", "--timeout", "foobar", "-t",
-                "someorg/somerepo", "--workflow"
-            ]
-        )
-
-    out, err = capfd.readouterr()
-
-    assert "invalid int value: 'foobar'" in err
 
 def test_long_repo_name(capfd):
     """Test enum command using name that is too long.
@@ -356,7 +319,7 @@ def test_invalid_repo_name(capfd):
            " is not in the valid format!" in err
 
 
-@mock.patch("gato.util.arg_utils.os.access")
+@mock.patch("gatox.util.arg_utils.os.access")
 def test_unreadable_file(mock_access, capfd):
     """Test enum command unreadable file.
     """
@@ -373,7 +336,7 @@ def test_unreadable_file(mock_access, capfd):
 
     assert " is not readable" in err
 
-@mock.patch("gato.util.arg_utils.os.access")
+@mock.patch("gatox.util.arg_utils.os.access")
 def test_unwritable_dir(mock_access, capfd):
     """Test enum command unwriable dir.
     """
@@ -390,18 +353,3 @@ def test_unwritable_dir(mock_access, capfd):
     out, err = capfd.readouterr()
 
     assert " is not writeable" in err
-
-@mock.patch("gato.git.utils.shutil.which")
-@mock.patch("gato.git.utils.subprocess.run")
-def test_cli_git_check_invalid(mock_run, mock_shutil, capfd):
-    """Test case where git is not on path.
-    """
-    mock_run.return_value.returncode = 1
-    mock_shutil.return_value = "/usr/local/bin/git"
-
-    with pytest.raises(SystemExit):
-        cli.cli(["enumerate", "-t", "someorg"])
-
-    mock_run.assert_called_once()
-    out, err = capfd.readouterr()
-    assert "'git --version' returned unexpected output!" in err

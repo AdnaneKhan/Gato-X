@@ -1,0 +1,85 @@
+{
+    "name": "WORKFLOW_PARSING",
+    "entries": {
+        "PERMISSION_CHECK_ACTIONS": [
+            "check-actor-permission"
+        ],
+        "SAFE_IF_CHECKS": [
+            "github.event.pull_request.merged == true",
+            "== labeled",
+            "== 'labeled'",
+            "github.event.pull_request.head.repo.fork != true"
+        ],
+        "PR_ISH_VALUES": [
+            "head",
+            "pr",
+            "pull",
+            "merge",
+            "ref",
+            "sha",
+            "issue",
+            "number"
+        ],
+        "GITHUB_HOSTED_LABELS": [
+            "ubuntu-latest",
+            "macos-latest",
+            "macOS-latest",
+            "windows-latest",
+            "ubuntu-18.04",
+            "ubuntu-20.04",
+            "ubuntu-22.04",
+            "ubuntu-24.04",
+            "windows-2022",
+            "windows-2019",
+            "windows-2016", 
+            "macOS-13",
+            "macOS-12",
+            "macOS-11",
+            "macos-11",
+            "macos-12",
+            "macos-13",
+            "macos-13-xl",
+            "macos-13-xlarge",
+            "macos-latest-xlarge",
+            "macos-12",
+            "macos-14",
+            "macos-14-large",
+            "macos-14-xlarge"
+        ],
+        "UNSAFE_CONTEXTS": [
+            "github.event.issue.title",
+            "github.event.issue.body",
+            "github.event.pull_request.title",
+            "github.event.pull_request.body",
+            "github.event.comment.body",
+            "github.event.review.body",
+            "github.event.head_commit.message",
+            "github.event.head_commit.author.email",
+            "github.event.head_commit.author.name",
+            "github.event.pull_request.head.ref",
+            "github.event.pull_request.head.label",
+            "github.event.workflow_run.head_branch",
+            "github.event.pull_request.head.repo.default_branch",
+            "github.head_ref"
+        ],
+        "SAFE_ISH_CONTEXTS": [
+            "label",
+            "flag",
+            "number",
+            "numbers",
+            "_url",
+            "version",
+            "sha",
+            "hash",
+            "id",
+            "base",
+            "checksum",
+            "login",
+            "count",
+            "key",
+            "url",
+            "link",
+            "steps.generate_token.outputs.token"
+        ]
+    }
+}

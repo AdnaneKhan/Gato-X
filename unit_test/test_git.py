@@ -4,13 +4,11 @@ import pytest
 import subprocess
 
 from unittest.mock import MagicMock, patch, call, ANY, mock_open
-from gato.git import version_check
-from gato.git import path_check
-from gato.git import sed_check
-from gato.git import Git
+from gatox.git.git import Git
+from gatox.git.utils import version_check, path_check, sed_check
 
 
-@patch("gato.git.utils.subprocess.run")
+@patch("gatox.git.utils.subprocess.run")
 def test_check_git(mock_run):
     """Test test that the git version check works.
     """
@@ -31,7 +29,7 @@ def test_check_git(mock_run):
     assert git_status == "2.38.2"
 
 
-@patch("gato.git.utils.subprocess.run")
+@patch("gatox.git.utils.subprocess.run")
 def test_check_git_fail(mock_run):
     """Test failure case of git version check.
     """
@@ -52,7 +50,7 @@ def test_check_git_fail(mock_run):
     assert git_status is False
 
 
-@patch("gato.git.utils.subprocess.run")
+@patch("gatox.git.utils.subprocess.run")
 def test_check_git_malformed(mock_run):
     """Test failure case of git version check.
     """
@@ -73,7 +71,7 @@ def test_check_git_malformed(mock_run):
     assert git_status is False
 
 
-@patch("gato.git.utils.shutil.which")
+@patch("gatox.git.utils.shutil.which")
 def test_git_path_check(mock_run):
     """Test checking whether git exists on the path.
     """
@@ -86,7 +84,7 @@ def test_git_path_check(mock_run):
     assert exists == '/usr/local/bin/git'
 
 
-@patch("gato.git.utils.shutil.which")
+@patch("gatox.git.utils.shutil.which")
 def test_sed_check(mock_run):
     """Test checking whether sed exists on the path.
     """
@@ -98,7 +96,7 @@ def test_sed_check(mock_run):
     assert exists == '/usr/bin/sed'
 
 
-@patch("gato.git.utils.shutil.which")
+@patch("gatox.git.utils.shutil.which")
 def test_git_path_not_found(mock_run):
     """Test case where git is not on path.
     """
@@ -137,7 +135,7 @@ def test_extract_workflows():
     assert len(ymls) == 1
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_perform_clone(mock_subprocess):
     """Test performing a repo clone.
     """
@@ -170,7 +168,7 @@ def test_perform_clone(mock_subprocess):
     assert mock_pipe.wait.call_count == 4
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_perform_clone_fail(mock_subprocess):
     """Failure test case performing a repo clone.
     """
@@ -201,7 +199,7 @@ def test_perform_clone_fail(mock_subprocess):
     assert ret is False
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_perform_commit(mock_subprocess):
     """Test performing a commit
     """
@@ -247,7 +245,7 @@ def test_perform_commit(mock_subprocess):
     #assert ret is True
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_rewrite_commit(mock_subprocess):
     """Unit test for re-writing commit history.
     """
@@ -285,7 +283,7 @@ def test_rewrite_commit(mock_subprocess):
     assert ret is True
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_push(mock_subprocess):
     """Test performing a commit
     """
@@ -326,7 +324,7 @@ def test_push(mock_subprocess):
     assert ret is True
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_push_fail(mock_subprocess):
     """Test performing a commit
     """
@@ -367,7 +365,7 @@ def test_push_fail(mock_subprocess):
     assert ret is False
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_push_force(mock_subprocess):
     """Test performing a commit
     """
@@ -408,7 +406,7 @@ def test_push_force(mock_subprocess):
     assert ret is True
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_delete_branch(mock_subprocess):
     """Test performing a commit
     """
@@ -438,7 +436,7 @@ def test_delete_branch(mock_subprocess):
     assert ret is True
 
 
-@patch("gato.git.git.subprocess.Popen")
+@patch("gatox.git.git.subprocess.Popen")
 def test_delete_branch_fail(mock_subprocess):
     """Test performing a commit
     """

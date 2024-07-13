@@ -1,6 +1,6 @@
 import pytest
 
-from gato import main
+from gatox import main
 
 def test_cli_double_proxy(capfd):
     """Test case where no arguments are provided.

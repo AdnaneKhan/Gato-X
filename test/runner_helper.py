@@ -17,7 +17,7 @@ if sys.argv[1] == 'remove':
     }
 
     response = requests.post(
-        "https://api.github.com/orgs/GHRunnerPlayground/actions/runners/remove-token",
+        "https://api.github.com/orgs/gatoxtest/actions/runners/remove-token",
         headers=headers
     )
     if response.status_code == 201:
@@ -33,13 +33,13 @@ elif sys.argv[1] == 'register':
     }
 
     response = requests.post(
-        "https://api.github.com/orgs/GHRunnerPlayground/actions/runners/registration-token",
+        "https://api.github.com/orgs/gatoxtest/actions/runners/registration-token",
         headers=headers
     )
 
     if response.status_code == 201:
         token = response.json()['token']
-        command = f"./config.sh --url https://github.com/GHRunnerPlayground --unattended --token {token} --name ghrunner-test"
+        command = f"./config.sh --url https://github.com/gatoxtest --unattended --token {token} --name ghrunner-test"
         os.system(command)
 elif sys.argv[1] == 'dispatch':
 

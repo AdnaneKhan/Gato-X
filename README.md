@@ -1,117 +1,164 @@
-![Supported Python versions](https://img.shields.io/badge/python-3.7+-blue.svg)
+![Supported Python versions](https://img.shields.io/badge/python-3.10+-blue.svg)
 
-# Gato (Github Attack TOolkit)
+# Gato (Github Attack TOolkit) - Extreme Edition
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/2006441/212176664-2ffb61ec-1b40-49cb-8cb2-7a9127a51f3b.PNG" alt="gato"/>
-</p>
+## What is Gato-X?
+
+Gato Extreme Edition is a hard fork of Gato, which was originally developed by 
+@AdnaneKhan, @mas0nd, and @DS-koolaid. Gato-X is maintained 
+by @AdnaneKhan and serves to automate advanced enumeration and exploitation
+techniques against GitHub repositories and organizations for security research purposes.
+
+Gato-X accompanies the **BlackHat USA 2024 talk: Self-Hosted GitHub CI/CD Runners: Continuous Integration, Continuous Destruction**
+and the **DEF CON 32 talk Grand Theft Actions: Abusing Self-Hosted GitHub Runners** at scale.
+
+Gato-X is a powerful tool and should only be used for ethical security research.
+
+If scanning repositories, then the `search` and `enumerate` modes are 
+safe to run. They will perform no mutable operations and only perform read requests.
+As of writing, enumeration will not generate any audit log events.
+
+The `attack` moodes should only be used against repositories you are authorized
+to test against.
 
 
-Gato, or GitHub Attack Toolkit, is an enumeration and attack tool that allows both 
-blue teamers and offensive security practitioners to identify and exploit 
-pipeline vulnerabilities within a GitHub organization's public and private 
-repositories.
+## New Features
 
-The tool has post-exploitation features to leverage a compromised personal
-access token in addition to enumeration features to identify poisoned pipeline
-execution vulnerabilities against public repositories that use self-hosted GitHub Actions 
-runners.
+### Automated Self-Hosted Runner Attacks
 
-GitHub recommends that self-hosted runners only be utilized for private repositories, however, there are thousands of organizations that utilize self-hosted runners. Default configurations are often vulnerable, and Gato uses a mix of workflow file analysis and run-log analysis to identify potentially vulnerable repositories at scale.
+Gato-X automates the "Runner-on-Runner" (RoR) technique used extensively by Adnan Khan and
+John Stawinski during their self-hosted runner bug bounty campaign. This feature replaces
+the basic attack PoC functionality included in the original Gato.
 
-## Version 1.6
+Gato-X supports deploying runner-on-runner through fork pull requests and via push triggers.
+The latter can be used for privilege escalation and lateral movement by jumping to new runners.
 
-Gato version 1.6 improves the public repository enumeration feature set.
+Under the hood, Gato-X will perform the following steps:
 
-Previously, Gato's code search functionality by default only looked for
-yaml files that explicitly had "self-hosted" in the name. Now, the
-code search functionality supports a SourceGraph query. This query has a 
-lower false negative rate and is not limited by GitHub's code search limit.
+* Prepare Runner-on-Runner C2 Repository
+* Prepare payload Gist files
+* Deploy the RoR implantation payload.
+* Confirm successful callback and runner installation.
+* Provide user with an interactive webshell upon successful connection.
 
-For example, the following query will identify public repositories that use 
-self-hosted runners:
+From the user's persective, it's simply: run command, get shell. What more could a hacker want?
 
-`gato search --sourcegraph --output-text public_repos.txt`
+### Enumeration for GitHub Actions Injection and Pwn Requests
 
-This can be fed back into Gato's enumeration feature:
+Gato-X contains a powerful scanning engine for GitHub Actions Injection and
+Pwn Request vulnerabilities. As of writing, Gato-X is one of the fastest tools
+for the task. It is capable of scanning 35-40 *thousand* repositories in 1-2 hours
+using a single GitHub PAT.
 
-`gato enumerate --repositories public_repos.txt --output-json enumeration_results.json`
+* Reachability Analysis
+* Same and Cross-Repository Transitive Workflow Analysis
+* Parsing and Simulation of "If Statements"
+* Gate Check Detection (permission checks, etc.)
+* Lightweight Source-Sink Analysis for Variables
+* Priority Guidelines
 
-Additionally the release contains several improvements under the hood to speed up the enumeration process. This includes changes to limit redundant run-log downloads (which are the slowest part of Gato's enumeration process) and using the GraphQL API to download workflow files when enumerating an entire organization. Finally, Gato will use a heuristic to detect if an attached runner is non-ephemeral. Most poisoned pipeline execution attacks require a non-ephemeral runner in order to exploit.
+For high priority Pwn Request or Injection reports, Gato-X has a true positive rate of
+70-80 percent.
 
-### New Features
+As an operator facing tool, Gato-X is tuned with a higher false positive rate than a tool
+designed to generate alerts, but it provides contextual information to quickly determine
+if something is worth investigating or not.
 
-* SourceGraph Search Functionality
-* Improved Public Repository Enumeration Speed
-* Improved Workflow File Analysis
-* Non-ephemeral self-hosted runner detection
+### Other Improvements
 
-## Who is it for?
+* Improved Secrets Exfiltration.
+* Speed Improvements for runlog analysis.
+* General speed improvements throughout.
+* Improved CLI interface and reports.
+* Removed dependancy on Git.
 
-- Security engineers who want to understand the level of access a compromised
-  classic PAT could provide an attacker
-- Blue teams that want to build detections for self-hosted runner attacks
-- Red Teamers
-- Bug bounty hunters who want to try and prove RCE on organizations that are
-  utilizing self-hosted runners
+## Quick Start
 
-## Features
+### Perform Self Hosted Runner Takeover
 
-* GitHub Classic PAT Privilege Enumeration
-* GitHub Code Search API-based enumeration
-* SourceGraph Search enumeration
-* GitHub Action Run Log Parsing to identify Self-Hosted Runners
-* Bulk Repo Sparse Clone Features
-* GitHub Action Workflow Parsing
-* Automated Command Execution Fork PR Creation
-* Automated Command Execution Workflow Creation
-* Automated workflow secrets exfiltration
-* SOCKS5 Proxy Support
-* HTTPS Proxy Support
+To perform a public repository self-hosted runner takeover attack, Gato-X requires a PAT with the following scopes:
+
+`repo`, `workflow`, and `gist`.
+
+This should be a PAT for an account that is a contributor to the target repository (i.e. submitted a typo fix).
+
+```
+gato-x a --runner-on-runner --target ORG/REPO --target-os [linux,osx,windows] --target-arch [arm,arm64,x64]
+```
+
+Gato-X will check if the user is a contributor to the repository, if not Gato-X will ask for confirmation. It is
+very rare that maintainers select allowing workflows on pull request from all external users without approval,
+but it has happened.
+
+Next, Gato-X will automatically prepare a C2 repository and begin the operation. Gato-X will monitor each step
+as the attack continues, exiting as gracefully as possible at each phase in case of a failure.
+
+If the full chain succeeds, Gato-X will drop to an interactive prompt. This will execute shell commands on the
+self-hosted runner.
+
+If the target runner is non-ephemeral, use the `--keep-alive` flag. This will keep the workflow running. GitHub
+Actions allows workflow runs on self-hosted runners to run for up to **5 days**.
+
+#### Examples
+
+* Deploying RoR using custom workflow via the push trigger.
+* Deploying RoR using a PAT that only has the `repo` scope but can obtain execution via `workflow_dispatch` / `push` triggers.
+* Leveraging a `repo` scoped token to bypass external contributor approval requirements, but leveraging Gato-X for RoR infrastructure setup.
+* Using a `GITHUB_TOKEN` with `actions: write` from a Pwn Request to approve a fork PR from an external contributor.
+
+### Search For GitHub Actions Vulnerabilities at GitHub Scale
+
+First, create a GitHub PAT with the `repo` scope. Set that PAT to the
+`GH_TOKEN` environment variable.
+
+Next, use the search feature to retrieve a list of candidate repositories:
+
+```
+gato-x s -sg -q 'count:75000 /(issue_comment|pull_request_target|issues:)/ file:.github/workflows/ lang:yaml' -oT checks.txt
+```
+
+Finally, run Gato-X on the list of repositories:
+
+```
+gato-x e -R checks.txt -sr | tee gatox_output.txt
+```
+
+This will take some time depending on your computer and internet connection speed. Since the results are very long, use `tee` to save them to a file
+for later review. Gato-X also supports JSON output, but that is intended for further machine analysis.
+
+### Complex Attacks
+
+These automated attacks only scratch the surface of the kinds of post-compromise attacks paths
+that a red teamer may encounter within large GitHub Enterprise tenants. See the wiki for complex
+cases and how Gato-X may help.
 
 ## Getting Started
 
 ### Installation
 
-Gato supports OS X and Linux with at least **Python 3.7**.
+Gato supports OS X and Linux with at least **Python 3.10**.
 
 In order to install the tool, simply clone the repository and use `pip install`. We 
 recommend performing this within a virtual environment.
 
 ```
-git clone https://github.com/praetorian-inc/gato
-cd gato
+git clone https://github.com/AdnaneKhan/gato-x
+cd gato-x
 python3 -m venv venv
 source venv/bin/activate
 pip install .
 ```
 
-Gato also requires that `git` version `2.27` or above is installed and on the 
-system's PATH. In order to run the fork PR attack module, `sed` must also be 
-installed and present on the system's path.
-
-#### Dev Branch
-
-We maintain a development branch that contains newer Gato features that are not yet added to main.
-There is an increased chance you will run into bugs; however, we still run our integration test
-suite on the `dev` branch, so there should not be any _blatant_ bugs.
-
-If you want to use the `dev` branch, just check it out prior to running pip install - that's it!
-
-If you do run into any for your specific use case, by all means open an issue!
-
-
 ### Usage
 
-After installing the tool, it can be launched by running `gato` or
-`praetorian-gato`.
+After installing the tool, it can be launched by running `gato-x`.
 
 We recommend viewing the parameters for the base tool using `gato -h`, and the 
 parameters for each of the tool's modules by running the following:
 
-* `gato search -h`
-* `gato enum -h`
-* `gato attack -h`
+* `gato-x search -h`
+* `gato-x enum -h`
+* `gato-x attack -h`
 
 The tool requires a GitHub classic PAT in order to function. To create one, log
 in to GitHub and go to [GitHub Developer
@@ -124,15 +171,12 @@ the token within a secure password manager and enter it when the application
 prompts you.
 
 For troubleshooting and additional details, such as installing in developer 
-mode or running unit tests, please see the [wiki](https://github.com/praetorian-inc/gato/wiki).
-
-## Documentation
-
-Please see the [wiki](https://github.com/praetorian-inc/gato/wiki).
- for detailed documentation, as well as [OpSec](https://github.com/praetorian-inc/gato/wiki/opsec) considerations 
-for the tool's various modules!
+mode or running unit tests, please see the [wiki](https://github.com/AdnaneKhan/gato-x/wiki).
 
 ## Bugs
+
+As an operator facing tool with rapidly developed features, Gato-X will have bugs. 
+Typically, these are related to edge cases with run log formatting or YAML files.
 
 If you believe you have identified a bug within the software, please open an 
 issue containing the tool's output, along with the actions you were trying to
@@ -140,29 +184,33 @@ conduct.
 
 If you are unsure if the behavior is a bug, use the discussions section instead!
 
-
 ## Contributing
 
-Contributions are welcome! Please [review](https://github.com/praetorian-inc/gato/wiki/Project-Design) our design methodology and coding 
-standards before working on a new feature!
+Contributions are welcome! Please [review](https://github.com/AdnaneKhan/gato-x/wiki/Project-Design) 
+the design methodology and coding standards before working on a new feature!
 
 Additionally, if you are proposing significant changes to the tool, please open 
-an issue [open an issue](https://github.com/praetorian-inc/gato/issues/new) to 
+an issue [open an issue](https://github.com/AdnaneKhan/gato-x/issues/new) to 
 start a conversation about the motivation for the changes.
 
 ## License
 
-Gato is licensed under the [Apache License, Version 2.0](LICENSE).
+Gato-X is licensed under the [Apache License, Version 2.0](LICENSE).
 
 ```
+
+Gato-X:
+
+Copyright 2024, Adnan Khan
+
+Original Gato Implementation:
+
 Copyright 2023 Praetorian Security, Inc
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.

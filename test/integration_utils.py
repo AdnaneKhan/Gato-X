@@ -5,7 +5,7 @@ import json
 import os
 import pathlib
 
-from gato.main import entry
+from gatox.main import entry
 
 
 # From https://stackoverflow.com/questions/14693701/

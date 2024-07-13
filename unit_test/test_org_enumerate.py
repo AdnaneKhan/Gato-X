@@ -5,8 +5,8 @@ import json
 
 from unittest.mock import MagicMock
 
-from gato.models.organization import Organization
-from gato.enumerate.organization import OrganizationEnum
+from gatox.models.organization import Organization
+from gatox.enumerate.organization import OrganizationEnum
 
 TEST_ORG_DATA = None
 TEST_REPO_DATA = None

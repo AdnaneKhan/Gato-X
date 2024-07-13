@@ -1,24 +1,20 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "praetorian-gato"
-version = "1.6.0"
+name = "gato-x"
+version = "0.5"
 description = "GitHub Actions Enumeration and Attack Framework"
-readme = "readme.md"
+readme = "README.md"
 authors = [
-    {name = "Adnan Khan", email = "adnan.khan@praetorian.com"},
-    {name = "Matthew Jackoski", email = "matthew.jackoski@praetorian.com"},
-    {name = "Mason Davis", email = "mason.davis@praetorian.com"}
+    {name = "Adnan Khan", email = "adnanthekhan@proton.me"}
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 classifiers = [
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11"
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
 ]
 dependencies = [
     "colorama",
@@ -35,17 +31,21 @@ test = [
     "pytest-cov"
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = [
+    "gatox"
+]
+
 [tool.pytest.ini_options]
 testpaths = ["unit_test"]
 python_files = ["test_*.py"]
-addopts = "--cov=gato"
+addopts = "--cov=gatox"
 
 [tool.coverage.run]
-source = ['gato']
+source = ["gatox"]
 
 [tool.coverage.html]
 directory = "cov_html"
 
 [project.scripts]
-gato = "gato.main:entry"
-praetorian-gato = "gato.main:entry"
+gato-x = "gatox.main:entry"
