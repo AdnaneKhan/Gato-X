@@ -54,7 +54,7 @@ elif sys.argv[1] == 'dispatch':
     }
 
     response = requests.post(
-        "https://api.github.com/repos/praetorian-inc/gato/actions/workflows/integration_sh.yaml/dispatches",
+        "https://api.github.com/repos/AdnaneKhan/gato-x/actions/workflows/integration_sh.yaml/dispatches",
         headers=headers,
         json=data
     )
@@ -71,7 +71,7 @@ elif sys.argv[1] == 'force_remove':
     }
 
     response = requests.get(
-        "https://api.github.com/orgs/GHRunnerPlayground/actions/runners",
+        "https://api.github.com/orgs/gatoxtest/actions/runners",
         headers=headers,
     )
 
@@ -84,7 +84,7 @@ elif sys.argv[1] == 'force_remove':
         if runner:
             remove_id = runner[0]['id']
             resp = requests.delete(
-                f'https://api.github.com/orgs/GHRunnerPlayground/actions/runners/{remove_id}',
+                f'https://api.github.com/orgs/gatoxtest/actions/runners/{remove_id}',
                 headers=headers
             )
 
