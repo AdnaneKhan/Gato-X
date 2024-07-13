@@ -19,23 +19,11 @@ from gatox.models.repository import Repository
 
 class CacheManager:
     """
-    Singleton class that manages an in-memory cache.
+    Singleton class that manages an in-memory cache for workflows and reusable actions.
 
     TODO: Integrate with Redis.
     """
     _instance = None
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        # Remove the unpicklable entries.
-        state['_instance'] = None
-        return state
-
-    def __setstate__(self, state):
-        # Restore instance attributes
-        self.__dict__.update(state)
-        # Restore the singleton instance
-        self._instance = self
 
     def __new__(cls):
         """

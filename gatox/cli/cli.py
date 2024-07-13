@@ -2,8 +2,6 @@ import argparse
 import os
 import re
 
-from packaging import version
-
 from colorama import Fore, Style
 
 from gatox import util
