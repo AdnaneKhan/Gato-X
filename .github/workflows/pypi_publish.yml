@@ -1,11 +1,11 @@
-name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
+name: Publish Gato-X to PyPI and TestPyPI
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build distribution 📦
+    name: Build Distribution 📦
     runs-on: ubuntu-latest
 
     steps:
@@ -20,9 +20,9 @@ jobs:
         pip install
         build
         --user
-    - name: Build a binary wheel and a source tarball
+    - name: Build Binary wheel Source Tarball
       run: python3 -m build
-    - name: Store the distribution packages
+    - name: Store Distribution Packages
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
@@ -30,7 +30,7 @@ jobs:
 
   publish-to-pypi:
     name: >-
-      Publish Python 🐍 distribution 📦 to PyPI
+      Publish Gato-X Distribution 📦 to PyPI
     needs:
     - build
     runs-on: ubuntu-latest
@@ -41,12 +41,12 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
     steps:
-    - name: Download all the dists
+    - name: Download Dists
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
         path: dist/
-    - name: Publish distribution 📦 to PyPI
+    - name: Publish Distribution
       uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0 # v1.9.0
   
   # github-release:
@@ -93,7 +93,7 @@ jobs:
   #       --repo '${{ github.repository }}'
 
   publish-to-testpypi:
-    name: Publish Python 🐍 distribution 📦 to TestPyPI
+    name: Publish Gato-X Distribution 📦 to TestPyPI
     needs:
     - build
     runs-on: ubuntu-latest
