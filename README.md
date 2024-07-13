@@ -1,5 +1,8 @@
 ![Supported Python versions](https://img.shields.io/badge/python-3.10+-blue.svg)
 
+
+**Tool is undergoing final development and polish. The tool will be officially released on August 7th, 2024**
+
 # Gato (Github Attack TOolkit) - Extreme Edition
 
 ## What is Gato-X?
@@ -61,13 +64,14 @@ For high priority Pwn Request or Injection reports, Gato-X has a true positive r
 70-80 percent.
 
 As an operator facing tool, Gato-X is tuned with a higher false positive rate than a tool
-designed to generate alerts, but it provides contextual information to quickly determine
-if something is worth investigating or not.
+designed to generate alerts, but it provides contextual information to quickly 
+determine if something is worth investigating or not.
 
 ### Other Improvements
 
 * Improved Secrets Exfiltration.
-* Speed Improvements for runlog analysis.
+* Enumeration of deployment environment secrets.
+* Speed improvements for runlog analysis.
 * General speed improvements throughout.
 * Improved CLI interface and reports.
 * Removed dependancy on Git.
