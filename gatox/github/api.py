@@ -802,10 +802,12 @@ class Api():
             repo_name (str): The name of the repository. It should be in the format 'owner/repo'.
             sha (str): The SHA of the commit for which to get the workflow.
             file_name (str): The name of the workflow file (without the .yml extension).
-            time_after (str, optional): A timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ. Only show workflows updated after this time.
+            time_after (str, optional): A timestamp in ISO 8601 format: 
+            YYYY-MM-DDTHH:MM:SSZ. Only show workflows updated after this time.
 
         Returns:
-            int: The ID of the workflow if found, 0 if no workflows are found, or -1 if there was an error querying the workflows.
+            int: The ID of the workflow if found, 0 if no workflows are found, or -1 
+            if there was an error querying the workflows.
 
         Raises:
             None

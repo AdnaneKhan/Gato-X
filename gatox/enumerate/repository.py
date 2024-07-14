@@ -95,10 +95,10 @@ class RepositoryEnum():
         now = datetime.now()
 
         # Calculate the date 1 days ago
-        seven_days_ago = now - timedelta(days=1)
+        one_day_ago = now - timedelta(days=1)
 
         # Return True if the date is within the last day, False otherwise
-        return seven_days_ago <= date <= now
+        return one_day_ago <= date <= now
 
     @staticmethod
     def __parse_github_path(path):

@@ -174,7 +174,8 @@ class GqlQueries():
 
             top_len = len(repos) if len(repos) < (100 + i*100) else (100 + i*100)
             query = {
-                # We list envs if we have write access (for secrets reasons, otherwise we don't list them)
+                # We list envs if we have write access to one in the set (for secrets
+                # reasons, otherwise we don't list them)
                 "query": GqlQueries.GET_YMLS_ENV if repos[i].can_push() else GqlQueries.GET_YMLS,
                 "variables": {
                     "node_ids": [

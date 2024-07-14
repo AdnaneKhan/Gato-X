@@ -336,8 +336,9 @@ class WorkflowParser():
                 
                 def check_token(token, container):
                     if token.startswith('env.') and token.split('.')[1] in container['env']:
-                        
-                        if container['env'][token.split('.')[1]] and '${{' in container['env'][token.split('.')[1]]:
+                        value = container['env'][token.split('.')[1]]
+
+                        if value and type(value) not in [int, float] and '${{' in value:
                             return True
                         else:
                             return False
