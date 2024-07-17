@@ -18,6 +18,8 @@ import re
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
+from gatox.workflow_parser.utility import decompose_action_ref
+
 
 class Step():
     """Wrapper class for a Github Actions worflow step.
@@ -26,6 +28,8 @@ class Step():
     pattern = re.compile(
         r'checkout\s+(\$\{\{)?\s*(\S*([a-z$_]+)\S*)\s*(\}\})?', re.IGNORECASE
     )
+
+    CONTEXT_REGEX = re.compile(r'\${{\s*([^}^\s]+)\s*}}')
     
     EVALUATOR = ExpressionEvaluator()
 
@@ -154,6 +158,19 @@ class Step():
         elif uses.startswith('./'):
             # Local actions are runnable, so it is a sink.
             self.is_sink = True
+    
+    def getTokens(self):
+        """Get the context tokens from the step.
+        """
+        if self.contents:
+            return self.CONTEXT_REGEX.findall(self.contents)
+        else:
+            return None
+        
+    def getActionParts(self):
+        if self.type == 'ACTION':
+
+            return 
 
     def evaluateIf(self):
         """Evaluate the If expression by parsing it into an AST

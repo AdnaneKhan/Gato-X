@@ -103,7 +103,7 @@ def test_set_get_action():
     
     mock_action = "someActionContentsHere"
 
-    cache.set_action("testOrg/testRepo", ".github/actions/action.yml", mock_action)
+    cache.set_action("testOrg/testRepo", ".github/actions/action.yml", "main", mock_action)
 
-    assert cache.get_action("testOrg/testRepo", ".github/actions/action.yml") == mock_action
+    assert cache.get_action("testOrg/testRepo", ".github/actions/action.yml", "main") == mock_action
 

@@ -15,15 +15,11 @@ techniques against GitHub repositories and organizations for security research p
 Gato-X accompanies the **BlackHat USA 2024 talk: Self-Hosted GitHub CI/CD Runners: Continuous Integration, Continuous Destruction**
 and the **DEF CON 32 talk Grand Theft Actions: Abusing Self-Hosted GitHub Runners** at scale.
 
-Gato-X is a powerful tool and should only be used for ethical security research.
+**Gato-X is a powerful tool and should only be used for ethical security research purposes.**
 
 If scanning repositories, then the `search` and `enumerate` modes are 
 safe to run. They will perform no mutable operations and only perform read requests.
 As of writing, enumeration will not generate any audit log events.
-
-The `attack` moodes should only be used against repositories you are authorized
-to test against.
-
 
 ## New Features
 
@@ -31,10 +27,11 @@ to test against.
 
 Gato-X automates the "Runner-on-Runner" (RoR) technique used extensively by Adnan Khan and
 John Stawinski during their self-hosted runner bug bounty campaign. This feature replaces
-the basic attack PoC functionality included in the original Gato.
+the basic attack PoC functionality included in the original version of Gato.
 
-Gato-X supports deploying runner-on-runner through fork pull requests and via push triggers.
-The latter can be used for privilege escalation and lateral movement by jumping to new runners.
+Gato-X supports deploying runner-on-runner through fork pull requests. Gato-X also supports
+creating a RoR payload only, which can be used in conjunction with the `push` workflow
+functionality to jump to internal self-hosted runners.
 
 Under the hood, Gato-X will perform the following steps:
 
@@ -51,7 +48,7 @@ From the user's persective, it's simply: run command, get shell. What more could
 Gato-X contains a powerful scanning engine for GitHub Actions Injection and
 Pwn Request vulnerabilities. As of writing, Gato-X is one of the fastest tools
 for the task. It is capable of scanning 35-40 *thousand* repositories in 1-2 hours
-using a single GitHub PAT.
+using a single GitHub PAT. This is the most sophisticated new feature in Gato-X and is the result of countless hours of development and iteration in my spare time over the last six months.
 
 * Reachability Analysis
 * Same and Cross-Repository Transitive Workflow Analysis
@@ -60,11 +57,9 @@ using a single GitHub PAT.
 * Lightweight Source-Sink Analysis for Variables
 * Priority Guidelines
 
-For high priority Pwn Request or Injection reports, Gato-X has a true positive rate of
-70-80 percent.
+For high priority Pwn Request or Injection reports, Gato-X has a true positive rate of 70-80 percent.
 
-As an operator facing tool, Gato-X is tuned with a higher false positive rate than a tool
-designed to generate alerts, but it provides contextual information to quickly 
+As an operator facing tool, Gato-X is tuned with a higher false positive rate than a tool designed to generate alerts, but it provides contextual information to quickly 
 determine if something is worth investigating or not.
 
 ### Other Improvements
@@ -75,6 +70,21 @@ determine if something is worth investigating or not.
 * General speed improvements throughout.
 * Improved CLI interface and reports.
 * Removed dependancy on Git.
+
+### Features Coming Soon
+
+There are a number of features I plan to add to Gato-X in the coming weeks or months.
+
+#### Analyze Referenced Composite Actions
+
+Currently, Gato-X does not analyze referenced composite actions. In some cases, risky operations can be performed within composite actions (such as referencing user-controlled context variables or checking out PR code).
+
+The problem with this is that retrieving an additional file requires an API request. This can significantly slow down enumeration. This will probably be an option that is disabled by default when I add it.
+
+#### LLM Powered Result Analysis 
+
+Gato-X's biggest weakness is identifying injection points that
+are outputs of steps that run arbitrary code. This creates a lot of 'UNKNOWN' confidence Actions Injection Reports. Using LLMs to reason about whether a variable is user controlled or not based on context will allow further narrowing down results. This feature will likely include support for passing an OpenAI API key and some Gato-X system prompts that I will use to inform ChatGPT of what to look for and how to respond.
 
 ## Quick Start
 
@@ -185,8 +195,6 @@ Typically, these are related to edge cases with run log formatting or YAML files
 If you believe you have identified a bug within the software, please open an 
 issue containing the tool's output, along with the actions you were trying to
 conduct.
-
-If you are unsure if the behavior is a bug, use the discussions section instead!
 
 ## Contributing
 

@@ -8,6 +8,7 @@ from gatox.models.secret import Secret
 from gatox.models.runner import  Runner
 from gatox.github.api import Api
 from gatox.workflow_parser.workflow_parser import WorkflowParser
+from gatox.workflow_parser.composite_parser import CompositeParser
 from gatox.caching.cache_manager import CacheManager
 from gatox.notifications.send_webhook import send_slack_webhook
 
@@ -168,6 +169,56 @@ class RepositoryEnum():
                             )
                         repository.set_pwn_request(pwn_package)
 
+    def __retrieve_composites(self, repository: Repository, referenced_actions: dict):
+        """Retrieve composite actions and set them to the cache.
+        """
+
+        comp_list = []
+        if self.api.github_url == "https://api.github.com":
+            for composite in referenced_actions.values():
+                if composite['local']:
+                    action = CacheManager().get_action(
+                        composite['repo'],
+                        composite['path'],
+                        repository.repo_data['default_branch']        
+                    )
+                    
+                    if action:
+                        comp_list.append(action)
+                        continue
+
+                    contents = self.api.retrieve_raw_action(
+                        composite['repo'],
+                        composite['path'],
+                        repository.repo_data['default_branch']
+                    )
+                else:
+                    action = CacheManager().get_action(
+                        composite['repo'],
+                        composite['path'],
+                        composite['ref']
+                    )
+                    if action:
+                        comp_list.append(action)
+                        continue
+
+                    contents = self.api.retrieve_raw_action(
+                        composite['repo'],
+                        composite['path'],
+                        composite['ref']
+                    )
+
+                if contents:
+                    parsed_action = CompositeParser(contents)
+                    if parsed_action.is_composite():
+                        comp_list.append(parsed_action)
+                        CacheManager().set_action(
+                            composite['repo'],
+                            composite['path'],
+                            composite['ref'],
+                            parsed_action
+                        )
+        return comp_list
 
     def __perform_yml_enumeration(self, repository: Repository):
         """Enumerates the repository using the API to extract yml files. This
@@ -203,6 +254,20 @@ class RepositoryEnum():
                 self_hosted_jobs = parsed_yml.self_hosted()
                 wf_injection = parsed_yml.check_injection()
                 pwn_reqs = parsed_yml.check_pwn_request()
+
+                # Disable for now - composite parsing slows
+                # things down a lot and actions have more
+                # eyes on them in general.
+                if False and repository.is_public() and parsed_yml.get_vulnerable_triggers():
+                    # We only check this for public repos, as 
+                    # we cannot use a non-API call to retrieve the file.
+                    composites = self.__retrieve_composites(
+                        repository, parsed_yml.composites
+                    )
+                    for composite in composites:
+                        comp_inj = composite.check_injection()
+                        if comp_inj:
+                            print(comp_inj)
 
                 if workflow.branch:
                     workflow_url = (f"{repository.repo_data['html_url']}/blob/" 

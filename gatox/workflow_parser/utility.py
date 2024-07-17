@@ -62,7 +62,7 @@ def check_pr_ref(item):
     return False
 
 @staticmethod
-def filter_tokens(tokens):
+def filter_tokens(tokens, strict=False):
     """
     This method filters the tokens from the contents of a step 
     in a GitHub workflow for potentially unsafe or suspicious context expressions.
@@ -94,8 +94,9 @@ def filter_tokens(tokens):
         ConfigurationManager().WORKFLOW_PARSING['UNSAFE_CONTEXTS']
     ]
     # And then we add anything referenced 
-    tokens_sus = [item for item in tokens if check_sus(item)]
-    tokens_knownbad.extend(tokens_sus)
+    if not strict:
+        tokens_sus = [item for item in tokens if check_sus(item)]
+        tokens_knownbad.extend(tokens_sus)
     return tokens_knownbad
 
 @staticmethod
@@ -131,3 +132,35 @@ def validate_if_check(if_check, variables):
     result = evaluator.evaluate(ast_root)
 
     return result
+
+@staticmethod
+def decompose_action_ref(action_path, vars, repo_name):
+    """
+    """
+    action_parts = {
+        "key": action_path,
+        "path": action_path.split('@')[0] if '@' in action_path else action_path,
+        "ref": action_path.split('@')[1] if '@' in action_path else '',
+        "local": action_path.startswith('./'),
+        "args": vars.get('with', {})
+    }
+    
+    if 'docker://' in action_path or action_parts['path'].startswith('actions/'):
+        # Gato-X doesn't support docker actions
+        # and we ignore official GitHub actions for analysis.
+        return None
+
+    if not action_parts['local']:
+        path_parts = action_parts['path'].split('/')
+
+        action_parts['repo'] = "/".join(path_parts[0:2])
+        if len(path_parts) > 2:
+            action_parts['path'] = "/".join(action_parts['path'].split('/')[2:])
+        else:
+            # Standard action path in base directory
+            action_parts['path'] = ''
+    else:
+        action_parts['path'] = action_parts['path'][2:]
+        action_parts['repo'] = repo_name   
+
+    return action_parts

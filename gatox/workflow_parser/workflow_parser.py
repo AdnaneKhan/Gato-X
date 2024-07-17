@@ -21,7 +21,7 @@ import os
 import re
 
 from gatox.configuration.configuration_manager import ConfigurationManager
-from gatox.workflow_parser.utility import filter_tokens
+from gatox.workflow_parser.utility import filter_tokens, decompose_action_ref
 from gatox.workflow_parser.components.job import Job
 from gatox.models.workflow import Workflow
 
@@ -43,7 +43,6 @@ class WorkflowParser():
 
     LARGER_RUNNER_REGEX_LIST = re.compile(r'(windows|ubuntu)-(22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb')
     MATRIX_KEY_EXTRACTION_REGEX = re.compile(r'{{\s*matrix\.([\w-]+)\s*}}')
-    CONTEXT_REGEX = re.compile(r'\${{\s*([^}^\s]+)\s*}}')
 
     def __init__(self, workflow_wrapper: Workflow, non_default=None):
         """Initialize class with workflow file.
@@ -62,14 +61,13 @@ class WorkflowParser():
         if 'jobs' in self.parsed_yml and self.parsed_yml['jobs'] is not None:
             self.jobs = [Job(job_data, job_name) for job_name, job_data in self.parsed_yml.get('jobs', []).items()]
         else:
-            self.jobs = []
-
+            self.jobs = []  
         self.raw_yaml = workflow_wrapper.workflow_contents
         self.repo_name = workflow_wrapper.repo_name
         self.wf_name = workflow_wrapper.workflow_name
         self.callees = []
         self.external_ref = False
-
+       
         if workflow_wrapper.special_path:
             self.external_ref = True
             self.external_path = workflow_wrapper.special_path
@@ -78,6 +76,9 @@ class WorkflowParser():
             self.branch = non_default
         else:
             self.branch = None
+
+        self.composites = self.extract_referenced_actions()
+
 
     def is_referenced(self):
         return self.external_ref
@@ -109,35 +110,28 @@ class WorkflowParser():
             wf_out.write(self.raw_yaml)
             return True
         
-    def extract_composite_actions(self):
+    def extract_referenced_actions(self):
         """
         Extracts composite actions from the workflow file.
         """
-        composite_actions = []
+        referenced_actions = {}
         vulnerable_triggers = self.get_vulnerable_triggers()
         if not vulnerable_triggers:
-            return []
+            return referenced_actions
 
         if 'jobs' not in self.parsed_yml:
-            return composite_actions
+            return referenced_actions
         
         for job in self.jobs:
             for step in job.steps:
                 # Local action referenced
                 if step.type == 'ACTION':
-                    action_parts = {
-                        "key": step.uses,
-                        "path": step.uses.split('@')[0] if '@' in step.uses else step.uses,
-                        "ref": step.uses.split('@')[1] if '@' in step.uses else '',
-                        "local": step.uses.startswith('./'),
-                        "args": step.step_data.get('with', {})
-                    }
-                    
-                    # Don't investigate GitHub maintained actions, they aren't going to be vulnerable.
-                    if not action_parts['path'].startswith('actions/'):
-                        composite_actions.append(action_parts)
-                            
-        return composite_actions
+                    action_parts = decompose_action_ref(step.uses, step.step_data, self.repo_name)
+                    # Save off by uses as key
+                    if action_parts:
+                        referenced_actions[step.uses] = action_parts
+            
+        return referenced_actions
 
     def get_vulnerable_triggers(self, alternate=False):
         """Analyze if the workflow is set to execute on potentially risky triggers.
@@ -329,7 +323,7 @@ class WorkflowParser():
 
                 # Check if we marked the step as being an injectable script of some kind.
                 if step.is_script:
-                    tokens = self.CONTEXT_REGEX.findall(step.contents)
+                    tokens = step.getTokens()
                 else:
                     continue
                 tokens = filter_tokens(tokens)

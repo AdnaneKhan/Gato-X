@@ -11,6 +11,7 @@ import urllib.parse
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
 from gatox.models.workflow import Workflow
+from gatox.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
@@ -1570,3 +1571,29 @@ class Api():
             return response.json()['html_url']
         else:
             return False
+        
+    def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
+        """
+        """
+        
+        if file_path.endswith('.yml') or file_path.endswith('.yaml'):
+            raw_urls = [f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}"]
+        else:
+            raw_urls = [
+                f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}action.yml",
+                f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}action.yaml"
+            ]
+
+        for url in raw_urls:
+            resp = requests.get(
+                url, 
+                proxies=self.proxies,
+                verify=self.verify_ssl
+            )
+
+            if resp.status_code == 404:
+                continue
+            elif resp.status_code == 200:
+                return resp.text
+            
+        return None

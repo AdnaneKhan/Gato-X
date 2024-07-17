@@ -50,6 +50,13 @@ class CacheManager:
         """
         return repo_slug in self.repo_wf_lookup
         
+    def is_action_cached(self, repo_slug: str, action_path: str, ref: str):
+        """
+        Check if action is cached.
+        """
+        key = f"{repo_slug}:{action_path}:{ref}"
+        return key in self.action_cache
+
     def get_workflows(self, repo_slug: str):
         """
         Get all workflows for a repository from the in-memory dictionary.
@@ -60,13 +67,13 @@ class CacheManager:
         else:
             return set()
 
-    def get_action(self, repo_slug: str, action_path: str):
+    def get_action(self, repo_slug: str, action_path: str, ref: str):
         """
         Get an action from the in-memory dictionary.
         """
-        key = f"{repo_slug}:{action_path}"
+        key = f"{repo_slug}:{action_path}:{ref}"
         return self.action_cache.get(key, None)
-        
+    
     def set_repository(self, repository: Repository):
         """
         Set a repository in the in-memory dictionary.
@@ -96,9 +103,9 @@ class CacheManager:
         """
         self.repo_wf_lookup[repo_slug] = set()
 
-    def set_action(self, repo_slug: str, action_path: str, value: str):
+    def set_action(self, repo_slug: str, action_path: str, ref: str, value: str):
         """
         Set an action in the in-memory dictionary.
         """
-        key = f"{repo_slug}:{action_path}"
+        key = f"{repo_slug}:{action_path}:{ref}"
         self.action_cache[key] = value
