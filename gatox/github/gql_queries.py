@@ -170,6 +170,9 @@ class GqlQueries():
         """
         queries = []
 
+        if len(repos) == 0:
+            return queries
+
         for i in range(0, (len(repos) // 100) + 1):
 
             top_len = len(repos) if len(repos) < (100 + i*100) else (100 + i*100)
