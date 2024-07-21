@@ -10,6 +10,12 @@ body:
     value: "## Gato-X Hall of Fame Addition Request"
 - type: textarea
   attributes:
+    label: Fix Commit
+    description: Link to the commit fixing the issue you reported.
+  validations:
+    required: true
+- type: textarea
+  attributes:
     label: Details
     description: Explain the Report and Impacted Open-Source Project
     placeholder: Details about the report, such as impact, interaction with maintainers.
@@ -23,3 +29,9 @@ body:
     options:
       - Private Disclosure
       - Pull Request
+- type: textarea
+  attributes:
+    label: Report Atribution
+    description: Optional information attributing the fix to your report.
+  validations:
+    required: false
