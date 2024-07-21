@@ -7,7 +7,21 @@ assignees:
 body:
 - type: markdown
   attributes:
-    value: "## Gato-X Hall of Fame Addition Request"
+    value: |
+      ## Gato-X Hall of Fame Addition Request
+      
+      Use this form to submit a vulnerability that found using Gato-X and reported to an Open-Source project.
+      
+      If you created a pull-request to fix the issue, please provide a link to the commit in which it was fixed, not the pull request.
+
+      If you disclosed the vulnerability privately, please attach proof such as a screenshot of an acknowledgement email or 
+      or note in the proof section that the maintainer attributed the fix to you. If the project did not respond to your report
+      but did fix the issue, a snippet of your sent email bearing a timestamp is also acceptable. It is likely that during DEF CON and
+      Black Hat multiple hackers will find the same issues using Gato-X and report it responsibly. In that case everyone who asks to be added and 
+      reported it within the same timeframe will be credited.
+
+      **Please only submit issues that have been fixed!**
+    
 - type: textarea
   attributes:
     label: Fix Commit
