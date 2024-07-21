@@ -1,0 +1,24 @@
+name: "Hall of Fame Addition"
+description: "Add a Gato-X Discovery and to the Hall of Fame"
+title: "Hall of Fame Entry - [REPOSITORY]"
+labels: ['hall-of-fame']
+assignees: 
+  - AdnaneKhan
+body:
+ - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Explain the Report and Impacted Open-Source Project
+      placeholder: Details about the report, such as impact, interaction with maintainers.
+      value: "Details"
+    validations:
+      required: true
+  - type: dropdown
+    id: disclosure
+    attributes:
+      label: Disclosure Type
+      description: How did you report or fix the vulnerability?
+      options:
+        - Private Disclosure
+        - Pull Request
