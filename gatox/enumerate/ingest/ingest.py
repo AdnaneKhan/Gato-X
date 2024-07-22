@@ -54,6 +54,7 @@ class DataIngestor:
                       result['viewerPermission'] == 'MAINTAIN' or \
                       result['viewerPermission'] == 'ADMIN',
                     'push': result['viewerPermission'] == 'WRITE' or \
+                        result['viewerPermission'] == 'MAINTAIN' or \
                         result['viewerPermission'] == 'ADMIN',
                     'admin': result['viewerPermission'] == 'ADMIN'
                 },
