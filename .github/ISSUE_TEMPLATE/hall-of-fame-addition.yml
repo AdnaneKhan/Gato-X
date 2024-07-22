@@ -1,0 +1,51 @@
+name: "Hall of Fame Addition"
+description: "Add a Gato-X Discovery and to the Hall of Fame"
+title: "Hall of Fame Entry - [REPOSITORY]"
+labels: ['hall-of-fame']
+assignees: 
+  - AdnaneKhan
+body:
+- type: markdown
+  attributes:
+    value: |
+      ## Gato-X Hall of Fame Addition Request
+      
+      Use this form to submit a vulnerability that found using Gato-X and reported to an Open-Source project.
+      
+      If you created a pull-request to fix the issue, please provide a link to the commit in which it was fixed, not the pull request.
+
+      If you disclosed the vulnerability privately, please attach proof such as a screenshot of an acknowledgement email or 
+      or note in the proof section that the maintainer attributed the fix to you. If the project did not respond to your report
+      but did fix the issue, a snippet of your sent email bearing a timestamp is also acceptable. It is likely that during DEF CON and
+      Black Hat multiple hackers will find the same issues using Gato-X and report it responsibly. In that case everyone who asks to be added and 
+      reported it within the same timeframe will be credited.
+
+      **Please only submit issues that have been fixed!**
+    
+- type: textarea
+  attributes:
+    label: Fix Commit
+    description: Link to the commit fixing the issue you reported.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Details
+    description: Explain the Report and Impacted Open-Source Project
+    placeholder: Details about the report, such as impact, interaction with maintainers.
+    value: "Details"
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Disclosure Type
+    description: How did you report or fix the vulnerability?
+    options:
+      - Private Disclosure
+      - Pull Request
+- type: textarea
+  attributes:
+    label: Report Atribution
+    description: Optional information attributing the fix to your report.
+  validations:
+    required: false
