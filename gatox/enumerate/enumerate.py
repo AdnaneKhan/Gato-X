@@ -173,7 +173,7 @@ class Enumerator:
 
         Output.info(
             f"About to enumerate "
-            f"{len(organization.private_repos) + len(organization.public_repos)}"
+            f"{len(enum_list)}"
             " repos within "
             f"the {organization.name} organization!"
         )
