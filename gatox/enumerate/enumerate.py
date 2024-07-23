@@ -209,6 +209,8 @@ class Enumerator:
                 self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 25)
                 self.repo_e.enumerate_repository_secrets(repo)
 
+                organization.set_repository(repo)
+
                 Recommender.print_repo_secrets(
                     self.user_perms['scopes'],
                     repo.secrets

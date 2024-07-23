@@ -52,6 +52,17 @@ class Organization():
         """
         self.secrets = secrets
 
+    def set_repository(self, repo: Repository):
+        """Add a single repository to the organization.
+
+        Args:
+            repo (Repository): Single repository object.
+        """
+        if repo.is_private():
+            self.private_repos.append(repo)
+        else:
+            self.public_repos.append(repo)
+
     def set_public_repos(self, repos: list[Repository]):
         """List of public repos for the org.
 

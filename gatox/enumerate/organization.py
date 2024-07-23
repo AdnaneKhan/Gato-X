@@ -66,9 +66,6 @@ class OrganizationEnum():
             organization.name, ['public']
         )
 
-        organization.set_public_repos(org_public_repos)
-        organization.set_private_repos(org_private_repos)
-
         if organization.sso_enabled:
             return org_private_repos + org_public_repos
         else:

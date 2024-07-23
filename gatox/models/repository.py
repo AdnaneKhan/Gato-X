@@ -48,7 +48,7 @@ class Repository():
         return self.permission_data.get('pull', False)
 
     def is_private(self):
-        return self.repo_data['private']
+        return self.repo_data['visibility'] != 'public'
     
     def is_archived(self):
         return self.repo_data['archived']
