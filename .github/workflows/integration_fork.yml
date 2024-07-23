@@ -2,8 +2,11 @@ name: Fork PR Integration Testing
 on:
   workflow_dispatch:
     inputs:
-      pr_number:
-        description: PR Number to Test
+      pr_repo:
+        description: Forked repository of PR head.
+        required: true
+      pr_sha:
+        description: Head SHA to test
         required: true
 env:
   LOW_PRIV_PAT: ${{ secrets.LOW_PRIV_PAT }}
@@ -19,7 +22,7 @@ env:
 
 jobs:
     SH-Runner-Dispatch:
-        if: contains(FromJSON('["AdnaneKhan", "mas0nd", "DS-KoolAid"]'), github.actor)
+        if: contains(FromJSON('["AdnaneKhan"]'), github.actor)
         name: Prepare Integration Test SH Runner
         runs-on: ubuntu-latest
         steps:
@@ -49,9 +52,10 @@ jobs:
 
         steps:
           - name: Checkout the repo
-            uses: actions/checkout@v3
-          - name: Checkout PR
-            run: gh pr checkout $PR_NUMBER 
+            uses: actions/checkout@v4
+            with:
+              repository: ${{ inputs.pr_repo }}
+              ref: ${{ inputs.pr_sha }}
           - name: Setup python
             uses: actions/setup-python@v4
             with:
