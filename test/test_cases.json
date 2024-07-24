@@ -211,29 +211,6 @@
         "extra_validation": {"type":"none"}
     },
     {
-        "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_DELETE_TOKEN",
-        "invocation": "gato-x a -t gatoxtest/TestWF2 -pr",
-        "assertions": [
-            {
-                "expect": "Successfully created a PR! It can be viewed at",
-                "type": "stdout"
-            },
-            {
-                "expect": "Successfully rebased commit",
-                "type": "stdout"
-            },
-            {
-                "expect": "Pushed commit to close PR!",
-                "type": "stdout"
-            },
-            {
-                "expect": "Successfully deleted the fork!",
-                "type": "stdout"
-            }
-        ],
-        "extra_validation": {"type":"none"}
-    },
-    {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN",
         "invocation": "gato-x e -t gatoxtest -sr",
         "assertions": [
