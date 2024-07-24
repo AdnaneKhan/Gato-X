@@ -4,11 +4,11 @@
         "invocation": "gato-x enum --self-enumeration",
         "assertions": [
             {
-                "expect": "[+] The user reallybadcicd belongs to 0 organizations!",
+                "expect": "[+] The user RampagingSloth belongs to 0 organizations!",
                 "type": "stdout"
             },
             {
-                "expect": "[+] The authenticated user is: reallybadcicd",
+                "expect": "[+] The authenticated user is: RampagingSloth",
                 "type": "stdout"
             }
         ],
@@ -19,11 +19,11 @@
         "invocation": "gato-x enum --self-enumeration",
         "assertions": [
             {
-                "expect": "[+] The user main-feature-LINT-DocumentationUpdate belongs to 1 organizations!",
+                "expect": "[+] The user umbr4g3 belongs to 3 organizations!",
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the gatoxtest organization!",
+                "expect": "About to enumerate 5 repos within the gatoxtest organization!",
                 "type": "stdout"
             },
             {
@@ -38,7 +38,7 @@
         "invocation": "gato-x enum --self-enumeration",
         "assertions": [
             {
-                "expect": "The user GHRunner-ad belongs to 1 organizations!",
+                "expect": "The user UncertainBadg3r belongs to 1 organizations!",
                 "type": "stdout"
             },
             {
@@ -54,7 +54,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the gatoxtest organization!",
+                "expect": "About to enumerate 5 repos within the gatoxtest organization!",
                 "type": "stdout"
             }
         ],
@@ -88,7 +88,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the gatoxtest organization!",
+                "expect": "About to enumerate 5 repos within the gatoxtest organization!",
                 "type": "stdout"
             },
             {
@@ -111,7 +111,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the gatoxtest organization!",
+                "expect": "About to enumerate 5 repos within the gatoxtest organization!",
                 "type": "stdout"
             },
             {
@@ -250,18 +250,18 @@
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato-x e -r gatoxtest/md-test -sr",
+        "invocation": "gato-x e -r gatoxtest/TestEnvironment -sr",
         "assertions": [
             {
                 "expect": "The repository can access 2 secrets and the token can use a workflow to read",
                 "type": "stdout"
             },
             {
-                "expect": "REPO_SECRET, last updated 2023-04-20T18:01:37Z",
+                "expect": "REPO_SECRET, last updated 2024-07-23T23:05:21Z",
                 "type": "stdout"
             },
             {
-                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
+                "expect": "INTEGRATION_SECRET, last updated 2024-07-23T23:05:38Z",
                 "type": "stdout"
             }
         ],
@@ -272,11 +272,11 @@
         "invocation": "gato-x enum --self-enumeration -oJ integration_test.json",
         "assertions": [
             {
-                "expect": "[+] The user main-feature-LINT-DocumentationUpdate belongs to 1 organizations!",
+                "expect": "[+] The user umbr4g3 belongs to 3 organizations!",
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the gatoxtest organization!",
+                "expect": "About to enumerate 5 repos within the gatoxtest organization!",
                 "type": "stdout"
             },
             {
@@ -288,7 +288,7 @@
             "type": "file",
             "filename": "integration_test.json",
             "assertions": [
-                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"username\": \"umbr4g3\"",
                 "\"accessible_runners\": [",
                 "\"name\": \"ghrunner-test\","
             ]
@@ -299,7 +299,7 @@
         "invocation": "gato-x enum --target gatoxtest -oJ integration_test.json",
         "assertions": [
             {
-                "expect": "About to enumerate 4 repos within the gatoxtest organization!",
+                "expect": "About to enumerate 5 repos within the gatoxtest organization!",
                 "type": "stdout"
             },
             {
@@ -311,7 +311,7 @@
             "type": "file",
             "filename": "integration_test.json",
             "assertions": [
-                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"username\": \"umbr4g3\"",
                 "\"accessible_runners\": [",
                 "\"name\": \"ghrunner-test\",",
                 "\"org_member\": true,",
@@ -332,11 +332,11 @@
             "type": "file",
             "filename": "integration_test.json",
             "assertions": [
-                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"username\": \"umbr4g3\"",
                 "\"accessible_runners\": [",
                 "\"name\": \"ghrunner-test\",",
                 "\"repositories\": [",
-                "\"name\": \"gato-xxtest/TestWF2\","
+                "\"name\": \"gatoxtest/TestWF2\","
             ]
         }
     },
