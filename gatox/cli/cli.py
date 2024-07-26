@@ -6,7 +6,7 @@ from colorama import Fore, Style
 
 from gatox import util
 from gatox.cli.colors import RED_DASH
-from gatox.cli.output import Output
+from gatox.cli.output import Output, SPLASH
 from gatox.cli.enumeration.config import configure_parser_enumerate
 from gatox.cli.search.config import configure_parser_search
 from gatox.cli.attack.config import configure_parser_attack
@@ -69,9 +69,9 @@ def cli(args):
     arguments = parser.parse_args(args)
 
     Output(not arguments.no_color)
-
     validate_arguments(arguments, parser)
-
+    print(Output.blue(SPLASH))
+    
     arguments.func(arguments, subparsers)
 
 def validate_arguments(args, parser):

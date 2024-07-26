@@ -6,12 +6,12 @@ import logging
 import zipfile
 import re
 import io
-import urllib.parse
 
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
+from gatox.github.gql_queries import GqlQueries
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +212,21 @@ class Api():
                         content = run_log.read().decode()
 
                         return content
+                    
+    def __get_raw_file(self, repo: str, file_path: str, ref: str):
+        """Get a raw file with a web request.
+        """
+
+        resp = requests.get(
+            f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}", 
+            proxies=self.proxies,
+            verify=self.verify_ssl
+        )
+
+        if resp.status_code == 404:
+            return None
+        elif resp.status_code == 200:
+            return resp.text
 
     @staticmethod
     def __verify_result(response: requests.Response, expected_code: int):
@@ -566,6 +581,41 @@ class Api():
                 " PAT permission level!"
             )
 
+    def get_org_repo_names_graphql(self, org: str, type: str):
+        """Retrieve repositories within an organization using GraphQL.
+        """
+        repo_names = []
+        if type not in ['PUBLIC', 'PRIVATE']:
+            raise ValueError("Unsupported type!")
+      
+        cursor = None
+        while True:
+
+            query = {
+                "query": GqlQueries.GET_ORG_REPOS,
+                "variables": {
+                    "orgName": org,
+                    "repoTypes": type,
+                    "cursor": cursor
+                }
+            }
+
+            response = self.call_post('/graphql', query)
+            if response.status_code == 200:
+                response = response.json()
+                repos = [edge['node']['name'] for edge in response['data']['organization']['repositories']['edges']]
+                repo_names.extend(repos)
+
+                pageInfo = response['data']['organization']['repositories']['pageInfo']
+                cursor = pageInfo['endCursor'] if pageInfo['hasNextPage'] else None
+
+                if not pageInfo['hasNextPage']:
+                    break
+            else:
+                break
+
+        return repo_names
+
     def check_org_repos(self, org: str, type: str):
         """Check repositories present within an organization.
 
@@ -814,7 +864,10 @@ class Api():
             None
 
         Example:
-            get_recent_workflow('octocat/Hello-World', '7fd1a60b01f91b314f59955a4e4d4e80d8edf11d', 'test_workflow')
+            get_recent_workflow(
+            'octocat/Hello-World', 
+            '7fd1a60b01f91b314f59955a4e4d4e80d8edf11d', 'test_workflow'
+        )
         """
         params = {
             "head_sha": sha
@@ -1085,21 +1138,33 @@ class Api():
 
         return ymls
     
-    def retrieve_repo_file(self, repo_name: str, file_path: str, ref: str):
+    def retrieve_repo_file(self, repo_name: str, file_path: str, ref: str, public=False):
+        """Retrieves a single file from a GitHub repository.
+
+        If the repository is public, it instead uses the raw.githubusercontent.com
+        endpoint to save on the API rate limit.
         """
-        """
-        resp = self.call_get(f'/repos/{repo_name}/contents/{file_path}', params={"ref": ref})
-        if resp.status_code == 200:
-            resp_data = resp.json()
-            if 'content' in resp_data:
-                file_data = base64.b64decode(resp_data['content'])
-                return Workflow(
-                    repo_name,
-                    file_data,
-                    resp_data['name'],
-                    non_default=ref, 
-                    special_path=file_path
-                )
+        file_data = None
+
+        if public:
+            file_data = self.__get_raw_file(repo_name, file_path, ref)
+        else:
+            resp = self.call_get(
+                f'/repos/{repo_name}/contents/{file_path}', params={"ref": ref}
+            )
+            if resp.status_code == 200:
+                resp_data = resp.json()
+                if 'content' in resp_data:
+                    file_data = base64.b64decode(resp_data['content'])
+
+        if file_data: 
+            return Workflow(
+                repo_name,
+                file_data,
+                file_path.rsplit('/', 1)[-1],
+                non_default=ref, 
+                special_path=file_path
+            )
 
 
     def retrieve_workflow_yml(self, repo_name: str, workflow_name: str):
@@ -1196,49 +1261,6 @@ class Api():
 
         return secrets
 
-    def retrieve_composite_actions(self, repo_name: str, composite_actions: list[dict]):
-        """Uses the repository contents API to retrieve the contents of the composite action.
-        """
-
-        referenced_actions = {}
-
-        for composite in composite_actions:
-            if composite['local']:
-                resp = self.call_get(
-                    f'/repos/{repo_name}/contents/{composite["path"]}/action.yml'
-                )
-
-            elif composite['ref']:
-                
-                if len(composite["path"].split('/')) > 2:
-                    repo_path = "/".join(composite["path"].split("/", 2)[:2])
-                    composite_path = "/".join(composite["path"].split("/", 2)[2:])
-
-                    resp = self.call_get(
-                        f'/repos/{repo_path}/contents/{composite_path}/action.yml?ref={composite["ref"]}'
-                    )
-                else:
-                    resp = self.call_get(
-                    f'/repos/{composite["path"]}/contents/action.yml?ref={composite["ref"]}'
-                    )
-
-                if resp.status_code == 404:
-                    print(
-                        f'TEMP FOR DEV, Got 404: /repos/{composite["path"]}/contents/action.yml?ref={composite["ref"]}'
-                    )
-            else:
-                resp = self.call_get(
-                    f'/repos/{composite["path"]}/contents/action.yml'
-                    )
-
-            if resp.status_code == 200:
-                content = base64.b64decode(resp.json()['content']).decode()
-                referenced_actions[composite['key']] = content
-            else:
-                pass
-
-        return referenced_actions
-
     def get_repo_org_secrets(self, repo_name: str):
         """Issues an API call to the GitHub API to list org secrets for a
         repository. This will succeed as long as the token has the repo scope
@@ -1266,13 +1288,14 @@ class Api():
 
     def get_file_last_updated(self, repo_name: str, file_path: str):
         resp = self.call_get(
-            f'/repos/{repo_name}/commits',params={"path": file_path}
+            f'/repos/{repo_name}/commits', params={"path": file_path, "per_page": 1}
         )
 
         commit_date = resp.json()[0]['commit']['author']['date']
         commit_author = resp.json()[0]['commit']['author']['name']
+        commit_sha = resp.json()[0]['sha']
 
-        return commit_date, commit_author
+        return commit_date, commit_author, commit_sha
 
     def get_all_environment_protection_rules(self, repo_name: str):
         """
@@ -1448,7 +1471,8 @@ class Api():
             git reset --hard HEAD~<COMMIT_DEPTH>
             git push --force
 
-        This is used for force pushing off payloads when conducting attacks in order to close the pull request.
+        This is used for force pushing off payloads when conducting attacks 
+        in order to close the pull request.
         """
 
         params = {
@@ -1464,7 +1488,9 @@ class Api():
         else:
             return False
         
-        resp = self.call_patch(f'/repos/{repo_name}/git/refs/heads/{ref_name}', params={"sha": target, "force": True})
+        resp = self.call_patch(
+            f'/repos/{repo_name}/git/refs/heads/{ref_name}', params={"sha": target, "force": True}
+        )
 
         if resp.status_code == 200:
             return True
@@ -1573,27 +1599,46 @@ class Api():
             return False
         
     def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
-        """
+        """Retrieves a GitHub action yaml file from a public repository.
         """
         
         if file_path.endswith('.yml') or file_path.endswith('.yaml'):
-            raw_urls = [f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}"]
+            paths = [file_path]
         else:
-            raw_urls = [
-                f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}action.yml",
-                f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}action.yaml"
+            paths = [
+                f"{file_path}action.yml",
+                f"{file_path}action.yaml"
             ]
 
-        for url in raw_urls:
-            resp = requests.get(
-                url, 
-                proxies=self.proxies,
-                verify=self.verify_ssl
-            )
-
-            if resp.status_code == 404:
-                continue
-            elif resp.status_code == 200:
-                return resp.text
+        for path in paths:
+            self.__get_raw_file(repo, path, ref)
             
         return None
+
+    def get_commit_merge_date(self, repo: str, sha: str):
+        """Gets the date of the merge commit.
+        """
+
+        query = {
+            "query": GqlQueries.GET_PR_MERGED,
+            "variables": {
+                "sha": sha,
+                "repo": repo.split('/')[1],
+                "owner": repo.split('/')[0]
+            }
+        }
+
+        r = self.call_post('/graphql', params=query)
+        if r.status_code == 200:
+            response = r.json()
+
+            if not response['data']['repository']:
+                return None
+
+            if not response['data']['repository']['commit']['associatedPullRequests']['edges']:
+                return None
+            
+            pr_info = response['data']['repository']['commit']['associatedPullRequests']['edges'][0]['node']
+
+            if pr_info['merged']:
+                return pr_info['mergedAt']

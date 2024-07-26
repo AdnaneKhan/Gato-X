@@ -2,9 +2,12 @@ import os
 import pathlib
 import pytest
 import json
+import datetime
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch, Mock
+from unittest import mock
 
+import gatox.enumerate.repository
 from gatox.models.repository import Repository
 from gatox.enumerate.repository import RepositoryEnum
 from gatox.cli.output import Output

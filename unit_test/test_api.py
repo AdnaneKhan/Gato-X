@@ -1010,3 +1010,95 @@ def test_commit_workflow_failure2(mock_call_post, mock_call_get):
     assert result is None
     assert mock_call_get.call_count == 4
     assert mock_call_post.call_count == 2
+
+@patch('gatox.github.api.requests.get')
+@patch('gatox.github.api.requests.post')
+def test_graphql_org_query(mock_call_post, mock_call_get):
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_results = {
+        "data": {
+            "organization": {
+            "repositories": {
+                "edges": [
+                {
+                    "node": {
+                    "name": "TestWF2"
+                    },
+                    "cursor": "Y3Vyc29yOnYyOpHOLK21Tw=="
+                },
+                {
+                    "node": {
+                    "name": "TestPwnRequest"
+                    },
+                    "cursor": "Y3Vyc29yOnYyOpHOLK24YQ=="
+                },
+                {
+                    "node": {
+                    "name": "BH_DC_2024Demo"
+                    },
+                    "cursor": "Y3Vyc29yOnYyOpHOMR_3jQ=="
+                }
+                ],
+                "pageInfo": {
+                "endCursor": "Y3Vyc29yOnYyOpHOMR_3jQ==",
+                "hasNextPage": False
+                }
+            }
+            }
+        }
+        }
+
+    mock_call_post.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value=mock_results)),
+    ]
+
+    names = api.get_org_repo_names_graphql('testOrg', 'PUBLIC')
+
+    assert 'TestWF2' in names
+    assert 'TestPwnRequest' in names
+    assert 'BH_DC_2024Demo' in names
+
+
+def test_graphql_org_query_badtype():
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    with pytest.raises(ValueError):
+        api.get_org_repo_names_graphql('testOrg', 'UNKNOWN')
+
+@patch('gatox.github.api.requests.get')
+@patch('gatox.github.api.requests.post')
+def test_graphql_mergedat_query(mock_call_post, mock_call_get):
+    """
+    """
+    mock_results = {
+        "data": {
+            "repository": {
+            "commit": {
+                "associatedPullRequests": {
+                "edges": [
+                    {
+                    "node": {
+                        "merged": True,
+                        "mergedAt": "2024-06-21T09:57:58Z"
+                    }
+                    }
+                ]
+                }
+            }
+            }
+        }
+        }
+
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_call_post.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value=mock_results)),
+    ]
+
+    date = api.get_commit_merge_date('testOrg/testRepo', '9659fdc7ba35a9eba00c183bccc67083239383e8')
+
+    assert date == "2024-06-21T09:57:58Z"

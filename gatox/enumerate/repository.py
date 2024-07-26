@@ -94,12 +94,31 @@ class RepositoryEnum():
 
         # Get the current date and time
         now = datetime.now()
-
         # Calculate the date 1 days ago
         one_day_ago = now - timedelta(days=1)
 
         # Return True if the date is within the last day, False otherwise
         return one_day_ago <= date <= now
+    
+    @staticmethod
+    def __return_recent(time1, time2, format='%Y-%m-%dT%H:%M:%SZ'):
+        """
+        Takes two timestamp strings and returns the most recent one.
+        
+        Args:
+            time1 (str): The first timestamp string.
+            time2 (str): The second timestamp string.
+            format (str): The format of the timestamp strings. Default is '%Y-%m-%dT%H:%M:%SZ'.
+        
+        Returns:
+            str: The most recent timestamp string.
+        """
+        # Convert the timestamp strings to datetime objects
+        date1 = datetime.strptime(time1, format)
+        date2 = datetime.strptime(time2, format)
+        
+        # Return the most recent timestamp string
+        return time1 if date1 > date2 else time2
 
     @staticmethod
     def __parse_github_path(path):
@@ -124,7 +143,9 @@ class RepositoryEnum():
                         slug, path, ref = RepositoryEnum.__parse_github_path(callee)
                         callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
                         if not callee_wf:
-                            callee_wf = self.api.retrieve_repo_file(slug, path, ref)
+                            callee_wf = self.api.retrieve_repo_file(
+                                slug, path, ref, public=repository.is_public()
+                            )
                             if callee_wf:
                                 CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
                     else:
@@ -324,10 +345,18 @@ class RepositoryEnum():
                 for report_package in report_packages:
                     # We first check the result from GQL, if the last push was within 24 hours, 
                     # then we check if the last push impacted the specific workflow.
+
                     if self.__is_within_last_day(repository.repo_data['pushed_at']):
-                        commit_date, author = self.api.get_file_last_updated(
+                        commit_date, author, sha = self.api.get_file_last_updated(
                             repository.name, ".github/workflows/" + parsed_yml.wf_name
                         )
+
+                        merge_date = self.api.get_commit_merge_date(repository.name, sha)
+                        if merge_date:
+                            # If there is a PR merged, get the most recent.
+                            commit_date = self.__return_recent(commit_date, merge_date)
+                            print(commit_date)
+
                         if self.__is_within_last_day(commit_date) and '[bot]' not in author:
                             send_slack_webhook(report_package)
                 

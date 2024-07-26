@@ -2,6 +2,8 @@ class GqlQueries():
     """Constructs graphql queries for use with the GitHub GraphQL api.
     """
 
+    
+
     GET_YMLS_WITH_SLUGS = """
     fragment repoWorkflows on Repository {
         nameWithOwner
@@ -118,6 +120,44 @@ class GqlQueries():
                 }
             }
         }
+    """
+
+    GET_ORG_REPOS = """
+        query($orgName: String!, $repoTypes: RepositoryPrivacy!, $cursor: String) {
+            organization(login: $orgName) {
+                repositories(first: 100, privacy: $repoTypes, after: $cursor) {
+                edges {
+                    node {
+                    name
+                    }
+                    cursor
+                }
+                pageInfo {
+                    endCursor
+                    hasNextPage
+                }
+                }
+            }
+            }
+    """
+
+    GET_PR_MERGED = """
+    query associatedPRs($sha: String, $repo: String!, $owner: String!){
+            repository(name: $repo, owner: $owner) {
+                commit: object(expression: $sha) {
+                ... on Commit {
+                    associatedPullRequests(first:1){
+                    edges{
+                        node{
+                        merged
+                        mergedAt
+                        }
+                    }
+                    }
+                }
+                }
+            }
+    }
     """
 
     @staticmethod
