@@ -127,7 +127,10 @@ class Step():
         # Custom checkout - capture the params
         if '/checkout' in uses and 'with' in self.step_data and 'ref' in self.step_data['with']:
             ref_param = self.step_data['with']['ref']
-            if 'path' in self.step_data['with']:
+            # If the ref is not a string, it's not going to reference the PR head.
+            if type(ref_param) != str:
+                self.is_checkout = False
+            elif 'path' in self.step_data['with']:
                 # Custom path means that the checkout probably is not executed.
                 self.is_checkout = False
             elif '${{' in ref_param and 'base' not in ref_param:

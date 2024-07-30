@@ -355,7 +355,6 @@ class RepositoryEnum():
                         if merge_date:
                             # If there is a PR merged, get the most recent.
                             commit_date = self.__return_recent(commit_date, merge_date)
-                            print(commit_date)
 
                         if self.__is_within_last_day(commit_date) and '[bot]' not in author:
                             send_slack_webhook(report_package)
