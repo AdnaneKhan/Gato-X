@@ -30,6 +30,7 @@ As of writing, enumeration will not generate any audit log events.
   - [Features Coming Soon](#features-coming-soon)
     - [Composite Action Analysis](#analyze-referenced-composite-actions)
     - [LLM Augmented Analysis](#llm-powered-result-analysis)
+- [Hall of Fame](#hall-of-fame)
 - [Quick Start](#quick-start)
   - [Perform Runner Takeover](#perform-self-hosted-runner-takeover)
   - [Scan for Vulnerabilities](#search-for-github-actions-vulnerabilities-at-github-scale)
@@ -107,6 +108,13 @@ Gato-X's biggest weakness is identifying injection points that
 are outputs of steps that run arbitrary code. This creates a lot of 'UNKNOWN' confidence Actions Injection Reports. Using LLMs to reason about whether a variable is user control or not based on context will allow further narrowing down results. This feature will likely include support for passing an OpenAI API key and some Gato-X system prompts that I will use to inform ChatGPT of what to look for and how to respond.
 
 Similarly, this can apply to capture code that performs permission checks or enforces immutable references.
+
+## Hall of Fame
+
+In order to motivate hackers to use Gato-X to find and report vulnerabilities in open-source repositories, I've
+created a mini [hall of fame](https://github.com/AdnaneKhan/Gato-X/wiki/Hall-of-Fame). If you found an issue
+with Gato-X and reported it, feel free to follow the instructions on the page so I can add your accomplishment
+for all to see!
 
 ## Quick Start
 
