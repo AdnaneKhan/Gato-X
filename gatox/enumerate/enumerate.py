@@ -135,6 +135,27 @@ class Enumerator:
         org_wrappers = list(map(self.enumerate_organization, orgs))
 
         return org_wrappers
+    
+    def enumerate_user(self, user: str):
+        """Enumerate a user's repositories."""
+
+        if not self.__setup_user_info():
+            return False
+
+        repos = self.api.get_user_repos(user)
+
+        if not repos:
+            Output.warn(
+                f"Unable to query the user: {Output.bright(user)}! Ensure the "
+                "user exists!"
+            )
+            return False
+
+        Output.result(f"Enumerating the {Output.bright(user)} user!")
+
+        repo_wrappers = self.enumerate_repos(repos)
+
+        return repo_wrappers
 
     def enumerate_organization(self, org: str):
         """Enumerate an entire organization, and check everything relevant to
@@ -173,8 +194,8 @@ class Enumerator:
 
         Output.info(
             f"About to enumerate "
-            f"{len(enum_list)}"
-            " repos within "
+            f"{len(enum_list)} "
+            "non-archived repos within "
             f"the {organization.name} organization!"
         )
 

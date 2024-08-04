@@ -266,9 +266,14 @@ def enumerate(args, parser):
     elif args.self_enumeration:
         orgs = gh_enumeration_runner.self_enumeration()
     elif args.target:
-        orgs = [gh_enumeration_runner.enumerate_organization(
-            args.target
-        )]
+        # First, determine if the target is an organization or a repository.
+        if gh_enumeration_runner.api.get_user_type(args.target) == "Organization":
+            orgs = [gh_enumeration_runner.enumerate_organization(
+                args.target
+            )]
+        else:
+        # Otherwise, simply enumerate all repositories belonging to the user.
+            repos = gh_enumeration_runner.enumerate_repos([args.target])
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(
@@ -282,9 +287,7 @@ def enumerate(args, parser):
                 f"{Output.bright(e)}"
             )
     elif args.repository:
-        repos = [gh_enumeration_runner.enumerate_repo_only(
-            args.repository
-        )]
+        repos = gh_enumeration_runner.enumerate_repos([args.repository])
 
     exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
     exec_wrapper.add_organizations(orgs)

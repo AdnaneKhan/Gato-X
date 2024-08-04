@@ -83,6 +83,17 @@
             "url",
             "link",
             "steps.generate_token.outputs.token"
+        ],
+        "SINKS": [
+            "make",
+            "gradlew",
+            "terraform",
+            "./",
+            "yarn",
+            "npm install",
+            "npm run",
+            "tox",
+            "pnpm run"
         ]
     }
 }

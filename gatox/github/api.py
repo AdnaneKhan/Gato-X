@@ -497,6 +497,57 @@ class Api():
         if result.status_code == 200:
             return result.json()
 
+    def get_user_type(self, username: str):
+        """
+        Retrieve the type of a user from the API.
+
+        This function sends a GET request to the API to retrieve information about a user specified by the username.
+        If the request is successful (status code 200), it returns the type of the user.
+
+        Args:
+            username (str): The username of the user whose type is to be retrieved.
+
+        Returns:
+            str: The type of the user if the request is successful.
+
+        Raises:
+            requests.exceptions.RequestException: If the request fails due to network issues or invalid responses.
+            KeyError: If the 'type' key is not present in the response JSON.
+        """
+        result = self.call_get(f'/users/{username}')
+
+        if result.status_code == 200:
+            return result.json()['type']
+        
+    def get_user_repos(self, username: str):
+        """Retrieve all repositories belonging to the user.
+        """
+        result = self.call_get(f'/users/{username}/repos')
+        repos = []
+
+        get_params = {
+            "type": type,
+            "per_page": 100,
+            "page": 1
+        }
+
+        if result.status_code == 200:
+            listing = result.json()
+            repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+
+            # Check if there are more pages
+            while len(listing) == 100:
+                get_params['page'] += 1
+                result = self.call_get(
+                    f'/users/{username}/repos',
+                    params=get_params
+                )
+                if result.status_code == 200:
+                    listing = result.json()
+                    repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+
+        return repos
+
     def get_organization_details(self, org: str):
         """Query the GitHub API for details about the specific organization.
 
@@ -1186,6 +1237,8 @@ class Api():
             if 'content' in resp_data:
                 file_data = base64.b64decode(resp_data['content'])
                 return Workflow(repo_name, file_data, workflow_name)
+        else:
+            raise ValueError(f"Failed to retrieve workflow {workflow_name} from {repo_name}!")
 
 
     def get_secrets(self, repo_name: str):

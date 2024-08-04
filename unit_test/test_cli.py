@@ -41,28 +41,50 @@ def test_cli_fine_grained_pat(capfd):
     assert "not supported" in err
 
 
-@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_organization")
+@mock.patch("gatox.cli.cli.Enumerator")
 def test_cli_oauth_token(mock_enumerate, capfd):
     """Test case where a GitHub oauth token is provided.
     """
     os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
+    mock_instance = mock_enumerate.return_value
+    mock_api = mock.MagicMock()
+    mock_api.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+    mock_api.get_user_type.return_value = "Organization"
+    mock_instance.api = mock_api
+
+
     cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
 
-    mock_enumerate.assert_called_once()
+    mock_enumerate.return_value.enumerate_organization.assert_called_once()
 
 
-@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_organization")
+@mock.patch("gatox.cli.cli.Enumerator")
 def test_cli_old_token(mock_enumerate, capfd):
     """Test case where an old, but still potentially valid GitHub token is provided.
     """
     os.environ["GH_TOKEN"] = "43255147468edf32a206441ad296ce648f44ee32"
 
+
+    os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    mock_instance = mock_enumerate.return_value
+    mock_api = mock.MagicMock()
+    mock_api.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+    mock_api.get_user_type.return_value = "Organization"
+    mock_instance.api = mock_api
+
     cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
 
-    mock_enumerate.assert_called_once()
+    mock_instance.enumerate_organization.assert_called_once()
 
 
 def test_cli_invalid_pat(capfd):
@@ -251,14 +273,49 @@ def test_enum_self(mock_enumerate):
     cli.cli(["enum", "-s"])
     mock_enumerate.assert_called_once()
 
-
-@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_organization")
+@mock.patch("gatox.cli.cli.Enumerator")
 def test_enum_org(mock_enumerate):
     """Test enum command using the organization enumerattion.
     """
 
+    mock_instance = mock_enumerate.return_value
+    mock_api = mock.MagicMock()
+
+    print(mock_instance)
+
+    mock_api.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+    mock_api.get_user_type.return_value = "Organization"
+    mock_instance.api = mock_api
+
     cli.cli(["enum", "-t", "test"])
-    mock_enumerate.assert_called_once()
+
+    mock_instance.enumerate_organization.assert_called_once()
+
+
+@mock.patch("gatox.cli.cli.Enumerator")
+def test_enum_user(mock_enumerate):
+    """Test enum command using the organization enumerattion.
+    """
+
+    mock_instance = mock_enumerate.return_value
+    mock_api = mock.MagicMock()
+
+    print(mock_instance)
+
+    mock_api.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+    mock_api.get_user_type.return_value = "User"
+    mock_instance.api = mock_api
+
+    cli.cli(["enum", "-t", "testUser"])
+
+    mock_instance.enumerate_repos.assert_called_once()
+
 
 
 @mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repos")
@@ -276,7 +333,7 @@ def test_enum_repos(mock_read, mock_enumerate):
     mock_enumerate.assert_called_once()
 
 
-@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repo_only")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repos")
 def test_enum_repo(mock_enumerate):
     """Test enum command using the organization enumerattion.
     """

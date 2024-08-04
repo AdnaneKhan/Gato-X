@@ -77,6 +77,14 @@ class Step():
         else:
             raise ValueError("Step must have either a 'run' or 'uses' key")
 
+    def __check_sinks(self, contents):
+        """Check if the contents contain a sink."""
+        sinks = ConfigurationManager().WORKFLOW_PARSING['SINKS']
+
+        for sink in sinks:
+            if sink in contents:
+                return True
+
     def __process_run(self, contents: str):
         """Processes run steps for additional context
         """
@@ -101,19 +109,7 @@ class Step():
                         self.metadata = ref
                         self.is_checkout = True
                 
-        elif 'make' in contents:
-            self.is_sink = True
-        elif './gradlew' in contents:
-            self.is_sink = True
-        elif 'terraform' in contents:
-            self.is_sink = True
-        elif './' in contents:
-            self.is_sink = True
-        elif 'yarn ' in contents:
-            self.is_sink = True
-        elif 'npm install' in contents:
-            self.is_sink = True
-        elif 'bundle' in contents:
+        elif self.__check_sinks(contents):
             self.is_sink = True
 
     def __process_action(self, uses: str):

@@ -129,6 +129,29 @@ class RepositoryEnum():
         file_path = "/".join(repo_path[2:]) if len(repo_path) > 1 else ''
 
         return repo_slug, file_path, ref
+    
+    def __get_callee(self, callee, repository: Repository):
+        """Retrieve the callee workflow.
+        """
+        if '@' in callee:
+            slug, path, ref = RepositoryEnum.__parse_github_path(callee)
+            callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
+            if not callee_wf:
+                callee_wf = self.api.retrieve_repo_file(
+                    slug, path, ref, public=repository.is_public()
+                )
+                if callee_wf:
+                    CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
+        else:
+            callee_wf = CacheManager().get_workflow(repository.name, callee)
+        if not callee_wf:
+            callee_wf = self.api.retrieve_workflow_yml(repository.name, callee)
+            
+        if callee_wf:
+            callee_wf = WorkflowParser(callee_wf)
+            self.temp_wf_cache.update({callee_wf.wf_name : callee_wf})
+
+        return callee_wf
 
     def __check_callees(self, parsed_yml: WorkflowParser, repository: Repository, env_rules):
         """Check callee workflows within a repository.
@@ -139,22 +162,7 @@ class RepositoryEnum():
                 if callee in self.temp_wf_cache:
                     callee_wf = self.temp_wf_cache[callee]
                 else:
-                    if '@' in callee:
-                        slug, path, ref = RepositoryEnum.__parse_github_path(callee)
-                        callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
-                        if not callee_wf:
-                            callee_wf = self.api.retrieve_repo_file(
-                                slug, path, ref, public=repository.is_public()
-                            )
-                            if callee_wf:
-                                CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
-                    else:
-                        callee_wf = CacheManager().get_workflow(repository.name, callee)
-                    if not callee_wf:
-                        callee_wf = self.api.retrieve_workflow_yml(repository.name, callee)
-                    if callee_wf:
-                        callee_wf = WorkflowParser(callee_wf)
-                        self.temp_wf_cache.update({callee_wf.wf_name : callee_wf})
+                    callee_wf = self.__get_callee(callee, repository)
 
                 if callee_wf:
                     sub_injection = callee_wf.check_injection(bypass=True)
@@ -168,6 +176,7 @@ class RepositoryEnum():
                             f"{repository.repo_data['html_url']}/blob/"
                             f"{repository.repo_data['default_branch']}/.github/workflows/{callee_wf.wf_name}"
                         )
+
                     if sub_injection:
                         sub_injection['triggers'] = parsed_yml.get_vulnerable_triggers()
                         injection_package = self.__create_info_package(

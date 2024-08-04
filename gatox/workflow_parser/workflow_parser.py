@@ -232,7 +232,7 @@ class WorkflowParser():
                         if_check = step.evaluateIf()   
                         if if_check and if_check.startswith('EVALUATED'):
                             bump_confidence = True
-                        elif if_check and'RESTRICTED' in if_check:
+                        elif if_check and 'RESTRICTED' in if_check:
                             # In the future, we will exit here.
                             bump_confidence = False
                         elif if_check == '':
@@ -240,11 +240,12 @@ class WorkflowParser():
                         step_details.append({"ref": step.metadata, "if_check": if_check, "step_name": step.name})
 
                 elif step_details and step.is_sink:
-
-                    # Confirmed sink, so set to HIGH if reachable via expression parser or medium if not.
+                    # Confirmed sink, so set to HIGH if reachable via expression parser or no check at all
                     job_content['confidence'] = 'HIGH' if \
                         (job_content['if_check'] and job_content['if_check'].startswith('EVALUATED')) \
-                        or (bump_confidence and not job_content['if_check']) else 'MEDIUM'
+                        or (bump_confidence and not job_content['if_check']) \
+                        or (not job_content['if_check'] and (not step.evaluateIf() or step.evaluateIf().startswith('EVALUATED'))) \
+                        else 'MEDIUM'
 
             job_content["check_steps"] = step_details
             job_checkouts[job.job_name] = job_content
@@ -341,12 +342,11 @@ class WorkflowParser():
                 # Remove tokens that map to workflow or job level environment variables, as
                 # these will not be vulnerable to injection unless they reference
                 # something by context expression.
-                if 'env' in self.parsed_yml and tokens:
-                    tokens = [token for token in tokens if check_token(token, self.parsed_yml)]
-                if 'env' in job.job_data and tokens:
-                    tokens = [token for token in tokens if check_token(token, job.job_data)]
-                if 'env' in step.step_data and tokens:
-                    tokens = [token for token in tokens if check_token(token, step.step_data)]
+                env_sources = [self.parsed_yml, job.job_data, step.step_data]
+                for env_source in env_sources:
+                    if 'env' in env_source and tokens:
+                        tokens = [token for token in tokens if check_token(token, env_source)]
+                
                 if tokens:
                     if job.needs and self.backtrack_gate(job.needs):
                         break

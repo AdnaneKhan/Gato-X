@@ -14,5 +14,4 @@ def test_ror_workflow():
         runner_labels=['self-hosted','super-secure']
     )
 
-
     assert "continue-on-error: true" in workflow
