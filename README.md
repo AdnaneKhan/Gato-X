@@ -1,8 +1,5 @@
 ![Supported Python versions](https://img.shields.io/badge/python-3.10+-blue.svg)
 
-
-**Tool is undergoing final development and polish. The tool will be officially released on August 7th, 2024**
-
 # Gato (Github Attack TOolkit) - Extreme Edition
 
 ## What is Gato-X?
