@@ -29,7 +29,7 @@ d88P  Y88b       d88888     888     d88P" "Y88b         Y88b d88P
 Y88b  d88P  d8888888888     888     Y88b. .d88P         d88P Y88b  
  "Y8888P88 d88P     888     888      "Y88888P"         d88P   Y88b 
                                                                    
-  Version 1.0.0 - @adnanthekhan - github.com/AdnaneKhan/gato-x                                            
+    By @adnanthekhan - github.com/AdnaneKhan/gato-x                                            
                                                                 
 """
 
