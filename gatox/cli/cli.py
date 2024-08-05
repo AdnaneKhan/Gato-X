@@ -272,8 +272,8 @@ def enumerate(args, parser):
                 args.target
             )]
         else:
-        # Otherwise, simply enumerate all repositories belonging to the user.
-            repos = gh_enumeration_runner.enumerate_repos([args.target])
+            # Otherwise, simply enumerate all repositories belonging to the user.
+            repos = gh_enumeration_runner.enumerate_user(args.target)
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(

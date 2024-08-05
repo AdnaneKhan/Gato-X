@@ -297,13 +297,11 @@ def test_enum_org(mock_enumerate):
 
 @mock.patch("gatox.cli.cli.Enumerator")
 def test_enum_user(mock_enumerate):
-    """Test enum command using the organization enumerattion.
+    """Test enum command using the organization enumeration.
     """
 
     mock_instance = mock_enumerate.return_value
     mock_api = mock.MagicMock()
-
-    print(mock_instance)
 
     mock_api.check_user.return_value = {
         "user": 'testUser',
@@ -314,7 +312,7 @@ def test_enum_user(mock_enumerate):
 
     cli.cli(["enum", "-t", "testUser"])
 
-    mock_instance.enumerate_repos.assert_called_once()
+    mock_instance.enumerate_user.assert_called_once()
 
 
 

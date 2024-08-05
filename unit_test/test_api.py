@@ -1102,3 +1102,34 @@ def test_graphql_mergedat_query(mock_call_post, mock_call_get):
     date = api.get_commit_merge_date('testOrg/testRepo', '9659fdc7ba35a9eba00c183bccc67083239383e8')
 
     assert date == "2024-06-21T09:57:58Z"
+
+@patch('gatox.github.api.requests.get')
+def test_get_user_type(mock_call_get):
+
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value={'type': 'User'})),
+    ]
+
+    user_type = api.get_user_type("someUser")
+
+    assert user_type == 'User'
+
+@patch('gatox.github.api.requests.get')
+def test_get_user_repos(mock_call_get):
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(
+            return_value=[{'full_name': 'testRepo','archived': False},
+                          {'full_name': 'testRepo2','archived': False}]
+        )),
+    ]
+
+    repos = api.get_user_repos("someUser")
+
+    assert repos[0] == 'testRepo'
+    assert repos[1] == 'testRepo2'
