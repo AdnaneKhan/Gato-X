@@ -522,15 +522,16 @@ class Api():
     def get_user_repos(self, username: str):
         """Retrieve all repositories belonging to the user.
         """
-        result = self.call_get(f'/users/{username}/repos')
+       
         repos = []
 
         get_params = {
-            "type": type,
+            "type": "owner",
             "per_page": 100,
             "page": 1
         }
 
+        result = self.call_get(f'/users/{username}/repos', params=get_params)
         if result.status_code == 200:
             listing = result.json()
             repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
@@ -545,7 +546,6 @@ class Api():
                 if result.status_code == 200:
                     listing = result.json()
                     repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
-
         return repos
 
     def get_organization_details(self, org: str):
