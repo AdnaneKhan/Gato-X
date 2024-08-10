@@ -526,7 +526,7 @@ class Api():
         repos = []
 
         get_params = {
-            "type", "all",
+            "type": "all",
             "per_page": 100,
             "page": 1
         }
