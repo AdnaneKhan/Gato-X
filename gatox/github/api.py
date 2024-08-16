@@ -137,7 +137,7 @@ class Api():
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner", 
                             # the runner is a Github hosted runner so we can skip it. 
-                            break
+                            continue
                         elif "Self-hosted runners in the repository are disabled" in content:
                             break
                         index = 0
