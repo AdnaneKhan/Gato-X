@@ -41,9 +41,6 @@ class WorkflowParser():
     performing any API queries to augment the analysis.
     """
 
-    LARGER_RUNNER_REGEX_LIST = re.compile(r'(windows|ubuntu)-(22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb')
-    MATRIX_KEY_EXTRACTION_REGEX = re.compile(r'{{\s*matrix\.([\w-]+)\s*}}')
-
     def __init__(self, workflow_wrapper: Workflow, non_default=None):
         """Initialize class with workflow file.
 
@@ -66,6 +63,7 @@ class WorkflowParser():
         self.repo_name = workflow_wrapper.repo_name
         self.wf_name = workflow_wrapper.workflow_name
         self.callees = []
+        self.sh_callees = []
         self.external_ref = False
        
         if workflow_wrapper.special_path:
@@ -374,63 +372,13 @@ class WorkflowParser():
         """
         sh_jobs = []
 
-        # Old Code
-        if not self.parsed_yml or 'jobs' not in self.parsed_yml or not self.parsed_yml['jobs']:
-            return sh_jobs
-
-        for jobname, job_details in self.parsed_yml['jobs'].items():
-            if 'runs-on' in job_details:
-                runs_on = job_details['runs-on']
-                if 'self-hosted' in runs_on:
-                    # Clear cut
-                    sh_jobs.append((jobname, job_details))
-                elif 'matrix.' in runs_on:
-                    # We need to check each OS in the matrix strategy.
-                    # Extract the matrix key from the variable
-                    matrix_match = self.MATRIX_KEY_EXTRACTION_REGEX.search(runs_on)
-
-                    if matrix_match:
-                        matrix_key = matrix_match.group(1)
-                    else:
-                        continue
-                    # Check if strategy exists in the yaml file
-                    if 'strategy' in job_details and 'matrix' in job_details['strategy']:
-                        matrix = job_details['strategy']['matrix']
-
-                        # Use previously acquired key to retrieve list of OSes
-                        if matrix_key in matrix:
-                            os_list = matrix[matrix_key]
-                        elif 'include' in matrix:
-                            inclusions = matrix['include']
-                            os_list = []
-                            for inclusion in inclusions:
-                                if matrix_key in inclusion:
-                                    os_list.append(inclusion[matrix_key])
-                        else:
-                            continue
-
-                        # We only need ONE to be self hosted, others can be
-                        # GitHub hosted
-                        for key in os_list:
-                            if type(key) == str:
-                                if key not in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS'] \
-                                    and not self.LARGER_RUNNER_REGEX_LIST.match(key):
-                                    sh_jobs.append((jobname, job_details))
-                                    break
+        for job in self.jobs:
+            if job.isSelfHosted():
+                sh_jobs.append((job.job_name,job.job_data))
+            elif job.isCaller(): 
+                if job.external_caller:
+                    self.sh_callees.append(job.uses)   
                 else:
-                    if type(runs_on) == list:
-                        for label in runs_on:
-                            if label in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS']:
-                                break
-                            if self.LARGER_RUNNER_REGEX_LIST.match(label):
-                                break
-                        else:
-                            sh_jobs.append((jobname, job_details))
-                    elif type(runs_on) == str:
-                        if runs_on in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS']:
-                            break
-                        if self.LARGER_RUNNER_REGEX_LIST.match(runs_on):
-                            break
-                        sh_jobs.append((jobname, job_details))
+                    self.sh_callees.append(job.uses.split('/')[-1])
 
         return sh_jobs

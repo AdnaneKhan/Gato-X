@@ -229,6 +229,42 @@ jobs:
       uses: actions/checkout@v4
 """
 
+TEST_WF7 = """
+name: build
+
+on:
+  push:
+    branches: [ 'master' ]
+  pull_request:
+    branches: [ 'master' ]
+
+concurrency:
+  group: ${{ github.ref }}-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        profile: [ 'jdk17', 'jdk17-aarch64' ]
+        include:
+          - jdk_version: '17'
+          - profile: 'jdk17'
+            runs_on: ubuntu-latest
+          - profile: 'jdk17-aarch64'
+            runs_on: [ linux, ARM64 ]
+      fail-fast: false
+
+    runs-on: ${{ matrix.runs_on }}
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver: docker
+
+"""
+
 
 def test_parse_workflow():
 
@@ -299,3 +335,10 @@ def test_check_pwn_request():
 
     result = parser.check_pwn_request()
     assert result['candidates']
+
+def test_check_sh_runnner():
+  workflow = Workflow('unit_test', TEST_WF7, 'build.yml')
+  parser = WorkflowParser(workflow)
+
+  result = parser.self_hosted()
+  assert len(result) > 0
