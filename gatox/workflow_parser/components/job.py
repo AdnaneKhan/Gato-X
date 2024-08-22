@@ -157,6 +157,9 @@ class Job():
                     if key not in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS'] \
                         and not self.LARGER_RUNNER_REGEX_LIST.match(key):
                         return True
+                # list of labels
+                elif type(key) == list:
+                    return True
 
     def gated(self):
         """Check if the workflow is gated.
