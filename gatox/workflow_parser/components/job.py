@@ -110,7 +110,7 @@ class Job():
         """
         Processes the runner for the job.
         """
-        if type(runs_on) == list:
+        if type(runs_on) is list:
             for label in runs_on:
                 if label in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS']:
                     break
@@ -118,7 +118,7 @@ class Job():
                     break
             else:
                 return True
-        elif type(runs_on) == str:
+        elif type(runs_on) is str:
             if runs_on in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS']:
                 return False
             if self.LARGER_RUNNER_REGEX_LIST.match(runs_on):
@@ -153,12 +153,12 @@ class Job():
             # We only need ONE to be self hosted, others can be
             # GitHub hosted
             for key in os_list:
-                if type(key) == str:
+                if type(key) is str:
                     if key not in ConfigurationManager().WORKFLOW_PARSING['GITHUB_HOSTED_LABELS'] \
                         and not self.LARGER_RUNNER_REGEX_LIST.match(key):
                         return True
                 # list of labels
-                elif type(key) == list:
+                elif type(key) is list:
                     return True
 
     def gated(self):

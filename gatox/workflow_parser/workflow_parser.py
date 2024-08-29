@@ -169,7 +169,7 @@ class WorkflowParser():
     def backtrack_gate(self, needs_name):
         """Attempts to find if a job needed by a specific job has a gate check.
         """
-        if type(needs_name) == list:
+        if type(needs_name) is list:
             for need in needs_name:
                 if self.backtrack_gate(need):
                     return True

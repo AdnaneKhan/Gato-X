@@ -124,7 +124,7 @@ class Step():
         if '/checkout' in uses and 'with' in self.step_data and 'ref' in self.step_data['with']:
             ref_param = self.step_data['with']['ref']
             # If the ref is not a string, it's not going to reference the PR head.
-            if type(ref_param) != str:
+            if type(ref_param) is not str:
                 self.is_checkout = False
             elif 'path' in self.step_data['with']:
                 # Custom path means that the checkout probably is not executed.

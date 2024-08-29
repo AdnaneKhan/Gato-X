@@ -216,7 +216,6 @@ class Api():
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request.
         """
-
         resp = requests.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}", 
             proxies=self.proxies,
@@ -1664,7 +1663,10 @@ class Api():
             ]
 
         for path in paths:
-            self.__get_raw_file(repo, path, ref)
+
+            res = self.__get_raw_file(repo, path, ref)
+            if res:
+                return res
             
         return None
 

@@ -164,13 +164,13 @@ class ExpressionEvaluator:
                 value = self.evaluate(node.children[1])
      
                 # If a wildcard (like comment body, then go through)
-                if type(container) == Wildcard:
+                if type(container) is Wildcard:
                     return True
                 
-                if type(container) == bool:
+                if type(container) is bool:
                     return False
 
-                if type(value) != str:
+                if type(value) is not str:
                     value = str(value)
 
                 return str(value) in container

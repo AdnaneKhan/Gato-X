@@ -32,12 +32,15 @@ class DataIngestor:
             # Empty means no yamls, so just skip.
             if result['object']:
                 for yml_node in result['object']['entries']:
-                    yml_name = yml_node['name']
-                    if yml_name.lower().endswith('yml') or yml_name.lower().endswith('yaml'):
-                        contents = yml_node['object']['text']
-                        wf_wrapper = Workflow(owner, contents, yml_name)
-                        
-                        cache.set_workflow(owner, yml_name, wf_wrapper) 
+                    yml_name = yml_node['name']      
+                    if yml_node['type'] == 'blob' and \
+                      (yml_name.lower().endswith('yml') \
+                      or yml_name.lower().endswith('yaml')): 
+                        if 'text' in yml_node['object']:
+                            contents = yml_node['object']['text']
+                            wf_wrapper = Workflow(owner, contents, yml_name)
+                            
+                            cache.set_workflow(owner, yml_name, wf_wrapper) 
 
             repo_data = {
                 'full_name': result['nameWithOwner'],
