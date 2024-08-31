@@ -29,7 +29,7 @@ class Step():
         r'checkout\s+(\$\{\{)?\s*(\S*([a-z$_]+)\S*)\s*(\}\})?', re.IGNORECASE
     )
 
-    CONTEXT_REGEX = re.compile(r'\${{\s*([^}^\s]+)\s*}}')
+    CONTEXT_REGEX = re.compile(r'\${{\s*([^}]+[^\s])\s?\s*}}')
     
     EVALUATOR = ExpressionEvaluator()
 
@@ -162,13 +162,22 @@ class Step():
         """Get the context tokens from the step.
         """
         if self.contents:
-            return self.CONTEXT_REGEX.findall(self.contents)
+            finds = self.CONTEXT_REGEX.findall(self.contents)
+
+            extension = None
+            for find in finds:
+                if ' || ' in find:
+                    extension = find.split(' || ')
+                    break
+
+            if extension:
+                finds.extend(extension)
+            return finds
         else:
             return None
         
     def getActionParts(self):
         if self.type == 'ACTION':
-
             return 
 
     def evaluateIf(self):

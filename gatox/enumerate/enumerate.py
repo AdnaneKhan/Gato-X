@@ -97,7 +97,11 @@ class Enumerator:
                     result = self.api.call_post('/graphql', wf_query)
                     # Sometimes we don't get a 200, fall back in this case.
                     if result.status_code == 200:
-                        DataIngestor.construct_workflow_cache(result.json()['data']['nodes'])
+                        json_res = result.json()['data']
+                        if 'nodes' in json_res:
+                            DataIngestor.construct_workflow_cache(result.json()['data']['nodes'])
+                        else:
+                            DataIngestor.construct_workflow_cache(result.json()['data'].values())
                         break
                     else:
                         Output.warn(

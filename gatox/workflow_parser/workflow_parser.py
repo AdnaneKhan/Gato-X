@@ -318,6 +318,7 @@ class WorkflowParser():
 
             for step in job.steps:
                 # No TOCTOU possible for injection
+
                 if step.is_gate:
                     break
 
@@ -327,7 +328,7 @@ class WorkflowParser():
                 else:
                     continue
                 tokens = filter_tokens(tokens)
-                
+
                 def check_token(token, container):
                     if token.startswith('env.') and token.split('.')[1] in container['env']:
                         value = container['env'][token.split('.')[1]]
