@@ -131,8 +131,9 @@ class Api():
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
                         content_lines = content.split('\n')
-                        if "Image Release: https://github.com/actions/runner-images" in content or \
-                            "Job is about to start running on the hosted runner: GitHub Actions" in content:
+                        if ("Image Release: https://github.com/actions/runner-images" in content or \
+                            "Job is about to start running on the hosted runner: GitHub Actions" in content) \
+                            and not "1ES.Pool" in content:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner", 

