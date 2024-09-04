@@ -191,6 +191,12 @@ python3 -m venv venv
 source venv/bin/activate
 pip install .
 ```
+OR You can use pipx
+```
+git clone https://github.com/AdnaneKhan/gato-x
+cd gato-x
+pipx install .
+```
 
 If you need to make on-the-fly modifications, then install it in editable mode with `pip install -e`.
 
