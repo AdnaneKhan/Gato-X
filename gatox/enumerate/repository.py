@@ -203,7 +203,7 @@ class RepositoryEnum():
         """Retrieve composite actions and set them to the cache.
         """
 
-        comp_list = []
+        actions = []
         if self.api.github_url == "https://api.github.com":
             for composite in referenced_actions.values():
                 if composite['local']:
@@ -214,7 +214,7 @@ class RepositoryEnum():
                     )
                     
                     if action:
-                        comp_list.append(action)
+                        actions.append(action)
                         continue
 
                     contents = self.api.retrieve_raw_action(
@@ -229,7 +229,7 @@ class RepositoryEnum():
                         composite['ref']
                     )
                     if action:
-                        comp_list.append(action)
+                        actions.append(action)
                         continue
 
                     contents = self.api.retrieve_raw_action(
@@ -240,15 +240,14 @@ class RepositoryEnum():
 
                 if contents:
                     parsed_action = CompositeParser(contents)
-                    if parsed_action.is_composite():
-                        comp_list.append(parsed_action)
-                        CacheManager().set_action(
-                            composite['repo'],
-                            composite['path'],
-                            composite['ref'],
-                            parsed_action
-                        )
-        return comp_list
+                    actions.append(parsed_action)
+                    CacheManager().set_action(
+                        composite['repo'],
+                        composite['path'],
+                        composite['ref'],
+                        parsed_action
+                    )
+        return [action for action in actions if action.is_composite()]
 
     def __perform_yml_enumeration(self, repository: Repository):
         """Enumerates the repository using the API to extract yml files. This
@@ -297,7 +296,11 @@ class RepositoryEnum():
                     for composite in composites:
                         comp_inj = composite.check_injection()
                         if comp_inj:
-                            print(comp_inj)
+                            print(composite.name)
+
+                        comp_pwn = composite.check_pwn_request()
+                        if comp_pwn:
+                            print(composite.name)
 
                 if workflow.branch:
                     workflow_url = (f"{repository.repo_data['html_url']}/blob/" 

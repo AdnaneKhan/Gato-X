@@ -169,7 +169,7 @@ class WorkflowParser():
     def backtrack_gate(self, needs_name):
         """Attempts to find if a job needed by a specific job has a gate check.
         """
-        if type(needs_name) == list:
+        if type(needs_name) is list:
             for need in needs_name:
                 if self.backtrack_gate(need):
                     return True
@@ -318,6 +318,7 @@ class WorkflowParser():
 
             for step in job.steps:
                 # No TOCTOU possible for injection
+
                 if step.is_gate:
                     break
 
@@ -327,7 +328,7 @@ class WorkflowParser():
                 else:
                     continue
                 tokens = filter_tokens(tokens)
-                
+
                 def check_token(token, container):
                     if token.startswith('env.') and token.split('.')[1] in container['env']:
                         value = container['env'][token.split('.')[1]]

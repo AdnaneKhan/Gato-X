@@ -124,7 +124,6 @@ def validate_if_check(if_check, variables):
     if check_always_true(if_check):
         return True
 
-    print(if_check)
     parser = ExpressionParser(if_check)
     ast_root = parser.get_node()
 

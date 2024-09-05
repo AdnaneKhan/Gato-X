@@ -18,6 +18,10 @@ class CompositeParser():
         """
         self.parsed_yml = yaml.load(action_yml.replace('\t','  ') ,Loader=CSafeLoader)
         self.steps = []
+        self.name = None
+
+        if 'name' in self.parsed_yml:
+            self.name = self.parsed_yml['name']
 
         if self.is_composite():
             self.steps = [Step(step_data) for step_data in self.parsed_yml['runs'].get('steps', [])]
@@ -53,3 +57,18 @@ class CompositeParser():
                     step_risk.append({f"Composite-{step.name}": tokens})
             
         return step_risk
+
+    def check_pwn_request(self):
+        """Checks if the composable action checks out the PR code.
+        """
+        has_checkout = False
+        has_sink = False
+
+        for step in self.steps:
+            if step.is_checkout:
+                has_checkout = True
+            elif step.is_sink:
+                has_sink = True
+
+        if has_checkout:
+            return True

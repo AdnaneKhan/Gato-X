@@ -131,8 +131,9 @@ class Api():
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
                         content_lines = content.split('\n')
-                        if "Image Release: https://github.com/actions/runner-images" in content or \
-                            "Job is about to start running on the hosted runner: GitHub Actions" in content:
+                        if ("Image Release: https://github.com/actions/runner-images" in content or \
+                            "Job is about to start running on the hosted runner: GitHub Actions" in content) \
+                            and not "1ES.Pool" in content:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner", 
@@ -216,7 +217,6 @@ class Api():
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request.
         """
-
         resp = requests.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}", 
             proxies=self.proxies,
@@ -1664,7 +1664,10 @@ class Api():
             ]
 
         for path in paths:
-            self.__get_raw_file(repo, path, ref)
+
+            res = self.__get_raw_file(repo, path, ref)
+            if res:
+                return res
             
         return None
 

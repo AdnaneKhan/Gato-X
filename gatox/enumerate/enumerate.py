@@ -83,6 +83,38 @@ class Enumerator:
                 Output.warn("The token has no scopes!")
 
         return True
+    
+    def __query_graphql_workflows(self, queries):
+        """Wrapper for querying workflows using the github graphql API.
+
+        This method will try the query up to 3 times, as there are often intermittend 
+        failures.
+        """
+        for i, wf_query in enumerate(queries):
+            Output.info(f"Querying {i} out of {len(queries)} batches!", end='\r')
+            try:
+                for i in range (0, 3):
+                    result = self.api.call_post('/graphql', wf_query)
+                    # Sometimes we don't get a 200, fall back in this case.
+                    if result.status_code == 200:
+                        json_res = result.json()['data']
+                        if 'nodes' in json_res:
+                            DataIngestor.construct_workflow_cache(result.json()['data']['nodes'])
+                        else:
+                            DataIngestor.construct_workflow_cache(result.json()['data'].values())
+                        break
+                    else:
+                        Output.warn(
+                            f"GraphQL query failed with {result.status_code} "
+                            f"on attempt {str(i+1)}, will try again!")
+                        time.sleep(10)
+                        Output.warn(f"Query size was: {len(wf_query)}")
+            except Exception as e:
+                Output.warn(
+                    "Exception while running GraphQL query, will revert to REST "
+                    "API workflow query for impacted repositories!"
+                )
+                print(e)
 
     def validate_only(self):
         """Validates the PAT access and exits.
@@ -201,18 +233,8 @@ class Enumerator:
 
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
-
-        for i, wf_query in enumerate(wf_queries):
-            Output.info(f"Querying {i} out of {len(wf_queries)} batches!", end='\r')
-            result = self.org_e.api.call_post('/graphql', wf_query)
-            # Sometimes we don't get a 200, fall back in this case.
-            if result.status_code == 200:
-                DataIngestor.construct_workflow_cache(result.json()['data']['nodes'])
-            else:
-                Output.warn(
-                    "GraphQL query failed, will revert to "
-                    "REST workflow query for impacted repositories!"
-                )
+        self.__query_graphql_workflows(wf_queries)
+   
         try:
             for repo in enum_list:
                 if repo.is_archived():
@@ -312,32 +334,11 @@ class Enumerator:
             f"from {len(repo_names)} repositories!"
         )
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
-
-        for i, wf_query in enumerate(queries):
-            Output.info(f"Querying {i} out of {len(queries)} batches!", end='\r')
-            try:
-                for i in range (0, 3):
-                    result = self.repo_e.api.call_post('/graphql', wf_query)
-                    if result.status_code == 200:
-                        DataIngestor.construct_workflow_cache(result.json()['data'].values())
-                        break
-                    else:
-                        Output.warn(
-                            f"GraphQL query failed with {result.status_code} "
-                            f"on attempt {str(i+1)}, will try again!")
-                        time.sleep(10)
-                        Output.warn(f"Query size was: {len(wf_query)}")
-            except Exception as e:
-                print(e)
-                Output.warn(
-                    "GraphQL query failed, will revert to REST "
-                    "workflow query for impacted repositories!"
-                )
+        self.__query_graphql_workflows(queries)
 
         repo_wrappers = []
         try:
             for repo in repo_names:
-
                 repo_obj = self.enumerate_repo_only(repo, len(repo_names) > 100)
                 if repo_obj:
                     repo_wrappers.append(repo_obj)
