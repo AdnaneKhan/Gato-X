@@ -1,5 +1,7 @@
 import logging
-import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import wait, as_completed
+from concurrent.futures import ALL_COMPLETED
 
 from gatox.github.api import Api
 from gatox.github.gql_queries import GqlQueries
@@ -87,35 +89,17 @@ class Enumerator:
     def __query_graphql_workflows(self, queries):
         """Wrapper for querying workflows using the github graphql API.
 
-        This method will try the query up to 3 times, as there are often intermittend 
-        failures.
+        Since this is an IO heavy operation, we use a threadpool with 5 workers to execute up
+        to 5 queries in parallel.
         """
-        for i, wf_query in enumerate(queries):
-            Output.info(f"Querying {i} out of {len(queries)} batches!", end='\r')
-            try:
-                for i in range (0, 3):
-                    result = self.api.call_post('/graphql', wf_query)
-                    # Sometimes we don't get a 200, fall back in this case.
-                    if result.status_code == 200:
-                        json_res = result.json()['data']
-                        if 'nodes' in json_res:
-                            DataIngestor.construct_workflow_cache(result.json()['data']['nodes'])
-                        else:
-                            DataIngestor.construct_workflow_cache(result.json()['data'].values())
-                        break
-                    else:
-                        Output.warn(
-                            f"GraphQL query failed with {result.status_code} "
-                            f"on attempt {str(i+1)}, will try again!")
-                        time.sleep(10)
-                        Output.warn(f"Query size was: {len(wf_query)}")
-            except Exception as e:
-                Output.warn(
-                    "Exception while running GraphQL query, will revert to REST "
-                    "API workflow query for impacted repositories!"
-                )
-                print(e)
-
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            Output.info(f"Querying repositories in {len(queries)} batches!")
+            futures = []
+            for i, wf_query in enumerate(queries):
+                futures.append(executor.submit(DataIngestor.perform_query, self.api, wf_query))
+            for future in as_completed(futures):
+                DataIngestor.construct_workflow_cache(future.result())
+           
     def validate_only(self):
         """Validates the PAT access and exits.
         """
@@ -222,6 +206,7 @@ class Enumerator:
             self.user_perms['scopes'], organization
         )
 
+        Output.info("Querying repository list!")
         enum_list = self.org_e.construct_repo_enum_list(organization)
 
         Output.info(

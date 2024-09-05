@@ -1,8 +1,33 @@
 from gatox.caching.cache_manager import CacheManager
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
+from gatox.cli.output import Output
 
 class DataIngestor:
+
+    @staticmethod
+    def perform_query(api, work_query):
+        try:
+            for i in range (0, 3):
+                result = api.call_post('/graphql', work_query)
+                # Sometimes we don't get a 200, fall back in this case.
+                if result.status_code == 200:
+                    json_res = result.json()['data']
+                    if 'nodes' in json_res:
+                        return result.json()['data']['nodes']
+                    else:
+                        return result.json()['data'].values()
+                    break
+                else:
+                    Output.warn(
+                        f"GraphQL query failed with {result.status_code} "
+                        f"on attempt {str(i+1)}, will try again!")
+        except Exception as e:
+            Output.warn(
+                "Exception while running GraphQL query, will revert to REST "
+                "API workflow query for impacted repositories!"
+            )
+            print(e)
 
     @staticmethod
     def construct_workflow_cache(yml_results):
@@ -16,6 +41,8 @@ class DataIngestor:
             yml_results (list): List of results from individual GraphQL queries
             (100 nodes at a time).
         """
+        if yml_results is None:
+            return
 
         cache = CacheManager()
         for result in yml_results:
