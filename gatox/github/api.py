@@ -9,6 +9,7 @@ import io
 
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
+from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 from gatox.github.gql_queries import GqlQueries
@@ -667,7 +668,7 @@ class Api():
 
         return repo_names
 
-    def check_org_repos(self, org: str, type: str):
+    def check_org_repos(self, org: str, repo_type: str):
         """Check repositories present within an organization.
 
         Args:
@@ -679,20 +680,27 @@ class Api():
             list: List of dictionaries representing repositories within an
             organization.
         """
-
-        if type not in ['all', 'public', 'private', 'forks', 'sources',
+        if repo_type not in ['all', 'public', 'private', 'forks', 'sources',
                         'member', 'internal']:
             raise ValueError("Unsupported type!")
+        repos = []
+
+        org_details = self.call_get(f'/orgs/{org}')
+        # For public repos, Gato-X uses a fast GraphQL approach.
+        if org_details.status_code == 200 and repo_type == 'public':
+            repo_count = org_details.json()['public_repos']
+            pub_repos = DataIngestor.perform_parallel_repo_ingest(self, org, repo_count)
+            repos.extend([repo for repo in pub_repos if not repo['archived']])           
+            return repos   
 
         get_params = {
-            "type": type,
+            "type": repo_type,
             "per_page": 100,
             "page": 1
         }
 
         org_repos = self.call_get(f'/orgs/{org}/repos', params=get_params)
 
-        repos = []
         if org_repos.status_code == 200:
             listing = org_repos.json()
 

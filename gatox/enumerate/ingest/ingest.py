@@ -1,3 +1,8 @@
+import time
+import random
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import wait, as_completed
+
 from gatox.caching.cache_manager import CacheManager
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
@@ -6,9 +11,54 @@ from gatox.cli.output import Output
 class DataIngestor:
 
     @staticmethod
-    def perform_query(api, work_query):
+    def perform_parallel_repo_ingest(api, org, repo_count):
+        """Perform a parallel query of repositories up to the count
+        within a given organization.
+        """
+        repos = []
+
+        def make_query(increment):
+            """Makes query to retrieve repos for given page.
+            Attempts up to 5 times.
+            """
+            get_params = {
+                "type": "public",
+                "per_page": 100,
+                "page": increment
+            }
+
+            sleep_timer = 4
+            for i in range (0, 5):
+                repos = api.call_get(f'/orgs/{org}/repos', params=get_params)
+                if repos.status_code == 200:
+                    return repos.json()
+                else:
+                    time.sleep(sleep_timer)
+                    sleep_timer = sleep_timer * 2
+            Output.error("Unable to query. Will miss repositories.")
+
+        batches = (repo_count // 100) + 1
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for batch in range(1, batches + 1):
+                futures.append(executor.submit(make_query, batch))
+            for future in as_completed(futures):
+                listing = future.result()
+                if listing:
+                    repos.extend([repo for repo in listing if not repo['archived']])
+
+        return repos
+
+    @staticmethod
+    def perform_query(api, work_query, batch):
+        """Performs GraphQL query of repositories. Gato-X will use 3
+        attempts, increasing the sleep timer from 4, 8, and then finally 16 
+        seconds.
+        """
         try:
-            for i in range (0, 3):
+            sleep_timer = 5
+            for i in range (0, 4):
                 result = api.call_post('/graphql', work_query)
                 # Sometimes we don't get a 200, fall back in this case.
                 if result.status_code == 200:
@@ -18,10 +68,21 @@ class DataIngestor:
                     else:
                         return result.json()['data'].values()
                     break
+                elif result.status_code == 403:
+                    Output.warn(
+                        f"GraphQL query batch {str(batch)} hit secondary rate limit on attempt"
+                        f" {str(i+1)}!"
+                    )
+                    sleep_timer = sleep_timer * 2
+                    time.sleep(sleep_timer + random.randint(0,3))
                 else:
                     Output.warn(
-                        f"GraphQL query failed with {result.status_code} "
-                        f"on attempt {str(i+1)}, will try again!")
+                        f"GraphQL query batch {str(batch)} failed with {result.status_code} "
+                        f"on attempt {str(i+1)}!")
+                    # Add some jitter
+                    time.sleep(sleep_timer + random.randint(0,3))
+           
+            Output.warn("GraphQL attempts failed, will revert to REST for impacted repos.")
         except Exception as e:
             Output.warn(
                 "Exception while running GraphQL query, will revert to REST "

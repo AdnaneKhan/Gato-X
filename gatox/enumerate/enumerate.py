@@ -1,7 +1,7 @@
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import wait, as_completed
-from concurrent.futures import ALL_COMPLETED
+from concurrent.futures import as_completed
 
 from gatox.github.api import Api
 from gatox.github.gql_queries import GqlQueries
@@ -89,14 +89,14 @@ class Enumerator:
     def __query_graphql_workflows(self, queries):
         """Wrapper for querying workflows using the github graphql API.
 
-        Since this is an IO heavy operation, we use a threadpool with 5 workers to execute up
-        to 5 queries in parallel.
+        Since this is an IO heavy operation, we use a threadpool with 2 workers to execute up
+        to 2 queries in parallel.
         """
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             Output.info(f"Querying repositories in {len(queries)} batches!")
             futures = []
             for i, wf_query in enumerate(queries):
-                futures.append(executor.submit(DataIngestor.perform_query, self.api, wf_query))
+                futures.append(executor.submit(DataIngestor.perform_query, self.api, wf_query, i))
             for future in as_completed(futures):
                 DataIngestor.construct_workflow_cache(future.result())
            
