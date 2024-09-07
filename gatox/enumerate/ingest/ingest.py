@@ -57,7 +57,6 @@ class DataIngestor:
         seconds.
         """
         try:
-            sleep_timer = 5
             for i in range (0, 4):
                 result = api.call_post('/graphql', work_query)
                 # Sometimes we don't get a 200, fall back in this case.
@@ -73,14 +72,13 @@ class DataIngestor:
                         f"GraphQL query batch {str(batch)} hit secondary rate limit on attempt"
                         f" {str(i+1)}!"
                     )
-                    sleep_timer = sleep_timer * 2
-                    time.sleep(sleep_timer + random.randint(0,3))
+                    time.sleep(15 + random.randint(0,3))
                 else:
                     Output.warn(
                         f"GraphQL query batch {str(batch)} failed with {result.status_code} "
                         f"on attempt {str(i+1)}!")
                     # Add some jitter
-                    time.sleep(sleep_timer + random.randint(0,3))
+                    time.sleep(10 + random.randint(0,3))
            
             Output.warn("GraphQL attempts failed, will revert to REST for impacted repos.")
         except Exception as e:

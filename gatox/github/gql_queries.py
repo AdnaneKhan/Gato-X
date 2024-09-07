@@ -183,8 +183,8 @@ class GqlQueries():
         
         queries = []
 
-        for i in range(0, len(repos), 100):
-            chunk = repos[i:i + 100]
+        for i in range(0, len(repos), 50):
+            chunk = repos[i:i + 50]
             repo_queries = []
 
             for j, repo in enumerate(chunk):
