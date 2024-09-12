@@ -183,6 +183,7 @@ def attack(args, parser):
                 args.target_arch,
                 args.labels,
                 keep_alive=args.keep_alive,
+                yaml_name=args.file_name,
                 run_name=args.name,
                 workflow_name=args.name
             )

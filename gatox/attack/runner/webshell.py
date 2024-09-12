@@ -411,8 +411,8 @@ class WebShell(Attacker):
                 Output.error(f"Unable to retrieve registration token for {c2_repo}!")
                 return None
 
+            random_name = ''.join(random.choices(string.ascii_letters, k=5))
             if target_os == "linux":
-                random_name = ''.join(random.choices(string.ascii_letters, k=5))
                 return Payloads.ROR_GIST.format(
                     base64.b64encode(
                         registration_token.encode()).decode(),
@@ -429,12 +429,14 @@ class WebShell(Attacker):
                     release_file,
                     name
                 )
-            elif target_os == "macos":
+            elif target_os == "osx":
                 return Payloads.ROR_GIST_MACOS.format(
                     registration_token,
                     c2_repo,
                     release_file,
-                    name
+                    name,
+                    "true" if keep_alive else "false",
+                    random_name
                 )
 
     def issue_command(
