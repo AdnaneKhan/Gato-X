@@ -319,9 +319,9 @@ def test_enum_validate(mock_api, capfd):
         out
     )
 
-
+@patch("gatox.enumerate.ingest.ingest.time")
 @patch("gatox.enumerate.enumerate.Api")
-def test_enum_repo(mock_api, capfd):
+def test_enum_repo(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": 'testUser',
@@ -345,8 +345,9 @@ def test_enum_repo(mock_api, capfd):
         "octocat/Hello-World"
     )
 
+@patch("gatox.enumerate.ingest.ingest.time")
 @patch("gatox.enumerate.enumerate.Api")
-def test_enum_org(mock_api, capfd):
+def test_enum_org(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": 'testUser',
@@ -500,8 +501,9 @@ def test_enum_repo_runner(mock_api, capfd):
         escaped_output
 
 
+@patch("gatox.enumerate.ingest.ingest.time")
 @patch("gatox.enumerate.enumerate.Api")
-def test_enum_repos(mock_api, capfd):
+def test_enum_repos(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": 'testUser',

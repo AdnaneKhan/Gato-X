@@ -1,7 +1,11 @@
 import time
 import random
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import wait, as_completed
+
+
+from queue import Queue
 
 from gatox.caching.cache_manager import CacheManager
 from gatox.models.workflow import Workflow
@@ -9,9 +13,30 @@ from gatox.models.repository import Repository
 from gatox.cli.output import Output
 
 class DataIngestor:
+    """Utility methods for performing parallel ingestion of data
+    from GitHub using threadpools and GraphQL.
+    """
 
-    @staticmethod
-    def perform_parallel_repo_ingest(api, org, repo_count):
+    __counter = 0
+    __lock = threading.Lock()
+    __rl_lock = threading.Lock()
+
+    @classmethod
+    def update_count(cls, batch: int):
+        """
+        """
+        with cls.__lock:
+            if batch > cls.__counter:
+                cls.__counter = batch
+
+    @classmethod
+    def check_status(cls):
+        """
+        """
+        return cls.__counter
+
+    @classmethod
+    def perform_parallel_repo_ingest(cls, api, org, repo_count):
         """Perform a parallel query of repositories up to the count
         within a given organization.
         """
@@ -50,18 +75,25 @@ class DataIngestor:
 
         return repos
 
-    @staticmethod
-    def perform_query(api, work_query, batch):
+    @classmethod
+    def perform_query(cls, api, work_query, batch):
         """Performs GraphQL query of repositories. Gato-X will use 3
         attempts, increasing the sleep timer from 4, 8, and then finally 16 
         seconds.
         """
         try:
             for i in range (0, 4):
+                # We lock if another thread is sleeping due to a rate limit
+                # but if no other thread is sleeping, we want to move on
+                # to query.
+                while cls.__rl_lock.locked():
+                    time.sleep(0.1)
+
                 result = api.call_post('/graphql', work_query)
                 # Sometimes we don't get a 200, fall back in this case.
                 if result.status_code == 200:
                     json_res = result.json()['data']
+                    DataIngestor.update_count(batch)
                     if 'nodes' in json_res:
                         return result.json()['data']['nodes']
                     else:
@@ -70,9 +102,10 @@ class DataIngestor:
                 elif result.status_code == 403:
                     Output.warn(
                         f"GraphQL query batch {str(batch)} hit secondary rate limit on attempt"
-                        f" {str(i+1)}!"
+                        f" {str(i+1)}, sleeping all query workers!"
                     )
-                    time.sleep(15 + random.randint(0,3))
+                    with cls.__rl_lock:
+                        time.sleep(15 + random.randint(0,3))
                 else:
                     Output.warn(
                         f"GraphQL query batch {str(batch)} failed with {result.status_code} "
