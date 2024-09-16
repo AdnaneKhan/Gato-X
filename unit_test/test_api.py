@@ -1133,3 +1133,65 @@ def test_get_user_repos(mock_call_get):
 
     assert repos[0] == 'testRepo'
     assert repos[1] == 'testRepo2'
+
+@patch('gatox.github.api.requests.get')
+def test_get_own_repos_single_page(mock_call_get):
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    # Mock the API response for a single page
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(
+            return_value=[{'full_name': 'owner/testRepo','archived': False},
+                          {'full_name': 'owner/testRepo2','archived': False}]
+        )),
+    ]
+    repos = api.get_own_repos()
+    assert repos == ['owner/testRepo', 'owner/testRepo2']
+    mock_call_get.assert_called_once()
+
+@patch('gatox.github.api.requests.get')
+def test_get_own_repos_multiple_pages(mock_call_get):
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    def generate_repo_list():
+        """
+        Generate a list containing 100 copies of a predefined repository dictionary.
+
+        Returns:
+            list: A list of 100 repository dictionaries.
+        """
+        repo_dict = {'full_name': 'owner/repo1', 'archived': False}
+        repo_list = [repo_dict for _ in range(100)]
+        return repo_list
+
+    # Mock the API response for multiple pages
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value=
+            generate_repo_list()    
+        )),
+        MagicMock(status_code=200, json=MagicMock(return_value=[
+            {'full_name': 'owner/repo101', 'archived': False}
+        ]))
+    ]
+
+    repos = api.get_own_repos()
+    assert len(repos) == 101
+    assert mock_call_get.call_count == 2
+
+@patch('gatox.github.api.requests.get')
+def test_get_own_repos_empty_response(mock_call_get):
+
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+    
+    # Mock the API response for an empty response
+
+    
+    mock_call_get.return_value.status_code = 200
+    mock_call_get.return_value.json.return_value = []
+
+    repos = api.get_own_repos()
+    assert repos == []
+    mock_call_get.assert_called_once()

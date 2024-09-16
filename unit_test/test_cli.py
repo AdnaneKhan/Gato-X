@@ -270,6 +270,8 @@ def test_enum_self(mock_enumerate):
     """Test enum command using the self enumerattion.
     """
 
+    mock_enumerate.return_value = [ ['org1'], ['org2'] ]
+
     cli.cli(["enum", "-s"])
     mock_enumerate.assert_called_once()
 
