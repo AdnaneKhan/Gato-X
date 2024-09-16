@@ -100,20 +100,13 @@ class DataIngestor:
                         return result.json()['data'].values()
                     break
                 elif result.status_code == 403:
-                    Output.warn(
-                        f"GraphQL query batch {str(batch)} hit secondary rate limit on attempt"
-                        f" {str(i+1)}, sleeping all query workers!"
-                    )
                     with cls.__rl_lock:
                         time.sleep(15 + random.randint(0,3))
                 else:
-                    Output.warn(
-                        f"GraphQL query batch {str(batch)} failed with {result.status_code} "
-                        f"on attempt {str(i+1)}!")
                     # Add some jitter
                     time.sleep(10 + random.randint(0,3))
            
-            Output.warn("GraphQL attempts failed, will revert to REST for impacted repos.")
+            Output.warn(f"GraphQL attempts failed for batch {str(batch)}, will revert to REST for impacted repos.")
         except Exception as e:
             Output.warn(
                 "Exception while running GraphQL query, will revert to REST "
