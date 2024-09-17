@@ -526,7 +526,7 @@ class Api():
         repos = []
 
         get_params = {
-            "type": "collaborator,owner",
+            "affiliation": "collaborator,owner",
             "per_page": 100,
             "page": 1
         }
