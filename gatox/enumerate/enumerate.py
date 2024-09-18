@@ -137,6 +137,10 @@ class Enumerator:
             Output.error("Self-enumeration requires the repo scope!")
             return False
 
+        Output.info("Enumerating user owned repositories!")
+
+        repos = self.api.get_own_repos()
+        repo_wrappers = self.enumerate_repos(repos)
         orgs = self.api.check_organizations()
 
         Output.info(
@@ -147,9 +151,10 @@ class Enumerator:
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
+
         org_wrappers = list(map(self.enumerate_organization, orgs))
 
-        return org_wrappers
+        return org_wrappers, repo_wrappers
     
     def enumerate_user(self, user: str):
         """Enumerate a user's repositories."""

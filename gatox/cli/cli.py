@@ -265,7 +265,7 @@ def enumerate(args, parser):
     if args.validate:
         orgs = gh_enumeration_runner.validate_only()
     elif args.self_enumeration:
-        orgs = gh_enumeration_runner.self_enumeration()
+        orgs, repos = gh_enumeration_runner.self_enumeration()
     elif args.target:
         # First, determine if the target is an organization or a repository.
         if gh_enumeration_runner.api.get_user_type(args.target) == "Organization":

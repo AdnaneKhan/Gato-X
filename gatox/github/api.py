@@ -520,6 +520,31 @@ class Api():
         if result.status_code == 200:
             return result.json()['type']
         
+    def get_own_repos(self):
+        """Retrieve all repositories where the user is the owner or a collaborator."""
+    
+        repos = []
+
+        get_params = {
+            "affiliation": "collaborator,owner",
+            "per_page": 100,
+            "page": 1
+        }
+
+        result = self.call_get('/user/repos', params=get_params)
+        if result.status_code == 200:
+            listing = result.json()
+            repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+
+            # Check if there are more pages
+            while len(listing) == 100:
+                get_params['page'] += 1
+                result = self.call_get('/user/repos', params=get_params)
+                if result.status_code == 200:
+                    listing = result.json()
+                    repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+        return repos
+        
     def get_user_repos(self, username: str):
         """Retrieve all repositories belonging to the user.
         """
