@@ -88,10 +88,14 @@ def validate_arguments(args, parser):
             f"{Fore.RED}[!] Fine-grained PATs are currently not supported!"
         )
 
-    if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
-            gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
-        parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is"
-                     " malformed!")
+    if not (re.match('gh[po]_[A-Za-z0-9]{36}$',gh_token) or
+            re.match('^[a-fA-F0-9]{40}$', gh_token)):
+        if re.match('gh[usr]_[A-Za-z0-9]{36}$', gh_token):
+            parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X only"
+                " supports GitHub OAuth and Personal Access Tokens.")
+        else:
+            parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is"
+                " malformed!")
 
     args_dict = vars(args)
     args_dict["gh_token"] = gh_token
