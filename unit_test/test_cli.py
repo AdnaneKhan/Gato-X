@@ -40,6 +40,25 @@ def test_cli_fine_grained_pat(capfd):
     out, err = capfd.readouterr()
     assert "not supported" in err
 
+def test_cli_s2s_token(capfd):
+    """Test case where a service-to-service token is provided.
+    """
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    
+    with pytest.raises(SystemExit):
+        cli.cli(["enumerate", "-t", "test"])
+    out, err = capfd.readouterr()
+    assert "supports GitHub OAuth and Personal Access Tokens" in err
+
+def test_cli_u2s_token(capfd):
+    """Test case where a service-to-service token is provided.
+    """
+    os.environ["GH_TOKEN"] = "ghu_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    
+    with pytest.raises(SystemExit):
+        cli.cli(["enumerate", "-t", "test"])
+    out, err = capfd.readouterr()
+    assert "supports GitHub OAuth and Personal Access Tokens" in err
 
 @mock.patch("gatox.cli.cli.Enumerator")
 def test_cli_oauth_token(mock_enumerate, capfd):
@@ -68,9 +87,6 @@ def test_cli_old_token(mock_enumerate, capfd):
     """Test case where an old, but still potentially valid GitHub token is provided.
     """
     os.environ["GH_TOKEN"] = "43255147468edf32a206441ad296ce648f44ee32"
-
-
-    os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     mock_instance = mock_enumerate.return_value
     mock_api = mock.MagicMock()
