@@ -1,3 +1,4 @@
+import datetime
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
@@ -163,3 +164,46 @@ def decompose_action_ref(action_path, vars, repo_name):
         action_parts['repo'] = repo_name   
 
     return action_parts
+
+@staticmethod
+def is_within_last_day(timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
+    # Convert the timestamp string to a datetime object
+    date = datetime.strptime(timestamp_str, format)
+
+    # Get the current date and time
+    now = datetime.now()
+    # Calculate the date 1 days ago
+    one_day_ago = now - datetime.timedelta(days=1)
+
+    # Return True if the date is within the last day, False otherwise
+    return one_day_ago <= date <= now
+
+@staticmethod
+def return_recent(time1, time2, format='%Y-%m-%dT%H:%M:%SZ'):
+    """
+    Takes two timestamp strings and returns the most recent one.
+    
+    Args:
+        time1 (str): The first timestamp string.
+        time2 (str): The second timestamp string.
+        format (str): The format of the timestamp strings. Default is '%Y-%m-%dT%H:%M:%SZ'.
+    
+    Returns:
+        str: The most recent timestamp string.
+    """
+    # Convert the timestamp strings to datetime objects
+    date1 = datetime.strptime(time1, format)
+    date2 = datetime.strptime(time2, format)
+    
+    # Return the most recent timestamp string
+    return time1 if date1 > date2 else time2
+
+@staticmethod
+def parse_github_path(path):
+    parts = path.split('@')
+    ref = parts[1] if len(parts) > 1 else 'main'
+    repo_path = parts[0].split('/')
+    repo_slug = "/".join(repo_path[0:2])
+    file_path = "/".join(repo_path[2:]) if len(repo_path) > 1 else ''
+
+    return repo_slug, file_path, ref

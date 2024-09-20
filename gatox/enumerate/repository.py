@@ -1,7 +1,6 @@
 import logging
 
-from datetime import datetime, timedelta
-
+from gatox.workflow_parser.utility import is_within_last_day, return_recent, parse_github_path
 from gatox.cli.output import Output
 from gatox.models.execution import Repository
 from gatox.models.secret import Secret
@@ -66,8 +65,8 @@ class RepositoryEnum():
 
         return runner_detected
 
+    @staticmethod
     def __create_info_package(
-            self,
             workflow_name,
             workflow_url,
             details,
@@ -86,55 +85,12 @@ class RepositoryEnum():
         if parent_workflow:
             package['parent_workflow'] = parent_workflow 
         return package
-    
-    @staticmethod
-    def __is_within_last_day(timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
-        # Convert the timestamp string to a datetime object
-        date = datetime.strptime(timestamp_str, format)
 
-        # Get the current date and time
-        now = datetime.now()
-        # Calculate the date 1 days ago
-        one_day_ago = now - timedelta(days=1)
-
-        # Return True if the date is within the last day, False otherwise
-        return one_day_ago <= date <= now
-    
-    @staticmethod
-    def __return_recent(time1, time2, format='%Y-%m-%dT%H:%M:%SZ'):
-        """
-        Takes two timestamp strings and returns the most recent one.
-        
-        Args:
-            time1 (str): The first timestamp string.
-            time2 (str): The second timestamp string.
-            format (str): The format of the timestamp strings. Default is '%Y-%m-%dT%H:%M:%SZ'.
-        
-        Returns:
-            str: The most recent timestamp string.
-        """
-        # Convert the timestamp strings to datetime objects
-        date1 = datetime.strptime(time1, format)
-        date2 = datetime.strptime(time2, format)
-        
-        # Return the most recent timestamp string
-        return time1 if date1 > date2 else time2
-
-    @staticmethod
-    def __parse_github_path(path):
-        parts = path.split('@')
-        ref = parts[1] if len(parts) > 1 else 'main'
-        repo_path = parts[0].split('/')
-        repo_slug = "/".join(repo_path[0:2])
-        file_path = "/".join(repo_path[2:]) if len(repo_path) > 1 else ''
-
-        return repo_slug, file_path, ref
-    
     def __get_callee(self, callee, repository: Repository):
         """Retrieve the callee workflow.
         """
         if '@' in callee:
-            slug, path, ref = RepositoryEnum.__parse_github_path(callee)
+            slug, path, ref = parse_github_path(callee)
             callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
             if not callee_wf:
                 callee_wf = self.api.retrieve_repo_file(
@@ -358,7 +314,7 @@ class RepositoryEnum():
                     # We first check the result from GQL, if the last push was within 24 hours, 
                     # then we check if the last push impacted the specific workflow.
 
-                    if self.__is_within_last_day(repository.repo_data['pushed_at']):
+                    if is_within_last_day(repository.repo_data['pushed_at']):
                         commit_date, author, sha = self.api.get_file_last_updated(
                             repository.name, ".github/workflows/" + parsed_yml.wf_name
                         )
@@ -366,9 +322,9 @@ class RepositoryEnum():
                         merge_date = self.api.get_commit_merge_date(repository.name, sha)
                         if merge_date:
                             # If there is a PR merged, get the most recent.
-                            commit_date = self.__return_recent(commit_date, merge_date)
+                            commit_date = return_recent(commit_date, merge_date)
 
-                        if self.__is_within_last_day(commit_date) and '[bot]' not in author:
+                        if is_within_last_day(commit_date) and '[bot]' not in author:
                             send_slack_webhook(report_package)
                 
                 if self_hosted_jobs:
