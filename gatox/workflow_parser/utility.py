@@ -1,4 +1,5 @@
-import datetime
+from datetime import timedelta
+from datetime import datetime
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
@@ -173,7 +174,7 @@ def is_within_last_day(timestamp_str, format='%Y-%m-%dT%H:%M:%SZ'):
     # Get the current date and time
     now = datetime.now()
     # Calculate the date 1 days ago
-    one_day_ago = now - datetime.timedelta(days=1)
+    one_day_ago = now - timedelta(days=1)
 
     # Return True if the date is within the last day, False otherwise
     return one_day_ago <= date <= now
