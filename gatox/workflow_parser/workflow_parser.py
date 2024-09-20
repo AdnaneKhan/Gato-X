@@ -299,6 +299,8 @@ class WorkflowParser():
                 for deploy_rule in job.deployments:
                     if rule in deploy_rule:
                         return False
+                    elif '${{' in deploy_rule:
+                        return False
         return True
             
     def check_injection(self, bypass=False):

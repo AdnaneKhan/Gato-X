@@ -27,18 +27,18 @@ class ActionsReport(Report):
     ENVIRONMENT_TOCTOU =  (
         "The workflow contains an"
         " environment protection rule"
-        " but the workflow uses a mutable reference to checkout PR code."
+        " but the workflow might use a mutable reference to checkout PR code."
         " This could be exploited via a race condition."
         " See https://github.com/AdnaneKhan/ActionsTOCTOU!"
     )
     LABEL_TOCTOU = ( 
         "The workflow contains "
-        "label-based gating but the workflow uses a mutable reference "
+        "label-based gating but the workflow might use a mutable reference "
         "to check out PR code. This could be exploited via a race condition. "
         "See https://github.com/AdnaneKhan/ActionsTOCTOU!"
     )
     PERMISSION_TOCTOU = (
-        "The workflow contains a permission check, but uses a mutable reference"
+        "The workflow contains a permission check, but might use a mutable reference"
         "to check out PR code. This could be exploited via a race condition. "
         "See https://github.com/AdnaneKhan/ActionsTOCTOU!"
     )
