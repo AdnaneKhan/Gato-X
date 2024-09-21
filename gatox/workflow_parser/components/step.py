@@ -124,6 +124,16 @@ class Step:
             elif "path" in self.step_data["with"]:
                 # Custom path means that the checkout probably is not executed.
                 self.is_checkout = False
+            elif (
+                "github.event.pull_request.head.ref" in ref_param
+                or "github.head_ref" in ref_param
+                or "outputs.head_ref" in ref_param
+                and "repositry" not in self.step_data["with"]
+            ):
+                # If we have a ref (branch) checkout wtihout a repository, then pwn
+                # request is not possible.
+                self.metadata = ref_param
+                self.is_checkout = False
             elif "${{" in ref_param and "base" not in ref_param:
                 self.metadata = ref_param
                 self.is_checkout = True
