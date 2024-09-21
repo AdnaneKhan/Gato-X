@@ -27,9 +27,7 @@ class StringType(object):
             )
 
         if self.regex and not re.match(self.regex, string):
-            raise argparse.ArgumentTypeError(
-                "The argument is not in the valid format!"
-            )
+            raise argparse.ArgumentTypeError("The argument is not in the valid format!")
 
         return string
 
@@ -83,18 +81,14 @@ class ReadableFile(object):
         if os.path.exists(filepath):
             if os.access(filepath, os.R_OK):
                 return filepath
-            raise argparse.ArgumentTypeError(
-                f"The file: {filepath} is not readable!"
-            )
+            raise argparse.ArgumentTypeError(f"The file: {filepath} is not readable!")
         else:
-            raise argparse.ArgumentTypeError(
-                f"The file: {filepath} does not exist!"
-            )
+            raise argparse.ArgumentTypeError(f"The file: {filepath} does not exist!")
 
 
 def is_valid_directory(parser, arg):
     if not os.path.isdir(arg):
-        parser.error('The directory {} does not exist!'.format(arg))
+        parser.error("The directory {} does not exist!".format(arg))
     else:
         # File exists so return the directory
         return arg
@@ -115,14 +109,14 @@ def read_file_and_validate_lines(filepath: str, regex: str):
     lines = []
     pat = re.compile(regex)
 
-    with open(filepath, 'r') as f_in:
+    with open(filepath, "r") as f_in:
         for line in f_in:
             match = pat.match(line)
             if not match:
                 raise argparse.ArgumentError(
                     None,
                     f" The line '{line.strip()}' did not match the regular"
-                    f" expression!"
+                    f" expression!",
                 )
             lines.append(match.group(0))
     return lines

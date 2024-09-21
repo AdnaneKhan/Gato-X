@@ -8,9 +8,8 @@ from gatox.models.runner import Runner
 from gatox.github.api import Api
 
 
-class OrganizationEnum():
-    """Helper class to wrap organization specific enumeration funcionality.
-    """
+class OrganizationEnum:
+    """Helper class to wrap organization specific enumeration funcionality."""
 
     def __init__(self, api: Api):
         """Simple init method.
@@ -21,7 +20,8 @@ class OrganizationEnum():
         self.api = api
 
     def __assemble_repo_list(
-            self, organization: str, visibilities: list) -> List[Repository]:
+        self, organization: str, visibilities: list
+    ) -> List[Repository]:
         """Get a list of repositories that match the visibility types.
 
         Args:
@@ -37,8 +37,7 @@ class OrganizationEnum():
 
         return repos
 
-    def construct_repo_enum_list(
-            self, organization: Organization) -> List[Repository]:
+    def construct_repo_enum_list(self, organization: Organization) -> List[Repository]:
         """Constructs a list of repositories that a user has access to within
         an organization.
 
@@ -49,7 +48,7 @@ class OrganizationEnum():
             List[Repository]: List of repositories to enumerate.
         """
         org_private_repos = self.__assemble_repo_list(
-            organization.name, ['private', 'internal']
+            organization.name, ["private", "internal"]
         )
 
         # We might legitimately have no private repos despite being a
@@ -62,9 +61,7 @@ class OrganizationEnum():
         else:
             org_private_repos = []
 
-        org_public_repos = self.__assemble_repo_list(
-            organization.name, ['public']
-        )
+        org_public_repos = self.__assemble_repo_list(organization.name, ["public"])
 
         if organization.sso_enabled:
             return org_private_repos + org_public_repos
@@ -81,13 +78,13 @@ class OrganizationEnum():
             if runners:
                 org_runners = [
                     Runner(
-                        runner['name'],
+                        runner["name"],
                         machine_name=None,
-                        os=runner['os'],
-                        status=runner['status'],
-                        labels=runner['labels']
+                        os=runner["os"],
+                        status=runner["status"],
+                        labels=runner["labels"],
                     )
-                    for runner in runners['runners']
+                    for runner in runners["runners"]
                 ]
                 organization.set_runners(org_runners)
 

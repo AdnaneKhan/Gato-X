@@ -1,4 +1,3 @@
-
 class Runner:
     """Wrapper object for a self-hosted runner. Can represent a runner obtained
     via workflow log parsing or administrative query of repo/org level
@@ -6,16 +5,17 @@ class Runner:
     """
 
     def __init__(
-            self,
-            runner_name,
-            runner_type=None,
-            token_permissions=None,
-            runner_group=None,
-            machine_name=None,
-            os=None,
-            status=None,
-            labels=[],
-            non_ephemeral=False):
+        self,
+        runner_name,
+        runner_type=None,
+        token_permissions=None,
+        runner_group=None,
+        machine_name=None,
+        os=None,
+        status=None,
+        labels=[],
+        non_ephemeral=False,
+    ):
         """Constructor for runner wrapper object.
 
         Args:
@@ -37,19 +37,17 @@ class Runner:
         self.non_ephemeral = non_ephemeral
 
     def toJSON(self):
-        """Converts the repository to a Gato JSON representation.
-        """
+        """Converts the repository to a Gato JSON representation."""
         representation = {
             "name": self.runner_name,
-            "machine_name": self.machine_name if self.machine_name
-            else "Unknown",
+            "machine_name": self.machine_name if self.machine_name else "Unknown",
             "runner_type": self.runner_type if self.runner_type else "Unknown",
             "runner_group_name": self.runner_group if self.runner_group else "Unknown",
             "token_permissions": self.token_permissions,
             "os": self.os if self.os else "Unknown",
             "status": self.status if self.status else "Unknown",
             "labels": [label for label in self.labels],
-            "non_ephemeral": self.non_ephemeral
+            "non_ephemeral": self.non_ephemeral,
         }
 
         return representation

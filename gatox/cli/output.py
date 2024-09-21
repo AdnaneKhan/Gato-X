@@ -2,21 +2,27 @@ import json
 import textwrap
 import re
 
-from gatox.cli.colors import (RED_DASH, GREEN_PLUS, GREEN_EXCLAIM, RED_EXCLAIM,
-                      BRIGHT_DASH, YELLOW_EXCLAIM, YELLOW_DASH)
+from gatox.cli.colors import (
+    RED_DASH,
+    GREEN_PLUS,
+    GREEN_EXCLAIM,
+    RED_EXCLAIM,
+    BRIGHT_DASH,
+    YELLOW_EXCLAIM,
+    YELLOW_DASH,
+)
 
 from colorama import Style, Fore
 
 
-class Singleton (type):
+class Singleton(type):
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(
-                *args, **kwargs
-            )
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
 
 SPLASH = """
 
@@ -33,16 +39,17 @@ Y88b  d88P  d8888888888     888     Y88b. .d88P         d88P Y88b
                                                                 
 """
 
+
 class Output(metaclass=Singleton):
 
     def __init__(self, color: bool):
         self.color = color
 
-        self.red_dash = RED_DASH if color else '[-]'
-        self.red_explain = RED_EXCLAIM if color else '[!]'
-        self.green_plus = GREEN_PLUS if color else '[+]'
-        self.green_exclaim = GREEN_EXCLAIM if color else '[!]'
-        self.bright_dash = BRIGHT_DASH if color else '-'
+        self.red_dash = RED_DASH if color else "[-]"
+        self.red_explain = RED_EXCLAIM if color else "[!]"
+        self.green_plus = GREEN_PLUS if color else "[+]"
+        self.green_exclaim = GREEN_EXCLAIM if color else "[!]"
+        self.bright_dash = BRIGHT_DASH if color else "-"
         self.yellow_exclaim = YELLOW_EXCLAIM if color else "[!]"
         self.yellow_dash = YELLOW_DASH if color else "[-]"
 
@@ -58,10 +65,8 @@ class Output(metaclass=Singleton):
             True if successful, false otherwise.
         """
         if execution_wrapper.user_details:
-            with open(output_json, 'w') as json_out:
-                json_out.write(
-                    json.dumps(execution_wrapper.toJSON(), indent=4)
-                )
+            with open(output_json, "w") as json_out:
+                json_out.write(json.dumps(execution_wrapper.toJSON(), indent=4))
             return True
 
     @classmethod
@@ -74,7 +79,7 @@ class Output(metaclass=Singleton):
         print(f"{Output().red_dash} {message}")
 
     @classmethod
-    def info(cls, message: str, end='\n', flush=False):
+    def info(cls, message: str, end="\n", flush=False):
         """Prints info text, this adds a green [+] to the message.
 
         Args:
@@ -98,11 +103,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): The message to print.
         """
-        print(
-            f"{cls.bright('---')}"
-            f" {message} "
-            f"{cls.bright('---')}"
-        )
+        print(f"{cls.bright('---')}" f" {message} " f"{cls.bright('---')}")
 
     @classmethod
     def result(cls, message: str):
@@ -115,24 +116,23 @@ class Output(metaclass=Singleton):
 
     @classmethod
     def generic(cls, message: str):
-        """Generic output to print block wrapped text.
-        """
+        """Generic output to print block wrapped text."""
 
         def get_length_without_color_codes(text):
             # Use regular expressions to remove ANSI color codes
-            ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-            text_without_color = ansi_escape.sub('', text)
-            
+            ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+            text_without_color = ansi_escape.sub("", text)
+
             # Calculate the length of the string without color codes
             length_without_color = len(text_without_color)
-            
+
             return length_without_color
 
         lines = textwrap.wrap(message, width=78)
         for line in lines:
             padding = 78 - get_length_without_color_codes(line)
 
-            if line[0] not in [' ','-','=','-','~']:
+            if line[0] not in [" ", "-", "=", "-", "~"]:
                 print(f"| {line}{' '*(padding-1)}|")
             else:
                 print(f"|{line}{' '*padding}|")
@@ -176,7 +176,7 @@ class Output(metaclass=Singleton):
         """
 
         if cls not in cls._instances or Output().color:
-            return f'{Style.BRIGHT}{toformat}{Style.RESET_ALL}'
+            return f"{Style.BRIGHT}{toformat}{Style.RESET_ALL}"
         else:
             return toformat
 
@@ -191,10 +191,10 @@ class Output(metaclass=Singleton):
             (str)): Formatted message.
         """
         if cls not in cls._instances or Output().color:
-            return f'{Fore.YELLOW}{toformat}{Style.RESET_ALL}'
+            return f"{Fore.YELLOW}{toformat}{Style.RESET_ALL}"
         else:
             return toformat
-        
+
     @classmethod
     def blue(cls, toformat: str):
         """Makes the text blue and returns it.
@@ -206,7 +206,7 @@ class Output(metaclass=Singleton):
             (str)): Formatted message.
         """
         if cls not in cls._instances or Output().color:
-            return f'{Fore.CYAN}{toformat}{Style.RESET_ALL}'
+            return f"{Fore.CYAN}{toformat}{Style.RESET_ALL}"
         else:
             return toformat
 
@@ -221,7 +221,7 @@ class Output(metaclass=Singleton):
             (str)): Formatted message.
         """
         if cls not in cls._instances or Output().color:
-            return f'{Fore.GREEN}{toformat}{Style.RESET_ALL}'
+            return f"{Fore.GREEN}{toformat}{Style.RESET_ALL}"
         else:
             return toformat
 
@@ -236,6 +236,6 @@ class Output(metaclass=Singleton):
             (str)): Formatted message.
         """
         if cls not in cls._instances or Output().color:
-            return f'{Fore.RED}{toformat}{Style.RESET_ALL}'
+            return f"{Fore.RED}{toformat}{Style.RESET_ALL}"
         else:
             return toformat

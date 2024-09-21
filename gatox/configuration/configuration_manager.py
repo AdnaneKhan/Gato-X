@@ -18,6 +18,7 @@ import json
 import os
 import glob
 
+
 class ConfigurationManager:
     """
     A singleton class to manage configuration data.
@@ -38,9 +39,11 @@ class ConfigurationManager:
             ConfigurationManager: The singleton instance of the ConfigurationManager class.
         """
         if cls._instance is None:
-            cls._instance = super(ConfigurationManager, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(ConfigurationManager, cls).__new__(
+                cls, *args, **kwargs
+            )
             script_dir = os.path.dirname(os.path.realpath(__file__))
-            json_files = glob.glob(os.path.join(script_dir, '*.json'))
+            json_files = glob.glob(os.path.join(script_dir, "*.json"))
             for file_path in json_files:
                 cls._instance.load(file_path)
         return cls._instance
@@ -52,13 +55,13 @@ class ConfigurationManager:
         Args:
             file_path (str): The path to the JSON file to load.
         """
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             config = json.load(f)
             if self._config is None:
                 self._config = {}
-                self._config[config['name']] = config['entries']
+                self._config[config["name"]] = config["entries"]
             else:
-                self._config[config['name']] = config['entries']
+                self._config[config["name"]] = config["entries"]
 
     def __getattr__(self, name):
         """
@@ -76,4 +79,6 @@ class ConfigurationManager:
         if self._config and name in self._config:
             return self._config[name]
         else:
-            raise AttributeError(f"'ConfigurationManager' object has no attribute '{name}'")
+            raise AttributeError(
+                f"'ConfigurationManager' object has no attribute '{name}'"
+            )

@@ -16,22 +16,28 @@ from gatox.github.gql_queries import GqlQueries
 
 logger = logging.getLogger(__name__)
 
-class Api():
+
+class Api:
     """Class to serve as an abstraction layer to interact with the GitHub API.
     It handles utilizing proxies, along with passing the PAT and handling any
     rate limiting or network issues.
     """
 
-    RUNNER_RE = re.compile(r'Runner name: \'([\w+-.]+)\'')
-    MACHINE_RE = re.compile(r'Machine name: \'([\w+-.]+)\'')
-    RUNNERGROUP_RE = re.compile(r'Runner group name: \'([\w+-.]+)\'')
-    RUNNERTYPE_RE = re.compile(r'([\w+-.]+)')
+    RUNNER_RE = re.compile(r"Runner name: \'([\w+-.]+)\'")
+    MACHINE_RE = re.compile(r"Machine name: \'([\w+-.]+)\'")
+    RUNNERGROUP_RE = re.compile(r"Runner group name: \'([\w+-.]+)\'")
+    RUNNERTYPE_RE = re.compile(r"([\w+-.]+)")
 
     RUN_THRESHOLD = 90
 
-    def __init__(self, pat: str, version: str = "2022-11-28",
-                 http_proxy: str = None, socks_proxy: str = None,
-                 github_url: str = "https://api.github.com"):
+    def __init__(
+        self,
+        pat: str,
+        version: str = "2022-11-28",
+        http_proxy: str = None,
+        socks_proxy: str = None,
+        github_url: str = "https://api.github.com",
+    ):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -49,9 +55,9 @@ class Api():
         self.proxies = None
         self.verify_ssl = True
         self.headers = {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {pat}',
-            'X-GitHub-Api-Version': version
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {pat}",
+            "X-GitHub-Api-Version": version,
         }
         if not github_url:
             self.github_url = "https://api.github.com"
@@ -59,21 +65,23 @@ class Api():
             self.github_url = github_url
 
         if http_proxy and socks_proxy:
-            raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
-                             'time! Please pass only one!')
+            raise ValueError(
+                "A SOCKS & HTTP proxy cannot be used at the same "
+                "time! Please pass only one!"
+            )
 
         if http_proxy:
             # We are likely using BURP, so disable SSL.
             requests.packages.urllib3.disable_warnings()
             self.verify_ssl = False
             self.proxies = {
-                'http': f'http://{http_proxy}',
-                'https': f'http://{http_proxy}'
+                "http": f"http://{http_proxy}",
+                "https": f"http://{http_proxy}",
             }
         elif socks_proxy:
             self.proxies = {
-                'http': f'socks5://{socks_proxy}',
-                'https': f'socks5://{socks_proxy}'
+                "http": f"socks5://{socks_proxy}",
+                "https": f"socks5://{socks_proxy}",
             }
 
         if self.github_url != "https://api.github.com":
@@ -84,15 +92,18 @@ class Api():
         """Checks the rate limit, and pauses Gato execution until the rate
         limit resets.
         """
-        if 'X-Ratelimit-Remaining' in headers and \
-                int(headers['X-Ratelimit-Remaining']) < int(headers['X-RateLimit-Limit']) // 20 and \
-                headers['X-Ratelimit-Resource'] == 'core':
-            gh_date = headers['Date']
-            reset_utc = int(headers['X-Ratelimit-Reset'])
+        if (
+            "X-Ratelimit-Remaining" in headers
+            and int(headers["X-Ratelimit-Remaining"])
+            < int(headers["X-RateLimit-Limit"]) // 20
+            and headers["X-Ratelimit-Resource"] == "core"
+        ):
+            gh_date = headers["Date"]
+            reset_utc = int(headers["X-Ratelimit-Reset"])
             # Convert date to UTC
-            date = datetime.strptime(gh_date, '%a, %d %b %Y %H:%M:%S %Z')
+            date = datetime.strptime(gh_date, "%a, %d %b %Y %H:%M:%S %Z")
             date = date.replace(tzinfo=timezone.utc)
-            reset_time = date.fromtimestamp(reset_utc,  tz=timezone.utc)
+            reset_time = date.fromtimestamp(reset_utc, tz=timezone.utc)
 
             sleep_time = (reset_time - date).seconds
             sleep_time_mins = str(sleep_time // 60)
@@ -104,7 +115,8 @@ class Api():
             # if runlog enumeration is enabled.
             Output.warn(
                 f"Sleeping for {Output.bright( sleep_time_mins + ' minutes')} "
-                "to prevent rate limit exhaustion!")
+                "to prevent rate limit exhaustion!"
+            )
 
             time.sleep(sleep_time + 1)
 
@@ -128,45 +140,59 @@ class Api():
 
         with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
-                if re.match('[0-9]{1}_.*', zipinfo.filename):
+                if re.match("[0-9]{1}_.*", zipinfo.filename):
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
-                        content_lines = content.split('\n')
-                        if ("Image Release: https://github.com/actions/runner-images" in content or \
-                            "Job is about to start running on the hosted runner: GitHub Actions" in content) \
-                            and not "1ES.Pool" in content:
+                        content_lines = content.split("\n")
+                        if (
+                            "Image Release: https://github.com/actions/runner-images"
+                            in content
+                            or "Job is about to start running on the hosted runner: GitHub Actions"
+                            in content
+                        ) and not "1ES.Pool" in content:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
-                            # If the log contains "job is about to start running on hosted runner", 
-                            # the runner is a Github hosted runner so we can skip it. 
+                            # If the log contains "job is about to start running on hosted runner",
+                            # the runner is a Github hosted runner so we can skip it.
                             continue
-                        elif "Self-hosted runners in the repository are disabled" in content:
+                        elif (
+                            "Self-hosted runners in the repository are disabled"
+                            in content
+                        ):
                             break
                         index = 0
-                        while index < len(content_lines) and content_lines[index]: 
+                        while index < len(content_lines) and content_lines[index]:
                             line = content_lines[index]
-                           
+
                             if "Requested labels: " in line:
-                                labels = line.split("Requested labels: ")[1].split(', ')
+                                labels = line.split("Requested labels: ")[1].split(", ")
 
                             if "Runner name: " in line:
-                                runner_name = line.split("Runner name: ")[1].replace("'", "")
+                                runner_name = line.split("Runner name: ")[1].replace(
+                                    "'", ""
+                                )
 
                             if "Machine name: " in line:
-                                machine_name = line.split("Machine name: ")[1].replace("'", "")
+                                machine_name = line.split("Machine name: ")[1].replace(
+                                    "'", ""
+                                )
 
                             if "Runner group name:" in line:
-                                runner_group = line.split("Runner group name: ")[1].replace("'", "")
+                                runner_group = line.split("Runner group name: ")[
+                                    1
+                                ].replace("'", "")
 
                             if "Job is about to start running on" in line:
                                 runner_type = line.split()[-1]
                                 matches = Api.RUNNERTYPE_RE.search(runner_type)
                                 runner_type = matches.group(1)
-                            
+
                             if "GITHUB_TOKEN Permission" in line:
-                                while "[endgroup]" not in content_lines[index+1]:
+                                while "[endgroup]" not in content_lines[index + 1]:
                                     index += 1
-                                    scope = content_lines[index].split()[1].replace(':', '')
+                                    scope = (
+                                        content_lines[index].split()[1].replace(":", "")
+                                    )
                                     permission = content_lines[index].split()[2]
                                     token_permissions[scope] = permission
                                 log_package["token_permissions"] = token_permissions
@@ -176,7 +202,7 @@ class Api():
                             log_package["non_ephemeral"] = non_ephemeral
 
                             index += 1
-                        
+
                         # Continue if there is no runner name. This means
                         # we picked up a pending workflow.
                         if not runner_name:
@@ -191,7 +217,7 @@ class Api():
                             "run_id": run_info["id"],
                             "run_attempt": run_info["run_attempt"],
                             "non_ephemeral": non_ephemeral,
-                            "token_permissions": token_permissions
+                            "token_permissions": token_permissions,
                         }
 
                     return log_package
@@ -214,14 +240,13 @@ class Api():
                         content = run_log.read().decode()
 
                         return content
-                    
+
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
-        """Get a raw file with a web request.
-        """
+        """Get a raw file with a web request."""
         resp = requests.get(
-            f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}", 
+            f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
             proxies=self.proxies,
-            verify=self.verify_ssl
+            verify=self.verify_ssl,
         )
 
         if resp.status_code == 404:
@@ -265,14 +290,18 @@ class Api():
 
         get_header = copy.deepcopy(self.headers)
         if strip_auth:
-            del get_header['Authorization']
+            del get_header["Authorization"]
 
         for i in range(0, 5):
             try:
-                logger.debug(f'Making GET API request to {request_url}!')
-                api_response = requests.get(request_url, headers=get_header,
-                                            proxies=self.proxies, params=params,
-                                            verify=self.verify_ssl)
+                logger.debug(f"Making GET API request to {request_url}!")
+                api_response = requests.get(
+                    request_url,
+                    headers=get_header,
+                    proxies=self.proxies,
+                    params=params,
+                    verify=self.verify_ssl,
+                )
                 break
             except Exception:
                 logger.warning("GET request failed due to transport error re-trying!")
@@ -294,14 +323,19 @@ class Api():
             Response: Returns the requests response object.
         """
         request_url = self.github_url + url
-        logger.debug(f'Making POST API request to {request_url}!')
+        logger.debug(f"Making POST API request to {request_url}!")
 
-        api_response = requests.post(request_url, headers=self.headers,
-                                     proxies=self.proxies, json=params,
-                                     verify=self.verify_ssl)
+        api_response = requests.post(
+            request_url,
+            headers=self.headers,
+            proxies=self.proxies,
+            json=params,
+            verify=self.verify_ssl,
+        )
         logger.debug(
-            f'The POST request to {request_url} returned a '
-            f'{api_response.status_code}!')
+            f"The POST request to {request_url} returned a "
+            f"{api_response.status_code}!"
+        )
 
         self.__check_rate_limit(api_response.headers)
 
@@ -319,14 +353,19 @@ class Api():
             Response: Returns the requests response object.
         """
         request_url = self.github_url + url
-        logger.debug(f'Making PATCH API request to {request_url}!')
+        logger.debug(f"Making PATCH API request to {request_url}!")
 
-        api_response = requests.patch(request_url, headers=self.headers,
-                                      proxies=self.proxies, json=params,
-                                      verify=self.verify_ssl)
+        api_response = requests.patch(
+            request_url,
+            headers=self.headers,
+            proxies=self.proxies,
+            json=params,
+            verify=self.verify_ssl,
+        )
         logger.debug(
-            f'The PATCH request to {request_url} returned a '
-            f'{api_response.status_code}!')
+            f"The PATCH request to {request_url} returned a "
+            f"{api_response.status_code}!"
+        )
 
         self.__check_rate_limit(api_response.headers)
 
@@ -341,11 +380,15 @@ class Api():
             params (dict, optional): _description_. Defaults to None.
         """
         request_url = self.github_url + url
-        logger.debug(f'Making PUT API request to {request_url}!')
+        logger.debug(f"Making PUT API request to {request_url}!")
 
-        api_response = requests.put(request_url, headers=self.headers,
-                                    proxies=self.proxies, json=params,
-                                    verify=self.verify_ssl)
+        api_response = requests.put(
+            request_url,
+            headers=self.headers,
+            proxies=self.proxies,
+            json=params,
+            verify=self.verify_ssl,
+        )
 
         self.__check_rate_limit(api_response.headers)
 
@@ -363,14 +406,19 @@ class Api():
             Response: Returns the requests response object.
         """
         request_url = self.github_url + url
-        logger.debug(f'Making DELETE API request to {request_url}!')
+        logger.debug(f"Making DELETE API request to {request_url}!")
 
-        api_response = requests.delete(request_url, headers=self.headers,
-                                       proxies=self.proxies, json=params,
-                                       verify=self.verify_ssl)
+        api_response = requests.delete(
+            request_url,
+            headers=self.headers,
+            proxies=self.proxies,
+            json=params,
+            verify=self.verify_ssl,
+        )
         logger.debug(
-            f'The POST request to {request_url} returned a '
-            f'{api_response.status_code}!')
+            f"The POST request to {request_url} returned a "
+            f"{api_response.status_code}!"
+        )
 
         self.__check_rate_limit(api_response.headers)
 
@@ -406,34 +454,32 @@ class Api():
             str: Full name of the newly forked repo in User/Repo format. False
             if there was a faiure.
         """
-        post_params = {
-            "default_branch_only": True
-        }
+        post_params = {"default_branch_only": True}
 
-        result = self.call_post(
-            f"/repos/{repo_name}/forks",
-            params=post_params
-        )
+        result = self.call_post(f"/repos/{repo_name}/forks", params=post_params)
 
         if result.status_code == 202:
             fork_info = result.json()
-            return fork_info['full_name']
+            return fork_info["full_name"]
         elif result.status_code == 403:
             # likely permission error, log it.
             logger.warning("Forking this repository is forbidden!")
             return False
         elif result.status_code == 404:
-            logger.warning(
-                "Unable to fork due to 404, ensure repository exists."
-            )
+            logger.warning("Unable to fork due to 404, ensure repository exists.")
             return False
         else:
             logger.warning("Repository fork failed!")
             return False
 
-    def create_fork_pr(self, target_repo: str,
-                       source_user: str, source_branch: str,
-                       target_branch: str, pr_title: str):
+    def create_fork_pr(
+        self,
+        target_repo: str,
+        source_user: str,
+        source_branch: str,
+        target_branch: str,
+        pr_title: str,
+    ):
         """Creates a pull request from source_repo to target_repo. This is
 
         Args:
@@ -447,19 +493,16 @@ class Api():
             "head": f"{source_user}:{source_branch}",
             "base": f"{target_branch}",
             "body": "This is a test pull request created for CI/CD"
-                    " vulnerability testing purposes.",
+            " vulnerability testing purposes.",
             "maintainer_can_modify": False,
-            "draft": True
+            "draft": True,
         }
 
-        result = self.call_post(
-            f"/repos/{target_repo}/pulls",
-            params=pr_params
-        )
+        result = self.call_post(f"/repos/{target_repo}/pulls", params=pr_params)
 
         if result.status_code == 201:
             details = result.json()
-            return details['html_url']
+            return details["html_url"]
         else:
             logger.warning(
                 f"Failed to create PR for fork,"
@@ -475,13 +518,13 @@ class Api():
             the user is a member of.
         """
 
-        result = self.call_get('/user/orgs')
+        result = self.call_get("/user/orgs")
 
         if result.status_code == 200:
 
             organizations = result.json()
 
-            return [org['login'] for org in organizations]
+            return [org["login"] for org in organizations]
         elif result.status_code == 403:
             return []
 
@@ -493,7 +536,7 @@ class Api():
         Returns:
             dict: Dictionary containing repository info from the GitHub API.
         """
-        result = self.call_get(f'/repos/{repository}')
+        result = self.call_get(f"/repos/{repository}")
 
         if result.status_code == 200:
             return result.json()
@@ -515,63 +558,59 @@ class Api():
             requests.exceptions.RequestException: If the request fails due to network issues or invalid responses.
             KeyError: If the 'type' key is not present in the response JSON.
         """
-        result = self.call_get(f'/users/{username}')
+        result = self.call_get(f"/users/{username}")
 
         if result.status_code == 200:
-            return result.json()['type']
-        
+            return result.json()["type"]
+
     def get_own_repos(self):
         """Retrieve all repositories where the user is the owner or a collaborator."""
-    
+
         repos = []
 
-        get_params = {
-            "affiliation": "collaborator,owner",
-            "per_page": 100,
-            "page": 1
-        }
+        get_params = {"affiliation": "collaborator,owner", "per_page": 100, "page": 1}
 
-        result = self.call_get('/user/repos', params=get_params)
+        result = self.call_get("/user/repos", params=get_params)
         if result.status_code == 200:
             listing = result.json()
-            repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+            repos.extend(
+                [repo["full_name"] for repo in listing if not repo["archived"]]
+            )
 
             # Check if there are more pages
             while len(listing) == 100:
-                get_params['page'] += 1
-                result = self.call_get('/user/repos', params=get_params)
+                get_params["page"] += 1
+                result = self.call_get("/user/repos", params=get_params)
                 if result.status_code == 200:
                     listing = result.json()
-                    repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+                    repos.extend(
+                        [repo["full_name"] for repo in listing if not repo["archived"]]
+                    )
         return repos
-        
+
     def get_user_repos(self, username: str):
-        """Retrieve all repositories belonging to the user.
-        """
-       
+        """Retrieve all repositories belonging to the user."""
+
         repos = []
 
-        get_params = {
-            "type": "owner",
-            "per_page": 100,
-            "page": 1
-        }
+        get_params = {"type": "owner", "per_page": 100, "page": 1}
 
-        result = self.call_get(f'/users/{username}/repos', params=get_params)
+        result = self.call_get(f"/users/{username}/repos", params=get_params)
         if result.status_code == 200:
             listing = result.json()
-            repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+            repos.extend(
+                [repo["full_name"] for repo in listing if not repo["archived"]]
+            )
 
             # Check if there are more pages
             while len(listing) == 100:
-                get_params['page'] += 1
-                result = self.call_get(
-                    f'/users/{username}/repos',
-                    params=get_params
-                )
+                get_params["page"] += 1
+                result = self.call_get(f"/users/{username}/repos", params=get_params)
                 if result.status_code == 200:
                     listing = result.json()
-                    repos.extend([repo['full_name'] for repo in listing if not repo['archived']])
+                    repos.extend(
+                        [repo["full_name"] for repo in listing if not repo["archived"]]
+                    )
         return repos
 
     def get_organization_details(self, org: str):
@@ -586,7 +625,7 @@ class Api():
             dict: Dictionary containing the organization's details from the
             GitHub API.
         """
-        result = self.call_get(f'/orgs/{org}')
+        result = self.call_get(f"/orgs/{org}")
 
         if result.status_code == 200:
             org_info = result.json()
@@ -594,8 +633,10 @@ class Api():
             return org_info
 
         elif result.status_code == 404:
-            logger.info(f'The organization {org} was not found or there'
-                        ' is a permission issue!')
+            logger.info(
+                f"The organization {org} was not found or there"
+                " is a permission issue!"
+            )
 
     def validate_sso(self, org: str, repository: str):
         """Query a repository in the organization to determine if SSO has been
@@ -613,22 +654,22 @@ class Api():
             not enabled, or if the PAT has been validated with SSO to that
             organization.
         """
-        org_repos = self.call_get(f'/orgs/{org}/repos')
+        org_repos = self.call_get(f"/orgs/{org}/repos")
 
         if org_repos.status_code != 200:
             logger.warning(
-                    "SSO does not seem to be enabled for this PAT!"
-                    " Error message:"
-                    f" {org_repos.json()['message']}"
+                "SSO does not seem to be enabled for this PAT!"
+                " Error message:"
+                f" {org_repos.json()['message']}"
             )
             return False
 
         result = self.call_get(f"/repos/{repository}")
         if result.status_code == 403:
             logger.warning(
-                    "SSO does not seem to be enabled for this PAT! However,"
-                    "this PAT does have some access to the GitHub Enterprise. "
-                    f"Error message: {result.json()['message']}"
+                "SSO does not seem to be enabled for this PAT! However,"
+                "this PAT does have some access to the GitHub Enterprise. "
+                f"Error message: {result.json()['message']}"
             )
             return False
         else:
@@ -645,12 +686,12 @@ class Api():
         Returns:
             dict: Dictionary containing information about the runners.
         """
-        result = self.call_get(f'/orgs/{org}/actions/runners')
+        result = self.call_get(f"/orgs/{org}/actions/runners")
 
         if result.status_code == 200:
 
             runner_info = result.json()
-            if runner_info['total_count'] > 0:
+            if runner_info["total_count"] > 0:
                 return runner_info
         else:
             logger.warning(
@@ -659,34 +700,34 @@ class Api():
             )
 
     def get_org_repo_names_graphql(self, org: str, type: str):
-        """Retrieve repositories within an organization using GraphQL.
-        """
+        """Retrieve repositories within an organization using GraphQL."""
         repo_names = []
-        if type not in ['PUBLIC', 'PRIVATE']:
+        if type not in ["PUBLIC", "PRIVATE"]:
             raise ValueError("Unsupported type!")
-      
+
         cursor = None
         while True:
 
             query = {
                 "query": GqlQueries.GET_ORG_REPOS,
-                "variables": {
-                    "orgName": org,
-                    "repoTypes": type,
-                    "cursor": cursor
-                }
+                "variables": {"orgName": org, "repoTypes": type, "cursor": cursor},
             }
 
-            response = self.call_post('/graphql', query)
+            response = self.call_post("/graphql", query)
             if response.status_code == 200:
                 response = response.json()
-                repos = [edge['node']['name'] for edge in response['data']['organization']['repositories']['edges']]
+                repos = [
+                    edge["node"]["name"]
+                    for edge in response["data"]["organization"]["repositories"][
+                        "edges"
+                    ]
+                ]
                 repo_names.extend(repos)
 
-                pageInfo = response['data']['organization']['repositories']['pageInfo']
-                cursor = pageInfo['endCursor'] if pageInfo['hasNextPage'] else None
+                pageInfo = response["data"]["organization"]["repositories"]["pageInfo"]
+                cursor = pageInfo["endCursor"] if pageInfo["hasNextPage"] else None
 
-                if not pageInfo['hasNextPage']:
+                if not pageInfo["hasNextPage"]:
                     break
             else:
                 break
@@ -705,43 +746,43 @@ class Api():
             list: List of dictionaries representing repositories within an
             organization.
         """
-        if repo_type not in ['all', 'public', 'private', 'forks', 'sources',
-                        'member', 'internal']:
+        if repo_type not in [
+            "all",
+            "public",
+            "private",
+            "forks",
+            "sources",
+            "member",
+            "internal",
+        ]:
             raise ValueError("Unsupported type!")
         repos = []
 
-        org_details = self.call_get(f'/orgs/{org}')
+        org_details = self.call_get(f"/orgs/{org}")
         # For public repos, Gato-X uses a fast GraphQL approach.
-        if org_details.status_code == 200 and repo_type == 'public':
-            repo_count = org_details.json()['public_repos']
+        if org_details.status_code == 200 and repo_type == "public":
+            repo_count = org_details.json()["public_repos"]
             pub_repos = DataIngestor.perform_parallel_repo_ingest(self, org, repo_count)
-            repos.extend([repo for repo in pub_repos if not repo['archived']])           
-            return repos   
+            repos.extend([repo for repo in pub_repos if not repo["archived"]])
+            return repos
 
-        get_params = {
-            "type": repo_type,
-            "per_page": 100,
-            "page": 1
-        }
+        get_params = {"type": repo_type, "per_page": 100, "page": 1}
 
-        org_repos = self.call_get(f'/orgs/{org}/repos', params=get_params)
+        org_repos = self.call_get(f"/orgs/{org}/repos", params=get_params)
 
         if org_repos.status_code == 200:
             listing = org_repos.json()
 
-            repos.extend([repo for repo in listing if not repo['archived']])
+            repos.extend([repo for repo in listing if not repo["archived"]])
             # Check if there are more pages
             while len(listing) == 100:
-                get_params['page'] += 1
-                org_repos = self.call_get(
-                    f'/orgs/{org}/repos',
-                    params=get_params
-                )
+                get_params["page"] += 1
+                org_repos = self.call_get(f"/orgs/{org}/repos", params=get_params)
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
-                    repos.extend([repo for repo in listing if not repo['archived']])
+                    repos.extend([repo for repo in listing if not repo["archived"]])
         else:
-            logger.info(f'[-] {org} requires SSO!')
+            logger.info(f"[-] {org} requires SSO!")
             return None
 
         return repos
@@ -760,24 +801,24 @@ class Api():
         Returns:
             dict: User associated with the PAT, None otherwise.
         """
-        result = self.call_get('/user')
+        result = self.call_get("/user")
 
         if result.status_code == 200:
-            resp_headers = result.headers.get('x-oauth-scopes')
+            resp_headers = result.headers.get("x-oauth-scopes")
             if resp_headers:
-                scopes = [scope.strip() for scope in resp_headers.split(',')]
+                scopes = [scope.strip() for scope in resp_headers.split(",")]
             else:
                 scopes = []
 
             user_scopes = {
-                'user': result.json()['login'],
-                'scopes': scopes,
-                'name': result.json()['name']
+                "user": result.json()["login"],
+                "scopes": scopes,
+                "name": result.json()["name"],
             }
 
             return user_scopes
         else:
-            logger.warning('Provided token was not valid or has expired!')
+            logger.warning("Provided token was not valid or has expired!")
 
         return None
 
@@ -792,14 +833,13 @@ class Api():
             int: Returns 1 upon success, 0 if the branch was not found, and -1
             if there was a failure retrieving the branch.
         """
-        res = self.call_get(f'/repos/{repo}/branches/{branch}')
+        res = self.call_get(f"/repos/{repo}/branches/{branch}")
         if res.status_code == 200:
             return 1
         elif res.status_code == 404:
             return 0
         else:
-            logger.warning("Failed to check repo for branch! "
-                           f"({res.status_code}")
+            logger.warning("Failed to check repo for branch! " f"({res.status_code}")
             return -1
 
     def get_repo_runners(self, full_name: str):
@@ -811,55 +851,58 @@ class Api():
         Returns:
             list: List of self hosted runners from the repository.
         """
-        runners = self.call_get(f'/repos/{full_name}/actions/runners')
+        runners = self.call_get(f"/repos/{full_name}/actions/runners")
 
         if runners.status_code == 200:
-            runner_list = runners.json()['runners']
+            runner_list = runners.json()["runners"]
             return runner_list
 
         return []
 
-    def retrieve_run_logs(self, repo_name: str, short_circuit: str = True,
-                          workflows: list = []):
+    def retrieve_run_logs(
+        self, repo_name: str, short_circuit: str = True, workflows: list = []
+    ):
         """Retrieve the most recent run log associated with a repository.
 
         Args:
             repo_name (str): Full name of the repository.
             short_circuit (bool, optional): Whether to return as soon as the
-            first instance of a non-ephemeral self-hosted runner is detected. 
+            first instance of a non-ephemeral self-hosted runner is detected.
             Defaults to True.
             workflows (list, optional): List of workflows to check for. Defaults
             to empty list.
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
-        start_date = datetime.now() - timedelta(days = 60)
+        start_date = datetime.now() - timedelta(days=60)
         runs = []
 
         for workflow in workflows:
             # Get workflow runs for workflows we think have a sh runner.
             run_result = self.call_get(
-                f'/repos/{repo_name}/actions/workflows/{workflow}/runs', params={
+                f"/repos/{repo_name}/actions/workflows/{workflow}/runs",
+                params={
                     "per_page": "25",
-                    "status":"completed",
+                    "status": "completed",
                     "exclude_pull_requests": "true",
-                    "created":f">{start_date.isoformat()}"
-                }
+                    "created": f">{start_date.isoformat()}",
+                },
             )
 
             if run_result.status_code == 200:
-                runs.extend(run_result.json()['workflow_runs'])
+                runs.extend(run_result.json()["workflow_runs"])
         if not runs:
             bulk_result = self.call_get(
-                f'/repos/{repo_name}/actions/runs', params={
+                f"/repos/{repo_name}/actions/runs",
+                params={
                     "per_page": "50",
-                    "status":"completed",
+                    "status": "completed",
                     "exclude_pull_requests": "true",
-                    "created":f">{start_date.isoformat()}"
-                }
+                    "created": f">{start_date.isoformat()}",
+                },
             )
             if bulk_result.status_code == 200:
-                runs.extend(bulk_result.json()['workflow_runs'])
+                runs.extend(bulk_result.json()["workflow_runs"])
 
         # This is a dictionary so we can de-duplicate runner IDs based on
         # the machine_name:runner_name.
@@ -867,22 +910,22 @@ class Api():
         names = set()
 
         if runs:
-            logger.debug(f'Enumerating runs within {repo_name}')
+            logger.debug(f"Enumerating runs within {repo_name}")
         for run in runs:
             # We are only interested in runs that actually executed.
-            if run['conclusion'] != 'success' and \
-                run['conclusion'] != 'failure':
+            if run["conclusion"] != "success" and run["conclusion"] != "failure":
                 continue
 
             # We only look at one workflow run (for yaml) per branch
             workflow_key = f"{run['head_branch']}:{run['path']}"
             if workflow_key in names:
-                continue                
+                continue
             names.add(workflow_key)
 
             run_log = self.call_get(
                 f'/repos/{repo_name}/actions/runs/{run["id"]}/'
-                f'attempts/{run["run_attempt"]}/logs')
+                f'attempts/{run["run_attempt"]}/logs'
+            )
             if run_log.status_code == 200:
                 try:
 
@@ -891,7 +934,7 @@ class Api():
                         key = f"{run_log['machine_name']}:{run_log['runner_name']}"
                         run_logs[key] = run_log
 
-                        if short_circuit and run_log['non_ephemeral']:
+                        if short_circuit and run_log["non_ephemeral"]:
                             return run_logs.values()
                 except Exception as e:
                     logger.warn(
@@ -904,7 +947,8 @@ class Api():
                 logger.debug(
                     f"Call to retrieve run logs from {repo_name} run "
                     f"{run['id']} attempt {run['run_attempt']} returned "
-                    f"{run_log.status_code}!")
+                    f"{run_log.status_code}!"
+                )
 
         return run_logs.values()
 
@@ -919,17 +963,19 @@ class Api():
             int: Number of workflow runs associated with the repository, None
             if there was a failure.
         """
-        runs = self.call_get(f'/repos/{repo_name}/actions/runs')
+        runs = self.call_get(f"/repos/{repo_name}/actions/runs")
 
         if runs.status_code == 200:
 
-            return (runs.json()['total_count'])
+            return runs.json()["total_count"]
         else:
-            logger.warning('Unable to query workflow runs.')
+            logger.warning("Unable to query workflow runs.")
 
         return None
 
-    def get_recent_workflow(self, repo_name: str, sha: str, file_name: str, time_after=None) -> int:
+    def get_recent_workflow(
+        self, repo_name: str, sha: str, file_name: str, time_after=None
+    ) -> int:
         """
         This function is used to get the most recent workflow from a GitHub repository.
 
@@ -937,11 +983,11 @@ class Api():
             repo_name (str): The name of the repository. It should be in the format 'owner/repo'.
             sha (str): The SHA of the commit for which to get the workflow.
             file_name (str): The name of the workflow file (without the .yml extension).
-            time_after (str, optional): A timestamp in ISO 8601 format: 
+            time_after (str, optional): A timestamp in ISO 8601 format:
             YYYY-MM-DDTHH:MM:SSZ. Only show workflows updated after this time.
 
         Returns:
-            int: The ID of the workflow if found, 0 if no workflows are found, or -1 
+            int: The ID of the workflow if found, 0 if no workflows are found, or -1
             if there was an error querying the workflows.
 
         Raises:
@@ -949,32 +995,30 @@ class Api():
 
         Example:
             get_recent_workflow(
-            'octocat/Hello-World', 
+            'octocat/Hello-World',
             '7fd1a60b01f91b314f59955a4e4d4e80d8edf11d', 'test_workflow'
         )
         """
-        params = {
-            "head_sha": sha
-        }
+        params = {"head_sha": sha}
 
         if time_after:
-            params['created'] = time_after
+            params["created"] = time_after
 
-        req = self.call_get(f'/repos/{repo_name}/actions/runs', params=params)
+        req = self.call_get(f"/repos/{repo_name}/actions/runs", params=params)
 
         if req.status_code != 200:
-            logger.warning('Unable to query workflow runs.')
+            logger.warning("Unable to query workflow runs.")
             return -1
 
         data = req.json()
 
-        if data['total_count'] == 0:
+        if data["total_count"] == 0:
             return 0
 
         # Find the id of the workflow
-        for workflow in data['workflow_runs']:
-            if f'.github/workflows/{file_name}.yml' in workflow['path']:
-                return workflow['id']
+        for workflow in data["workflow_runs"]:
+            if f".github/workflows/{file_name}.yml" in workflow["path"]:
+                return workflow["id"]
 
         return 0
 
@@ -989,17 +1033,17 @@ class Api():
             int: 1 if the workflow has completed, 0 if it is pending, and -1 if
             there was a failure.
         """
-        req = self.call_get(f'/repos/{repo_name}/actions/runs/{workflow_id}')
+        req = self.call_get(f"/repos/{repo_name}/actions/runs/{workflow_id}")
 
         if req.status_code != 200:
-            logger.warning('Unable to query the workflow.')
+            logger.warning("Unable to query the workflow.")
             return -1
 
         data = req.json()
 
-        if data.get('status', 'queued') in ['queued', 'in_progress']:
+        if data.get("status", "queued") in ["queued", "in_progress"]:
             return 0
-        return 1 if data.get('conclusion', 'failure') == 'success' else -1
+        return 1 if data.get("conclusion", "failure") == "success" else -1
 
     def delete_workflow_run(self, repo_name: str, workflow_id: int):
         """Deletes a previous workflow run.
@@ -1011,8 +1055,7 @@ class Api():
         Returns:
             bool: True if the workflow was deleted, false otherwise.
         """
-        req = self.call_delete(f'/repos/{repo_name}/actions/runs/'
-                               f'{workflow_id}')
+        req = self.call_delete(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}")
 
         return req.status_code == 204
 
@@ -1027,8 +1070,7 @@ class Api():
         Returns:
             bool: True of the workflow log was downloaded, false otherwise.
         """
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/"
-                            f"{workflow_id}/logs")
+        req = self.call_get(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs")
 
         if req.status_code != 200:
             return False
@@ -1047,14 +1089,13 @@ class Api():
         Returns:
             str: String content of the run log matching the job name, if found.
         """
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/"
-                            f"{workflow_id}/logs")
+        req = self.call_get(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs")
 
         if req.status_code != 200:
             return False
 
         return self.__get_full_runlog(req.content, job_name)
-    
+
     def retrieve_workflow_artifact(self, repo_name: str, workflow_id: int):
         """Download workflow artifacts and return the files. Only use this for
         small artifacts, as this extracts the zip in memory.
@@ -1063,47 +1104,50 @@ class Api():
             repo_name (str): Name of the repository that has the workflow.
             workflow_id (int): ID of the workflow.
         Returns:
-            
+
         """
         files = {}
 
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/"
-                            f"{workflow_id}/artifacts")
+        req = self.call_get(
+            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/artifacts"
+        )
         if req.status_code != 200:
             return False
 
-        artifacts = req.json().get('artifacts', [])
-        download_url = artifacts[0]['archive_download_url']
+        artifacts = req.json().get("artifacts", [])
+        download_url = artifacts[0]["archive_download_url"]
 
-        archive = self.call_get(download_url.replace('https://api.github.com',''))
+        archive = self.call_get(download_url.replace("https://api.github.com", ""))
 
         with zipfile.ZipFile(io.BytesIO(archive.content)) as artifact:
             for zipinfo in artifact.infolist():
                 with artifact.open(zipinfo) as run_log:
                     content = run_log.read()
                     files[zipinfo.filename] = content
-                     
+
         return files
-    
-    def download_workflow_artifact(self, repo_name: str, workflow_id: int, destination: str):
-        """Download a workflow artifact and save it to the destination.
-        """
-        
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/"
-                            f"{workflow_id}/artifacts")
+
+    def download_workflow_artifact(
+        self, repo_name: str, workflow_id: int, destination: str
+    ):
+        """Download a workflow artifact and save it to the destination."""
+
+        req = self.call_get(
+            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/artifacts"
+        )
         if req.status_code != 200:
             return False
 
-        artifacts = req.json().get('artifacts', [])
-        download_url = artifacts[0]['archive_download_url']
+        artifacts = req.json().get("artifacts", [])
+        download_url = artifacts[0]["archive_download_url"]
 
-        archive = self.call_get(download_url.replace('https://api.github.com',''))
+        archive = self.call_get(download_url.replace("https://api.github.com", ""))
 
-        with open(destination, 'wb') as f:
+        with open(destination, "wb") as f:
             f.write(archive.content)
 
             return destination
-        
+
         return False
 
     def create_branch(self, repo_name: str, branch_name: str):
@@ -1113,23 +1157,16 @@ class Api():
             repo_name (str): Name of repository in Org/Repo format.
             branch_name (str): Name of branch to create.
         """
-        resp = self.call_get(f'/repos/{repo_name}')
-        default_branch = resp.json()['default_branch']
-        resp = self.call_get(
-            f'/repos/{repo_name}/git/ref/heads/{default_branch}'
-        )
+        resp = self.call_get(f"/repos/{repo_name}")
+        default_branch = resp.json()["default_branch"]
+        resp = self.call_get(f"/repos/{repo_name}/git/ref/heads/{default_branch}")
 
         json_resp = resp.json()
-        sha = json_resp['object']['sha']
+        sha = json_resp["object"]["sha"]
 
-        branch_data = {
-            "ref": f"refs/heads/{branch_name}",
-            "sha": sha
-        }
+        branch_data = {"ref": f"refs/heads/{branch_name}", "sha": sha}
 
-        resp = self.call_post(
-            f'/repos/{repo_name}/git/refs', params=branch_data
-        )
+        resp = self.call_post(f"/repos/{repo_name}/git/refs", params=branch_data)
 
         if resp.status_code == 201:
             return True
@@ -1143,17 +1180,21 @@ class Api():
             repo_name (str): Name of the repository in Owner/Repo format.
             branch_name (str): Name of the branch to delete.
         """
-        resp = self.call_delete(
-            f'/repos/{repo_name}/git/refs/heads/{branch_name}'
-        )
+        resp = self.call_delete(f"/repos/{repo_name}/git/refs/heads/{branch_name}")
 
         if resp.status_code == 204:
             return True
 
-    def commit_file(self, repo_name: str, branch_name: str, file_path: str,
-                    file_content: bytes, commit_author: str = "Gato-X",
-                    commit_email: str = "gato-x@pwn.com", message="Testing"
-                    ):
+    def commit_file(
+        self,
+        repo_name: str,
+        branch_name: str,
+        file_path: str,
+        file_content: bytes,
+        commit_author: str = "Gato-X",
+        commit_email: str = "gato-x@pwn.com",
+        message="Testing",
+    ):
         """Commits a file to the specified branch on a repository.
 
         Args:
@@ -1169,21 +1210,18 @@ class Api():
         b64_contents = base64.b64encode(file_content)
         commit_data = {
             "message": message,
-            "content": b64_contents.decode('utf-8'),
+            "content": b64_contents.decode("utf-8"),
             "branch": branch_name,
-            "committer": {
-                "name": commit_author,
-                "email": commit_email
-            }
+            "committer": {"name": commit_author, "email": commit_email},
         }
 
         resp = self.call_put(
-            f'/repos/{repo_name}/contents/{file_path}', params=commit_data
+            f"/repos/{repo_name}/contents/{file_path}", params=commit_data
         )
 
         if resp.status_code == 201:
             resp_json = resp.json()
-            return resp_json['commit']['sha']
+            return resp_json["commit"]["sha"]
         else:
             print(resp.status_code)
             print(resp.text)
@@ -1200,29 +1238,28 @@ class Api():
         """
         ymls = []
 
-        resp = self.call_get(f'/repos/{repo_name}/contents/.github/workflows/')
+        resp = self.call_get(f"/repos/{repo_name}/contents/.github/workflows/")
 
         if resp.status_code == 200:
             objects = resp.json()
 
             for file in objects:
-                if file['type'] == "file" and (
-                    file['name'].endswith(".yml") or
-                    file['name'].endswith(".yaml")
+                if file["type"] == "file" and (
+                    file["name"].endswith(".yml") or file["name"].endswith(".yaml")
                 ):
 
-                    resp = self.call_get(
-                        f'/repos/{repo_name}/contents/{file["path"]}'
-                    )
+                    resp = self.call_get(f'/repos/{repo_name}/contents/{file["path"]}')
                     if resp.status_code == 200:
                         resp_data = resp.json()
-                        if 'content' in resp_data:
-                            file_data = base64.b64decode(resp_data['content'])
-                            ymls.append(Workflow(repo_name, file_data, file['name']))
+                        if "content" in resp_data:
+                            file_data = base64.b64decode(resp_data["content"])
+                            ymls.append(Workflow(repo_name, file_data, file["name"]))
 
         return ymls
-    
-    def retrieve_repo_file(self, repo_name: str, file_path: str, ref: str, public=False):
+
+    def retrieve_repo_file(
+        self, repo_name: str, file_path: str, ref: str, public=False
+    ):
         """Retrieves a single file from a GitHub repository.
 
         If the repository is public, it instead uses the raw.githubusercontent.com
@@ -1234,22 +1271,21 @@ class Api():
             file_data = self.__get_raw_file(repo_name, file_path, ref)
         else:
             resp = self.call_get(
-                f'/repos/{repo_name}/contents/{file_path}', params={"ref": ref}
+                f"/repos/{repo_name}/contents/{file_path}", params={"ref": ref}
             )
             if resp.status_code == 200:
                 resp_data = resp.json()
-                if 'content' in resp_data:
-                    file_data = base64.b64decode(resp_data['content'])
+                if "content" in resp_data:
+                    file_data = base64.b64decode(resp_data["content"])
 
-        if file_data: 
+        if file_data:
             return Workflow(
                 repo_name,
                 file_data,
-                file_path.rsplit('/', 1)[-1],
-                non_default=ref, 
-                special_path=file_path
+                file_path.rsplit("/", 1)[-1],
+                non_default=ref,
+                special_path=file_path,
             )
-
 
     def retrieve_workflow_yml(self, repo_name: str, workflow_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.
@@ -1262,17 +1298,20 @@ class Api():
         Returns:
             (list): List of yml files in text format.
         """
-        resp = self.call_get(f'/repos/{repo_name}/contents/.github/workflows/{workflow_name}')
+        resp = self.call_get(
+            f"/repos/{repo_name}/contents/.github/workflows/{workflow_name}"
+        )
 
         if resp.status_code == 200:
 
             resp_data = resp.json()
-            if 'content' in resp_data:
-                file_data = base64.b64decode(resp_data['content'])
+            if "content" in resp_data:
+                file_data = base64.b64decode(resp_data["content"])
                 return Workflow(repo_name, file_data, workflow_name)
         else:
-            raise ValueError(f"Failed to retrieve workflow {workflow_name} from {repo_name}!")
-
+            raise ValueError(
+                f"Failed to retrieve workflow {workflow_name} from {repo_name}!"
+            )
 
     def get_secrets(self, repo_name: str):
         """Issues an API call to the GitHub API to list secrets for a
@@ -1286,15 +1325,15 @@ class Api():
         """
         secrets = []
 
-        resp = self.call_get(f'/repos/{repo_name}/actions/secrets')
+        resp = self.call_get(f"/repos/{repo_name}/actions/secrets")
         if resp.status_code == 200:
             secrets_response = resp.json()
 
-            if secrets_response['total_count'] > 0:
-                secrets = secrets_response['secrets']
+            if secrets_response["total_count"] > 0:
+                secrets = secrets_response["secrets"]
 
         return secrets
-    
+
     def get_environment_secrets(self, repo_name: str, environment_name: str):
         """Issues an API call to the GitHub API to list secrets for a specific
         environment within a repository. This requires the token to have the repo
@@ -1309,39 +1348,42 @@ class Api():
         """
         secrets = []
 
-        environment_name = environment_name.replace('/', '%2F')
-        resp = self.call_get(f'/repos/{repo_name}/environments/{environment_name}/secrets')
+        environment_name = environment_name.replace("/", "%2F")
+        resp = self.call_get(
+            f"/repos/{repo_name}/environments/{environment_name}/secrets"
+        )
         if resp.status_code == 200:
             secrets_response = resp.json()
 
-            if secrets_response['total_count'] > 0:
-                secrets = secrets_response['secrets']
+            if secrets_response["total_count"] > 0:
+                secrets = secrets_response["secrets"]
 
         return secrets
 
     def get_org_secrets(self, org_name: str):
         secrets = []
 
-        resp = self.call_get(f'/orgs/{org_name}/actions/secrets')
+        resp = self.call_get(f"/orgs/{org_name}/actions/secrets")
         if resp.status_code == 200:
             secrets_response = resp.json()
 
-            if secrets_response['total_count'] > 0:
-                for secret in secrets_response['secrets']:
+            if secrets_response["total_count"] > 0:
+                for secret in secrets_response["secrets"]:
 
-                    if secret['visibility'] == "selected":
+                    if secret["visibility"] == "selected":
 
                         repos_resp = self.call_get(
-                            f'/orgs/{org_name}/actions/secrets/'
+                            f"/orgs/{org_name}/actions/secrets/"
                             f'{secret["name"]}/repositories'
                         )
 
                         if repos_resp.status_code == 200:
                             repos_json = repos_resp.json()
-                            repo_names = [repo['full_name'] for repo in
-                                          repos_json['repositories']]
+                            repo_names = [
+                                repo["full_name"] for repo in repos_json["repositories"]
+                            ]
 
-                        secret['repos'] = repo_names
+                        secret["repos"] = repo_names
 
                     secrets.append(secret)
 
@@ -1359,27 +1401,24 @@ class Api():
             (list): List of org secrets that can be read via a workflow in this
             repository.
         """
-        resp = self.call_get(
-            f'/repos/{repo_name}/actions/organization-secrets'
-        )
+        resp = self.call_get(f"/repos/{repo_name}/actions/organization-secrets")
         secrets = []
         if resp.status_code == 200:
             secrets_response = resp.json()
 
-            if secrets_response['total_count'] > 0:
-                secrets = secrets_response['secrets']
+            if secrets_response["total_count"] > 0:
+                secrets = secrets_response["secrets"]
 
         return secrets
-    
 
     def get_file_last_updated(self, repo_name: str, file_path: str):
         resp = self.call_get(
-            f'/repos/{repo_name}/commits', params={"path": file_path, "per_page": 1}
+            f"/repos/{repo_name}/commits", params={"path": file_path, "per_page": 1}
         )
 
-        commit_date = resp.json()[0]['commit']['author']['date']
-        commit_author = resp.json()[0]['commit']['author']['name']
-        commit_sha = resp.json()[0]['sha']
+        commit_date = resp.json()[0]["commit"]["author"]["date"]
+        commit_author = resp.json()[0]["commit"]["author"]["name"]
+        commit_sha = resp.json()[0]["sha"]
 
         return commit_date, commit_author, commit_sha
 
@@ -1400,21 +1439,28 @@ class Api():
         if response.status_code == 200:
             all_environments = response.json()
 
-            for environment in all_environments['environments']:
-                protection_rules = environment.get('protection_rules', [])
+            for environment in all_environments["environments"]:
+                protection_rules = environment.get("protection_rules", [])
                 all_protection_rules.extend(
-                    [environment['name'] for rule in protection_rules if 
-                     rule['type'] == 'required_reviewers']
-                    )
+                    [
+                        environment["name"]
+                        for rule in protection_rules
+                        if rule["type"] == "required_reviewers"
+                    ]
+                )
 
         return all_protection_rules
 
-    def commit_workflow(self, repo_name: str,
-                        target_branch: str,
-                        workflow_contents: bytes, file_name: str,
-                        commit_author: str = "Gato-X",
-                        commit_email: str = "Gato-X@pwn.com",
-                        message="Testing"):
+    def commit_workflow(
+        self,
+        repo_name: str,
+        target_branch: str,
+        workflow_contents: bytes,
+        file_name: str,
+        commit_author: str = "Gato-X",
+        commit_email: str = "Gato-X@pwn.com",
+        message="Testing",
+    ):
         """
         Commits a new workflow file to a specified repository.
 
@@ -1440,61 +1486,55 @@ class Api():
             str: The SHA of the new commit if the commit was successful, None otherwise.
         """
         # Step 1: Get latest commit SHA of target branch
-        r = self.call_get(
-            f'/repos/{repo_name}'
-        )
+        r = self.call_get(f"/repos/{repo_name}")
         if self.__verify_result(r, 200) is False:
             return None
-        default_branch = r.json()['default_branch']
+        default_branch = r.json()["default_branch"]
 
-        r = self.call_get(
-            f'/repos/{repo_name}/commits/{default_branch}'
-        )
+        r = self.call_get(f"/repos/{repo_name}/commits/{default_branch}")
         if self.__verify_result(r, 200) is False:
             return None
-        latest_commit_sha = r.json()['sha']
+        latest_commit_sha = r.json()["sha"]
 
         # Step 2: Get tree SHA of latest commit of default
-        r = self.call_get(
-            f'/repos/{repo_name}/git/commits/{latest_commit_sha}'
-        )
+        r = self.call_get(f"/repos/{repo_name}/git/commits/{latest_commit_sha}")
         if self.__verify_result(r, 200) is False:
             return None
-        tree_sha = r.json()['tree']['sha']
+        tree_sha = r.json()["tree"]["sha"]
 
         # Step 3: Get the tree of the .github/workflows directory
         r = self.call_get(
-            f'/repos/{repo_name}/git/trees/{tree_sha}',
-            params={"recursive": "1"}
+            f"/repos/{repo_name}/git/trees/{tree_sha}", params={"recursive": "1"}
         )
         if self.__verify_result(r, 200) is False:
             return None
 
-        base_sha = r.json()['sha']
-        tree = r.json()['tree']
+        base_sha = r.json()["sha"]
+        tree = r.json()["tree"]
 
-        existing_files = (item for item in tree if '.github/workflows' in
-                          item['path'] and item['type'] == 'blob')
+        existing_files = (
+            item
+            for item in tree
+            if ".github/workflows" in item["path"] and item["type"] == "blob"
+        )
 
         # Step 4: Create a new tree where all blobs in the .github/workflows
         # tree are removed
-        new_workflow_file_content = base64.b64encode(
-                workflow_contents
-        ).decode()
+        new_workflow_file_content = base64.b64encode(workflow_contents).decode()
 
-        r = self.call_post(f'/repos/{repo_name}/git/blobs', params={
-            "content": new_workflow_file_content,
-            "encoding": "base64"
-        })
+        r = self.call_post(
+            f"/repos/{repo_name}/git/blobs",
+            params={"content": new_workflow_file_content, "encoding": "base64"},
+        )
         if self.__verify_result(r, 201) is False:
             return None
 
         new_tree = [
             {
-                'path': f'.github/workflows/{file_name}',
-                'mode': '100644',
-                'type': 'blob',
-                'sha': r.json()['sha']
+                "path": f".github/workflows/{file_name}",
+                "mode": "100644",
+                "type": "blob",
+                "sha": r.json()["sha"],
             }
         ]
 
@@ -1502,53 +1542,48 @@ class Api():
         for existing in existing_files:
             # Don't delete the same file - this will happen if the workflow
             # already exists (such as a test.yml file)
-            if existing['path'] == f'.github/workflows/{file_name}':
+            if existing["path"] == f".github/workflows/{file_name}":
                 continue
 
-            new_tree.append({
-                'path': existing['path'],
-                'mode': existing['mode'],
-                'type': existing['type'],
-                'sha': None,
-            })
+            new_tree.append(
+                {
+                    "path": existing["path"],
+                    "mode": existing["mode"],
+                    "type": existing["type"],
+                    "sha": None,
+                }
+            )
 
         r = self.call_post(
-            f'/repos/{repo_name}/git/trees', params={
-                'base_tree': base_sha,
-                'tree': new_tree
-            }
+            f"/repos/{repo_name}/git/trees",
+            params={"base_tree": base_sha, "tree": new_tree},
         )
         if self.__verify_result(r, 201) is False:
             return None
-        new_tree_sha = r.json()['sha']
+        new_tree_sha = r.json()["sha"]
 
         # Step 5: Create new commit on new branch
         r = self.call_post(
-            f'/repos/{repo_name}/git/commits', params={
-                'message': message,
-                'tree': new_tree_sha,
-                'parents': [latest_commit_sha],
-                'author': {
-                    'name': commit_author,
-                    'email': commit_email
-                }
-            }
+            f"/repos/{repo_name}/git/commits",
+            params={
+                "message": message,
+                "tree": new_tree_sha,
+                "parents": [latest_commit_sha],
+                "author": {"name": commit_author, "email": commit_email},
+            },
         )
-        new_commit_sha = r.json()['sha']
+        new_commit_sha = r.json()["sha"]
 
         # Step 6: Update the new branch to point to the new commit
         r = self.call_post(
-            f'/repos/{repo_name}/git/refs',
-            params={
-                'sha': new_commit_sha,
-                'ref': f'refs/heads/{target_branch}'
-            }
+            f"/repos/{repo_name}/git/refs",
+            params={"sha": new_commit_sha, "ref": f"refs/heads/{target_branch}"},
         )
         if self.__verify_result(r, 201) is False:
             return None
 
         return new_commit_sha
-    
+
     def backtrack_head(self, repo_name, ref_name, commit_depth):
         """Uses the Git database API to revert a number of commits back from head.
 
@@ -1557,25 +1592,23 @@ class Api():
             git reset --hard HEAD~<COMMIT_DEPTH>
             git push --force
 
-        This is used for force pushing off payloads when conducting attacks 
+        This is used for force pushing off payloads when conducting attacks
         in order to close the pull request.
         """
 
-        params = {
-            "sha": ref_name,
-            "per_page": commit_depth+1
-        }
+        params = {"sha": ref_name, "per_page": commit_depth + 1}
 
-        resp = self.call_get(f'/repos/{repo_name}/commits', params=params)
+        resp = self.call_get(f"/repos/{repo_name}/commits", params=params)
 
         if resp.status_code == 200:
             commits = resp.json()
-            target = commits[commit_depth]['sha']
+            target = commits[commit_depth]["sha"]
         else:
             return False
-        
+
         resp = self.call_patch(
-            f'/repos/{repo_name}/git/refs/heads/{ref_name}', params={"sha": target, "force": True}
+            f"/repos/{repo_name}/git/refs/heads/{ref_name}",
+            params={"sha": target, "force": True},
         )
 
         if resp.status_code == 200:
@@ -1583,7 +1616,9 @@ class Api():
         else:
             return False
 
-    def issue_dispatch(self, repo_name, target_workflow, target_branch, dispatch_inputs):
+    def issue_dispatch(
+        self, repo_name, target_workflow, target_branch, dispatch_inputs
+    ):
         """Issues a workflow dispatch event to trigger a workflow.
 
         Args:
@@ -1591,11 +1626,8 @@ class Api():
             target_workflow (str): Name of the workflow to trigger.
         """
         r = self.call_post(
-            f'/repos/{repo_name}/actions/workflows/{target_workflow}/dispatches',
-            params= {
-                'ref': target_branch,
-                'inputs': dispatch_inputs
-            }
+            f"/repos/{repo_name}/actions/workflows/{target_workflow}/dispatches",
+            params={"ref": target_branch, "inputs": dispatch_inputs},
         )
 
         return r.status_code == 204
@@ -1607,45 +1639,42 @@ class Api():
             repo_name (str): Name of the repository in Org/Repo format.
             target_pr (int): PR number to get comments for.
         """
-        
+
         since = (
-            datetime.now(datetime.UTC) - timedelta(minutes=1)
-        ).replace(microsecond=0).isoformat()
-        params = {
-            "per_page": 5,
-            "since": since+"Z"
-        }
-        
-        r = self.call_get(f'/repos/{repo_name}/issues/{target_pr}/comments', params=params)
+            (datetime.now(datetime.UTC) - timedelta(minutes=1))
+            .replace(microsecond=0)
+            .isoformat()
+        )
+        params = {"per_page": 5, "since": since + "Z"}
+
+        r = self.call_get(
+            f"/repos/{repo_name}/issues/{target_pr}/comments", params=params
+        )
 
         return r.json()
 
     def create_repository(self, repository_name: str):
-        """Creates a private repository for the authenticated user.
-        """
+        """Creates a private repository for the authenticated user."""
 
-        params = {
-            'private': True,
-            'name': repository_name
-        }
+        params = {"private": True, "name": repository_name}
 
-        response = self.call_post(f"/user/repos",params=params)
+        response = self.call_post(f"/user/repos", params=params)
 
         if response.status_code == 201:
-            return response.json()['full_name']
+            return response.json()["full_name"]
         else:
             return False
-        
+
     def create_pull_request(
-            self, 
-            source_repo: str,
-            source_branch: str, 
-            target_repo: str, 
-            target_banch: str, 
-            pr_body = "", 
-            pr_title = "CI Test", 
-            draft = True
-        ):
+        self,
+        source_repo: str,
+        source_branch: str,
+        target_repo: str,
+        target_banch: str,
+        pr_body="",
+        pr_title="CI Test",
+        draft=True,
+    ):
         """
         This function is used to create a pull request on GitHub.
 
@@ -1667,67 +1696,66 @@ class Api():
         Example:
             create_pull_request('octocat/Hello-World', 'feature-branch', 'octocat/Hello-World', 'main', pr_body='This is a test PR', pr_title='Test PR', draft=False)
         """
-        
+
         params = {
-            'title': pr_title,
-            'body': pr_body,
-            'head': source_branch,
-            'base': target_banch,
-            'head_repo': source_repo,
-            'draft': draft
+            "title": pr_title,
+            "body": pr_body,
+            "head": source_branch,
+            "base": target_banch,
+            "head_repo": source_repo,
+            "draft": draft,
         }
 
         response = self.call_post(f"/repos/{target_repo}/pulls", params=params)
 
         if response.status_code == 201:
-            return response.json()['html_url']
+            return response.json()["html_url"]
         else:
             return False
-        
+
     def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
-        """Retrieves a GitHub action yaml file from a public repository.
-        """
-        
-        if file_path.endswith('.yml') or file_path.endswith('.yaml'):
+        """Retrieves a GitHub action yaml file from a public repository."""
+
+        if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             paths = [file_path]
         else:
-            paths = [
-                f"{file_path}action.yml",
-                f"{file_path}action.yaml"
-            ]
+            paths = [f"{file_path}action.yml", f"{file_path}action.yaml"]
 
         for path in paths:
 
             res = self.__get_raw_file(repo, path, ref)
             if res:
                 return res
-            
+
         return None
 
     def get_commit_merge_date(self, repo: str, sha: str):
-        """Gets the date of the merge commit.
-        """
+        """Gets the date of the merge commit."""
 
         query = {
             "query": GqlQueries.GET_PR_MERGED,
             "variables": {
                 "sha": sha,
-                "repo": repo.split('/')[1],
-                "owner": repo.split('/')[0]
-            }
+                "repo": repo.split("/")[1],
+                "owner": repo.split("/")[0],
+            },
         }
 
-        r = self.call_post('/graphql', params=query)
+        r = self.call_post("/graphql", params=query)
         if r.status_code == 200:
             response = r.json()
 
-            if not response['data']['repository']:
+            if not response["data"]["repository"]:
                 return None
 
-            if not response['data']['repository']['commit']['associatedPullRequests']['edges']:
+            if not response["data"]["repository"]["commit"]["associatedPullRequests"][
+                "edges"
+            ]:
                 return None
-            
-            pr_info = response['data']['repository']['commit']['associatedPullRequests']['edges'][0]['node']
 
-            if pr_info['merged']:
-                return pr_info['mergedAt']
+            pr_info = response["data"]["repository"]["commit"][
+                "associatedPullRequests"
+            ]["edges"][0]["node"]
+
+            if pr_info["merged"]:
+                return pr_info["mergedAt"]
