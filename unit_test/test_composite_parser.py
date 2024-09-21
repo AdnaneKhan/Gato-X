@@ -21,9 +21,9 @@ runs:
         echo "${{ github.event.pull_request.title }}"
 """
 
+
 def test_parse_composite():
-    """Test for parsing a composite action.
-    """
+    """Test for parsing a composite action."""
     parser = CompositeParser(TEST_COMPOSITE)
     assert parser.is_composite() == True
     assert len(parser.check_injection()) == 1

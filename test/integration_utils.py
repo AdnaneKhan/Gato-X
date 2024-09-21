@@ -11,8 +11,8 @@ from gatox.main import entry
 # From https://stackoverflow.com/questions/14693701/
 # how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 def escape_ansi(line):
-    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-    return ansi_escape.sub('', line)
+    ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", line)
 
 
 def process_command(commandline: str, capsys):
@@ -27,7 +27,7 @@ def process_command(commandline: str, capsys):
         tuple: tuple of standard output and error for the execution.
     """
 
-    command = commandline.split(' ')
+    command = commandline.split(" ")
 
     sys.argv = command
     with pytest.raises(SystemExit):
@@ -44,12 +44,12 @@ def process_command(commandline: str, capsys):
 def load_creds():
     curr_path = pathlib.Path(__file__).parent.resolve()
 
-    with open(os.path.join(curr_path, 'creds.json'), 'r') as f:
+    with open(os.path.join(curr_path, "creds.json"), "r") as f:
         creds = json.load(f)
     for key, val in creds.items():
-        val['PAT_value'] = os.environ.get(key)
+        val["PAT_value"] = os.environ.get(key)
 
-        if val['PAT_value'] is None:
+        if val["PAT_value"] is None:
             pytest.fail(f"Unable to load secret: {key}!")
 
     return creds

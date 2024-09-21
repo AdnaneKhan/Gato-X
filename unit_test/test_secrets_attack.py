@@ -5,20 +5,20 @@ from unittest.mock import MagicMock
 
 from gatox.attack.secrets.secrets_attack import SecretsAttack
 
+
 # From https://stackoverflow.com/questions/14693701/
 # how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 def escape_ansi(line):
-    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-    return ansi_escape.sub('', line)
+    ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", line)
 
 
 def test_create_secret_exil_yaml():
-    """Test code to create a yaml to exfil repository secrets.
-    """
+    """Test code to create a yaml to exfil repository secrets."""
     attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
-        http_proxy="localhost:8080"
+        http_proxy="localhost:8080",
     )
 
     # Just use the util method to get our key.
@@ -32,20 +32,21 @@ def test_create_secret_exil_yaml():
     assert "actions/upload-artifact@v4" in yaml
 
 
-@patch("gatox.attack.secrets.secrets_attack.SecretsAttack._SecretsAttack__decrypt_secrets")
-@patch("gatox.attack.secrets.secrets_attack.SecretsAttack._SecretsAttack__create_private_key")
+@patch(
+    "gatox.attack.secrets.secrets_attack.SecretsAttack._SecretsAttack__decrypt_secrets"
+)
+@patch(
+    "gatox.attack.secrets.secrets_attack.SecretsAttack._SecretsAttack__create_private_key"
+)
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump(mock_api, mock_privkey, mock_dec, capsys):
-    """Test secrets dump functionality.
-    """
+    """Test secrets dump functionality."""
     mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "name": 'test user',
-        "scopes": ['repo', 'workflow']
+        "user": "testUser",
+        "name": "test user",
+        "scopes": ["repo", "workflow"],
     }
-    mock_api.return_value.get_secrets.return_value = [{
-        "name": "TEST_SECRET"
-    }]
+    mock_api.return_value.get_secrets.return_value = [{"name": "TEST_SECRET"}]
     mock_api.return_value.get_repo_org_secrets.return_value = []
     mock_api.return_value.get_repo_branch.return_value = 0
     pub_mock = """
@@ -66,68 +67,65 @@ w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
     """
 
     mock_api.return_value.retrieve_workflow_artifact.return_value = {
-        "lookup.txt":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        "output_updated.json":"A"*100
+        "lookup.txt": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "output_updated.json": "A" * 100,
     }
     mock_api.return_value.get_recent_workflow.return_value = 11111111
     mock_api.return_value.get_workflow_status.return_value = 1
     mock_priv = MagicMock()
     mock_priv.decrypt.return_value = "TestSymKey"
     mock_privkey.return_value = (mock_priv, "pub_mock")
-    mock_dec.return_value = b"{\"TEST_SECRET\":\"TEST_VALUE\"}"
-
+    mock_dec.return_value = b'{"TEST_SECRET":"TEST_VALUE"}'
 
     gh_attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
-        http_proxy="localhost:8080"
+        http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump('targetRepo', None, None, True, "exfil")
+    gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
 
     captured = capsys.readouterr()
 
     print_output = captured.out
 
-    assert "Decrypted and Decoded Secrets:" in \
-        escape_ansi(print_output)
+    assert "Decrypted and Decoded Secrets:" in escape_ansi(print_output)
 
 
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump_baduser(mock_api, capsys):
-    """Test secrets dump functionality with bad permissions.
-    """
+    """Test secrets dump functionality with bad permissions."""
     mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "name": 'test user',
-        "scopes": ['repo']
+        "user": "testUser",
+        "name": "test user",
+        "scopes": ["repo"],
     }
 
     gh_attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
-        http_proxy="localhost:8080"
+        http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump('targetRepo', None, None, True, "exfil")
+    gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
 
     captured = capsys.readouterr()
 
     print_output = captured.out
 
-    assert "The user does not have the necessary scopes to conduct this" in \
-        escape_ansi(print_output)
+    assert "The user does not have the necessary scopes to conduct this" in escape_ansi(
+        print_output
+    )
 
 
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump_nosecret(mock_api, capsys):
-    """Test secrets dump where repo has no secrets.
-    """
+    """Test secrets dump where repo has no secrets."""
 
     mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "name": 'test user',
-        "scopes": ['repo', 'workflow']
+        "user": "testUser",
+        "name": "test user",
+        "scopes": ["repo", "workflow"],
     }
 
     mock_api.return_value.get_secrets.return_value = []
@@ -135,76 +133,71 @@ def test_secrets_dump_nosecret(mock_api, capsys):
 
     gh_attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,   
-        http_proxy="localhost:8080"
+        socks_proxy=None,
+        http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump('targetRepo', None, None, True, "exfil")
+    gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
 
     captured = capsys.readouterr()
     print_output = captured.out
 
-    assert "The repository does not have any accessible secrets" in \
-        escape_ansi(print_output)
+    assert "The repository does not have any accessible secrets" in escape_ansi(
+        print_output
+    )
+
 
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump_branchexist(mock_api, capsys):
-    """Test secrets dump where exfil branch already exists.
-    """
+    """Test secrets dump where exfil branch already exists."""
 
     mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "name": 'test user',
-        "scopes": ['repo', 'workflow']
+        "user": "testUser",
+        "name": "test user",
+        "scopes": ["repo", "workflow"],
     }
 
-    mock_api.return_value.get_secrets.return_value = [{
-        "name": "TEST_SECRET"
-    }]
+    mock_api.return_value.get_secrets.return_value = [{"name": "TEST_SECRET"}]
     mock_api.return_value.get_repo_org_secrets.return_value = []
     mock_api.return_value.get_repo_branch.return_value = 1
 
     gh_attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,   
-        http_proxy="localhost:8080"
+        socks_proxy=None,
+        http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump('targetRepo', "exfilbranch", None, True, "exfil")
+    gh_attacker.secrets_dump("targetRepo", "exfilbranch", None, True, "exfil")
 
     captured = capsys.readouterr()
     print_output = captured.out
 
-    assert "Remote branch, exfilbranch, already exists!" in \
-        escape_ansi(print_output)
+    assert "Remote branch, exfilbranch, already exists!" in escape_ansi(print_output)
+
 
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump_branchfail(mock_api, capsys):
-    """Test secrets dump where branch check fails.
-    """
+    """Test secrets dump where branch check fails."""
 
     mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "name": 'test user',
-        "scopes": ['repo', 'workflow']
+        "user": "testUser",
+        "name": "test user",
+        "scopes": ["repo", "workflow"],
     }
 
-    mock_api.return_value.get_secrets.return_value = [{
-        "name": "TEST_SECRET"
-    }]
+    mock_api.return_value.get_secrets.return_value = [{"name": "TEST_SECRET"}]
     mock_api.return_value.get_repo_org_secrets.return_value = []
     mock_api.return_value.get_repo_branch.return_value = -1
 
     gh_attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,   
-        http_proxy="localhost:8080"
+        socks_proxy=None,
+        http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump('targetRepo', "exfilbranch", None, True, "exfil")
+    gh_attacker.secrets_dump("targetRepo", "exfilbranch", None, True, "exfil")
 
     captured = capsys.readouterr()
     print_output = captured.out
 
-    assert "Failed to check for remote branch!" in \
-        escape_ansi(print_output)
+    assert "Failed to check for remote branch!" in escape_ansi(print_output)

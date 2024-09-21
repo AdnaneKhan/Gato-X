@@ -1,9 +1,10 @@
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
 
+
 def test_parse1():
     if_check1 = "(((github.event.action == 'labeled' && (github.event.label.name == 'approved' || github.event.label.name == 'lgtm' || github.event.label.name == 'ok-to-test')) || (github.event.action != 'labeled' && (contains(github.event.pull_request.labels.*.name, 'ok-to-test') || contains(github.event.pull_request.labels.*.name, 'approved') || contains(github.event.pull_request.labels.*.name, 'lgtm')))) && github.repository == 'feast-dev/feast')"
-    
+
     expr = ExpressionParser(if_check1)
 
     expr.print_ast()
@@ -17,7 +18,7 @@ def test_parse2():
     variables = {
         "github.event.issue.pull_request": True,
         "github.event.comment.body": "[test] testing",
-        "github.event.comment.author_association": "NONE"
+        "github.event.comment.author_association": "NONE",
     }
 
     evaluator = ExpressionEvaluator(variables)
@@ -27,11 +28,10 @@ def test_parse2():
 
     assert result is False
 
+
 def test_simple_evaluate():
     # Example usage:
-    variables = {
-        "github.event.issue.pull_request": True
-    }
+    variables = {"github.event.issue.pull_request": True}
     expression = "github.event.issue.pull_request"
     parser = ExpressionParser(expression)
     ast_root = parser.get_node()
