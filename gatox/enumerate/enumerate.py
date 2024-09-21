@@ -29,7 +29,7 @@ class Enumerator:
         output_yaml: str = None,
         skip_log: bool = False,
         github_url: str = None,
-        output_json: str = None
+        output_json: str = None,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -72,8 +72,8 @@ class Enumerator:
                 return False
 
             Output.info(
-                    "The authenticated user is: "
-                    f"{Output.bright(self.user_perms['user'])}"
+                "The authenticated user is: "
+                f"{Output.bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]):
                 Output.info(
@@ -84,7 +84,7 @@ class Enumerator:
                 Output.warn("The token has no scopes!")
 
         return True
-    
+
     def __query_graphql_workflows(self, queries):
         """Wrapper for querying workflows using the github graphql API.
 
@@ -94,18 +94,22 @@ class Enumerator:
             Output.info(f"Querying repositories in {len(queries)} batches!")
             futures = []
             for i, wf_query in enumerate(queries):
-                futures.append(executor.submit(DataIngestor.perform_query, self.api, wf_query, i))
+                futures.append(
+                    executor.submit(DataIngestor.perform_query, self.api, wf_query, i)
+                )
             for future in as_completed(futures):
-                Output.info(f"Processed {DataIngestor.check_status()}/{len(queries)} batches.", end='\r')
+                Output.info(
+                    f"Processed {DataIngestor.check_status()}/{len(queries)} batches.",
+                    end="\r",
+                )
                 DataIngestor.construct_workflow_cache(future.result())
-           
+
     def validate_only(self):
-        """Validates the PAT access and exits.
-        """
+        """Validates the PAT access and exits."""
         if not self.__setup_user_info():
             return False
 
-        if 'repo' not in self.user_perms['scopes']:
+        if "repo" not in self.user_perms["scopes"]:
             Output.warn("Token does not have sufficient access to list orgs!")
             return False
 
@@ -113,13 +117,16 @@ class Enumerator:
 
         Output.info(
             f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
-            'organizations!'
+            "organizations!"
         )
 
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
-        return [Organization({'login': org}, self.user_perms['scopes'], True) for org in orgs]
+        return [
+            Organization({"login": org}, self.user_perms["scopes"], True)
+            for org in orgs
+        ]
 
     def self_enumeration(self):
         """Enumerates all organizations associated with the authenticated user.
@@ -133,7 +140,7 @@ class Enumerator:
         if not self.user_perms:
             return False
 
-        if 'repo' not in self.user_perms['scopes']:
+        if "repo" not in self.user_perms["scopes"]:
             Output.error("Self-enumeration requires the repo scope!")
             return False
 
@@ -145,17 +152,16 @@ class Enumerator:
 
         Output.info(
             f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
-            'organizations!'
+            "organizations!"
         )
 
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
-
         org_wrappers = list(map(self.enumerate_organization, orgs))
 
         return org_wrappers, repo_wrappers
-    
+
     def enumerate_user(self, user: str):
         """Enumerate a user's repositories."""
 
@@ -196,19 +202,18 @@ class Enumerator:
         if not details:
             Output.warn(
                 f"Unable to query the org: {Output.bright(org)}! Ensure the "
-                "organization exists!")
+                "organization exists!"
+            )
             return False
 
-        organization = Organization(details, self.user_perms['scopes'])
+        organization = Organization(details, self.user_perms["scopes"])
 
         Output.result(f"Enumerating the {Output.bright(org)} organization!")
 
         if organization.org_admin_user and organization.org_admin_scopes:
             self.org_e.admin_enum(organization)
 
-        Recommender.print_org_findings(
-            self.user_perms['scopes'], organization
-        )
+        Recommender.print_org_findings(self.user_perms["scopes"], organization)
 
         Output.info("Querying repository list!")
         enum_list = self.org_e.construct_repo_enum_list(organization)
@@ -223,33 +228,30 @@ class Enumerator:
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
         self.__query_graphql_workflows(wf_queries)
-   
+
         try:
             for repo in enum_list:
                 if repo.is_archived():
                     continue
                 if self.skip_log and repo.is_fork():
                     continue
-                Output.tabbed(
-                    f"Enumerating: {Output.bright(repo.name)}!"
-                )
+                Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
 
                 cached_repo = CacheManager().get_repository(repo.name)
                 if cached_repo:
                     repo = cached_repo
-                
-                self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 25)
+
+                self.repo_e.enumerate_repository(
+                    repo, large_org_enum=len(enum_list) > 25
+                )
                 self.repo_e.enumerate_repository_secrets(repo)
 
                 organization.set_repository(repo)
 
-                Recommender.print_repo_secrets(
-                    self.user_perms['scopes'],
-                    repo.secrets
-                )
+                Recommender.print_repo_secrets(self.user_perms["scopes"], repo.secrets)
                 Recommender.print_repo_runner_info(repo)
                 Recommender.print_repo_attack_recommendations(
-                    self.user_perms['scopes'], repo
+                    self.user_perms["scopes"], repo
                 )
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
@@ -281,20 +283,17 @@ class Enumerator:
                     f"Skipping archived repository: {Output.bright(repo.name)}!"
                 )
                 return False
-            
-            Output.tabbed(
-                    f"Enumerating: {Output.bright(repo.name)}!"
-            )
-            
+
+            Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
+
             self.repo_e.enumerate_repository(repo, large_org_enum=large_enum)
             self.repo_e.enumerate_repository_secrets(repo)
             Recommender.print_repo_secrets(
-                self.user_perms['scopes'],
-                repo.secrets + repo.org_secrets
+                self.user_perms["scopes"], repo.secrets + repo.org_secrets
             )
             Recommender.print_repo_runner_info(repo)
             Recommender.print_repo_attack_recommendations(
-                self.user_perms['scopes'], repo
+                self.user_perms["scopes"], repo
             )
 
             return repo

@@ -9,12 +9,11 @@ from gatox.models.secret import Secret
 from gatox.enumerate.reports.actions import ActionsReport
 from gatox.enumerate.reports.runners import RunnersReport
 
+
 class Recommender:
 
     @staticmethod
-    def print_repo_attack_recommendations(
-        scopes: list, repository: Repository
-    ):
+    def print_repo_attack_recommendations(scopes: list, repository: Repository):
         """Prints attack recommendations for repositories.
 
         Args:
@@ -33,9 +32,7 @@ class Recommender:
             return
 
         if repository.is_admin():
-            Output.owned(
-                "The user is an administrator on the repository!"
-            )
+            Output.owned("The user is an administrator on the repository!")
             if "workflow" in scopes:
                 Output.result(
                     "The PAT also has the workflow scope, which means a "
@@ -108,16 +105,18 @@ class Recommender:
         if not secrets:
             return
 
-        if 'workflow' in scopes:
+        if "workflow" in scopes:
             Output.owned(
                 "The repository can access "
                 f"{Output.bright(len(secrets))} secret(s) and the "
-                "token can use a workflow to read them!")
+                "token can use a workflow to read them!"
+            )
         else:
             Output.info(
                 f"The repository can access "
                 f"{Output.bright(len(secrets))} secret(s), but the "
-                "token cannot trigger a new workflow!")
+                "token cannot trigger a new workflow!"
+            )
 
         for secret in secrets:
             if secret.environment:
@@ -131,7 +130,6 @@ class Recommender:
                     f"\t{Output.bright(secret.name)},"
                     f" last updated {Output.bright(secret.secret_data['updated_at'])}"
                 )
-            
 
     @staticmethod
     def print_repo_runner_info(repository: Repository):
@@ -161,7 +159,7 @@ class Recommender:
             runner_name = runner.runner_name
             runner_os = runner.os
             runner_status = runner.status
-            labels = ', '.join([elem['name'] for elem in runner.labels])
+            labels = ", ".join([elem["name"] for elem in runner.labels])
 
             Output.tabbed(
                 f"Name: {Output.bright(runner_name)}, OS: "
@@ -170,9 +168,7 @@ class Recommender:
             )
 
             if labels:
-                Output.tabbed(
-                    f"The runner has the following labels: {labels}!"
-                )
+                Output.tabbed(f"The runner has the following labels: {labels}!")
 
     @staticmethod
     def print_org_findings(scopes, organization: Organization):
@@ -205,7 +201,8 @@ class Recommender:
         if organization.secrets:
             Output.owned(
                 f"The organization has "
-                f"{Output.bright(len(organization.secrets))} secret(s)!")
+                f"{Output.bright(len(organization.secrets))} secret(s)!"
+            )
             Output.result("The secret names are:")
             for secret in organization.secrets:
                 Output.tabbed(

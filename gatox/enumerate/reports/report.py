@@ -17,19 +17,17 @@ limitations under the License.
 from gatox.cli.output import Output
 from gatox.models.repository import Repository
 
+
 class Report:
-    """Parent class for report formatting classes.
-    """
+    """Parent class for report formatting classes."""
 
     @classmethod
     def print_header(cls, repo: Repository, report_type):
-        """Prints a header for the repository report.
-        """
+        """Prints a header for the repository report."""
         Output.generic(f" Repository Name: {repo.name}")
         Output.generic(f" Report Type: {report_type}")
 
     @classmethod
     def print_divider(cls):
-        """Prints a divider with `=` symbols.
-        """
+        """Prints a divider with `=` symbols."""
         Output.generic(f'{"="*78}')

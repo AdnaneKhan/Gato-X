@@ -15,17 +15,15 @@ PWN_DETAILS = {
                     {
                         "ref": "${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.number) || '' }}",
                         "if_check": None,
-                        "step_name": "Checkout"
+                        "step_name": "Checkout",
                     }
                 ],
-                "if_check": ""
+                "if_check": "",
             }
         },
-        "triggers": [
-            "pull_request_target"
-        ]
+        "triggers": ["pull_request_target"],
     },
-    "environments": []
+    "environments": [],
 }
 
 PWN_DETAILS_TOCTOU = {
@@ -40,17 +38,15 @@ PWN_DETAILS_TOCTOU = {
                     {
                         "ref": "github.event.pull_request.head.ref",
                         "if_check": None,
-                        "step_name": "Checkout"
+                        "step_name": "Checkout",
                     }
                 ],
-                "if_check": ""
+                "if_check": "",
             }
         },
-        "triggers": [
-            "pull_request_target:labeled"
-        ]
+        "triggers": ["pull_request_target:labeled"],
     },
-    "environments": []
+    "environments": [],
 }
 
 
@@ -66,17 +62,15 @@ PWN_DETAILS_TOCTOU2 = {
                     {
                         "ref": "format('refs/pull/{0}/merge', github.event.number)",
                         "if_check": None,
-                        "step_name": "Checkout"
+                        "step_name": "Checkout",
                     }
                 ],
-                "if_check": ""
+                "if_check": "",
             }
         },
-        "triggers": [
-            "pull_request_target"
-        ]
+        "triggers": ["pull_request_target"],
     },
-    "environments": ['ci']
+    "environments": ["ci"],
 }
 
 PWN_DETAILS_TOCTOU3 = {
@@ -91,17 +85,15 @@ PWN_DETAILS_TOCTOU3 = {
                     {
                         "ref": "format('refs/pull/{0}/merge', github.event.number)",
                         "if_check": None,
-                        "step_name": "Checkout"
+                        "step_name": "Checkout",
                     }
                 ],
-                "if_check": ""
+                "if_check": "",
             }
         },
-        "triggers": [
-            "issue_comment"
-        ]
+        "triggers": ["issue_comment"],
     },
-    "environments": []
+    "environments": [],
 }
 
 INJ_DETAILS = {
@@ -110,22 +102,16 @@ INJ_DETAILS = {
     "details": {
         "build": {
             "if_check": None,
-            "Set comment body": {
-                "variables": [
-                    "steps.extract.outputs.filename"
-                ]
-            }
+            "Set comment body": {"variables": ["steps.extract.outputs.filename"]},
         },
-        "triggers": [
-            "pull_request_target"
-        ]
+        "triggers": ["pull_request_target"],
     },
-    "environments": []
+    "environments": [],
 }
 
+
 def test_report_pwn(capfd):
-    """Test reporting a pwn request vulnerability.
-    """
+    """Test reporting a pwn request vulnerability."""
     repository = MagicMock()
     repository.pwn_req_risk = [PWN_DETAILS]
 
@@ -136,9 +122,9 @@ def test_report_pwn(capfd):
     assert "The workflow runs on a risky trigger and might check out the PR" in out
     assert "Checkout Ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.number) || '' }}"
 
+
 def test_report_pwn_toctou_label(capfd):
-    """Test reporting a pwn request vulnerability with TOCTOU.
-    """
+    """Test reporting a pwn request vulnerability with TOCTOU."""
 
     repository = MagicMock()
     repository.pwn_req_risk = [PWN_DETAILS_TOCTOU]
@@ -150,6 +136,7 @@ def test_report_pwn_toctou_label(capfd):
     assert " The workflow contains label-based gating but the workflow uses a" in out
     assert "Checkout Ref: github.event.pull_request.head.ref" in out
     assert "Trigger(s): pull_request_target:labeled" in out
+
 
 def test_report_pwn_toctou_env(capfd):
     """Test reporting a pwn request vulnerability with TOCTOU, where
@@ -183,9 +170,9 @@ def test_report_pwn_toctou_comment(capfd):
     assert "Checkout Ref: format('refs/pull/{0}/merge', github.event.number)" in out
     assert "The workflow contains a permission check, but uses a mutable" in out
 
+
 def test_report_inj(capfd):
-    """Test reporting an injection vulnerability.
-    """
+    """Test reporting an injection vulnerability."""
     repository = MagicMock()
     repository.name = "testOrg/testRepo"
     repository.injection_risk = [INJ_DETAILS]

@@ -12,8 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class Searcher:
-    """Class that encapsulates functionality to use the GitHub code search API.
-    """
+    """Class that encapsulates functionality to use the GitHub code search API."""
 
     def __init__(
         self,
@@ -22,7 +21,7 @@ class Searcher:
         http_proxy: str = None,
         github_url: str = None,
     ):
-        
+
         self.api = Api(
             pat,
             socks_proxy=socks_proxy,
@@ -66,11 +65,7 @@ class Searcher:
 
         return True
 
-    def use_sourcegraph_api(
-            self,
-            organization: str,
-            query=None,
-            output_text=None):
+    def use_sourcegraph_api(self, organization: str, query=None, output_text=None):
         """
         This method is used to search for repositories in an organization using the Sourcegraph API.
         It constructs a search query and sends a GET request to the Sourcegraph search API.
@@ -96,7 +91,7 @@ class Searcher:
                 "lang:YAML file:.github/workflows/ count:100000"
             )
         }
-        
+
         if query:
             Output.info(
                 f"Searching SourceGraph with the following query: {Output.bright(query)}"
@@ -106,7 +101,9 @@ class Searcher:
             Output.info(
                 f"Searching SourceGraph with the default Gato query: {Output.bright(params['q'])}"
             )
-        response = requests.get(url, headers=headers, params=params, stream=True, proxies=self.proxies)
+        response = requests.get(
+            url, headers=headers, params=params, stream=True, proxies=self.proxies
+        )
         results = set()
         if response.status_code == 200:
             for line in response.iter_lines():
@@ -166,9 +163,7 @@ class Searcher:
                 "using the GitHub Code Search API for 'self-hosted' within "
                 "YAML files."
             )
-        candidates = api_search.search_enumeration(
-            organization, custom_query=query
-        )
+        candidates = api_search.search_enumeration(organization, custom_query=query)
 
         return sorted(candidates)
 

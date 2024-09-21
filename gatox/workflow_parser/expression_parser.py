@@ -16,11 +16,13 @@ limitations under the License.
 
 import re
 
+
 class Node:
     def __init__(self, type, value=None, children=None):
         self.type = type
         self.value = value
         self.children = children or []
+
 
 class ExpressionParser:
     def __init__(self, expression):
@@ -37,33 +39,40 @@ class ExpressionParser:
     @staticmethod
     def tokenize(expression: str):
         token_specification = [
-            ("LPAREN", r'\('),
-            ("RPAREN", r'\)'),
-            ("COMMA", r','),
-            ("AND", r'&&'),
-            ("OR", r'\|\|'),
-            ("EQUALS", r'=='),
-            ("NOT_EQUALS", r'!='),
-            ("NEGATION", r'!'),  # Unary negation
-            ("IDENTIFIER", r'[a-zA-Z_.][a-zA-Z0-9_.*]*'),
+            ("LPAREN", r"\("),
+            ("RPAREN", r"\)"),
+            ("COMMA", r","),
+            ("AND", r"&&"),
+            ("OR", r"\|\|"),
+            ("EQUALS", r"=="),
+            ("NOT_EQUALS", r"!="),
+            ("NEGATION", r"!"),  # Unary negation
+            ("IDENTIFIER", r"[a-zA-Z_.][a-zA-Z0-9_.*]*"),
             ("STRING", r"'[^']*'"),
-            ("WHITESPACE", r'\s+'),
+            ("WHITESPACE", r"\s+"),
         ]
-        tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_specification)
-        return [(match.lastgroup, match.group(0)) for match in 
-                re.finditer(tok_regex, expression) if match.lastgroup != 'WHITESPACE']
+        tok_regex = "|".join(
+            f"(?P<{name}>{pattern})" for name, pattern in token_specification
+        )
+        return [
+            (match.lastgroup, match.group(0))
+            for match in re.finditer(tok_regex, expression)
+            if match.lastgroup != "WHITESPACE"
+        ]
 
     @staticmethod
     def expect_token(tokens, expected_type):
         if tokens and tokens[0][0] == expected_type:
             return tokens.pop(0)
-        raise SyntaxError(f"Expected {expected_type} but got {tokens[0] if tokens else 'no more tokens'}")
+        raise SyntaxError(
+            f"Expected {expected_type} but got {tokens[0] if tokens else 'no more tokens'}"
+        )
 
     @staticmethod
     def parse_expression(tokens):
         if not tokens:
             raise SyntaxError("Empty expression")
-        node = ExpressionParser.parse_logical_or(tokens)  
+        node = ExpressionParser.parse_logical_or(tokens)
         return node
 
     @staticmethod
@@ -86,10 +95,14 @@ class ExpressionParser:
 
     @staticmethod
     def parse_comparison(tokens):
-        node = ExpressionParser.parse_unary(tokens)  # Updated from parse_primary to parse_unary
+        node = ExpressionParser.parse_unary(
+            tokens
+        )  # Updated from parse_primary to parse_unary
         while tokens and tokens[0][0] in ("EQUALS", "NOT_EQUALS"):
             op = tokens.pop(0)
-            rhs = ExpressionParser.parse_unary(tokens)  # Updated from parse_primary to parse_unary
+            rhs = ExpressionParser.parse_unary(
+                tokens
+            )  # Updated from parse_primary to parse_unary
             node = Node("comparison", op[1], [node, rhs])
         return node
 
@@ -109,7 +122,9 @@ class ExpressionParser:
     def parse_unary(tokens):
         if tokens and tokens[0][0] == "NEGATION":
             op = tokens.pop(0)
-            operand = ExpressionParser.parse_unary(tokens)  # Unary negation can be nested
+            operand = ExpressionParser.parse_unary(
+                tokens
+            )  # Unary negation can be nested
             return Node("unary_negation", op[1], [operand])
         else:
             return ExpressionParser.parse_primary(tokens)
@@ -117,7 +132,7 @@ class ExpressionParser:
     @staticmethod
     def parse_primary(tokens):
         if tokens[0][0] == "LPAREN":
-            tokens.pop(0) 
+            tokens.pop(0)
             node = ExpressionParser.parse_expression(tokens)
             ExpressionParser.expect_token(tokens, "RPAREN")
             return node

@@ -2,18 +2,19 @@ from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
 
+
 @staticmethod
 def check_sus(item):
     """
     Check if the given item starts with any of the predefined suspicious prefixes.
 
-    This method is used to identify potentially unsafe or 
+    This method is used to identify potentially unsafe or
     suspicious variables in a GitHub Actions workflow.
-    It checks if the item starts with any of the prefixes 
+    It checks if the item starts with any of the prefixes
     defined in PREFIX_VALUES. These prefixes are typically
-    used to reference variables in a GitHub Actions workflow, 
+    used to reference variables in a GitHub Actions workflow,
     and if a user-controlled variable is referenced
-    without proper sanitization, it could lead to a script 
+    without proper sanitization, it could lead to a script
     injection vulnerability.
 
     Args:
@@ -23,31 +24,29 @@ def check_sus(item):
         bool: True if the item starts with any of the suspicious prefixes, False otherwise.
     """
 
-    PREFIX_VALUES = [
-        "needs.",
-        "env.",
-        "steps.",
-        "jobs."
-    ]
+    PREFIX_VALUES = ["needs.", "env.", "steps.", "jobs."]
 
     item_lower = item.lower()
     for prefix in PREFIX_VALUES:
         if item_lower.startswith(prefix):
-            for safe_string in ConfigurationManager().WORKFLOW_PARSING['SAFE_ISH_CONTEXTS']:
+            for safe_string in ConfigurationManager().WORKFLOW_PARSING[
+                "SAFE_ISH_CONTEXTS"
+            ]:
                 if item_lower.endswith(safe_string):
                     break
             else:
                 return True
     return False
 
+
 @staticmethod
 def check_pr_ref(item):
     """
-    Checks if the given item contains any of the predefined pull request 
+    Checks if the given item contains any of the predefined pull request
     related values.
 
-    This method is used to identify if a given item (typically a string) 
-    contains any of the values defined in PR_ISH_VALUES. These values are 
+    This method is used to identify if a given item (typically a string)
+    contains any of the values defined in PR_ISH_VALUES. These values are
     typically used to reference pull request related data in a GitHub Actions workflow.
 
     Args:
@@ -56,31 +55,32 @@ def check_pr_ref(item):
     Returns:
         bool: True if the item contains any of the pull request related values, False otherwise.
     """
-    for prefix in ConfigurationManager().WORKFLOW_PARSING['PR_ISH_VALUES']:
+    for prefix in ConfigurationManager().WORKFLOW_PARSING["PR_ISH_VALUES"]:
         if prefix in item.lower() and "base" not in item.lower():
             return True
     return False
 
+
 @staticmethod
 def filter_tokens(tokens, strict=False):
     """
-    This method filters the tokens from the contents of a step 
+    This method filters the tokens from the contents of a step
     in a GitHub workflow for potentially unsafe or suspicious context expressions.
 
     Parameters:
     contents (str): The contents of a step in a GitHub workflow.
 
-    The method uses a regular expression to find all context expressions in the contents. 
+    The method uses a regular expression to find all context expressions in the contents.
     A context expression in a GitHub workflow is a string that starts with '${{' and ends with '}}'.
-    The expression inside the curly braces is split by '.' into three parts. 
-    The first part must be a sequence of alphanumeric characters, 
-    the second part must also be a sequence of alphanumeric characters, 
+    The expression inside the curly braces is split by '.' into three parts.
+    The first part must be a sequence of alphanumeric characters,
+    the second part must also be a sequence of alphanumeric characters,
     and the third part can be any sequence of characters.
 
     The method then checks each found context expression in two ways:
-    1. Against a list of known unsafe context expressions. 
+    1. Against a list of known unsafe context expressions.
         If the context expression is found in the list, it is added to `tokens_knownbad`.
-    2. Using the `check_sus` method. If `check_sus` returns 
+    2. Using the `check_sus` method. If `check_sus` returns
         True for a context expression, it is added to `tokens_sus`.
 
     The method returns a list of tokens that are either known to be unsafe or are considered suspicious.
@@ -90,14 +90,16 @@ def filter_tokens(tokens, strict=False):
     """
     # First we get known unsafe
     tokens_knownbad = [
-        item for item in tokens if item.lower() in \
-        ConfigurationManager().WORKFLOW_PARSING['UNSAFE_CONTEXTS']
+        item
+        for item in tokens
+        if item.lower() in ConfigurationManager().WORKFLOW_PARSING["UNSAFE_CONTEXTS"]
     ]
-    # And then we add anything referenced 
+    # And then we add anything referenced
     if not strict:
         tokens_sus = [item for item in tokens if check_sus(item)]
         tokens_knownbad.extend(tokens_sus)
     return tokens_knownbad
+
 
 @staticmethod
 def check_always_true(if_check):
@@ -106,7 +108,7 @@ def check_always_true(if_check):
     """
     # If it starts with an expression but ends without, then it
     # always will resolve to true.
-    if if_check.strip().startswith('${{') and not if_check.endswith('}}'):
+    if if_check.strip().startswith("${{") and not if_check.endswith("}}"):
         return True
 
 
@@ -120,7 +122,7 @@ def validate_if_check(if_check, variables):
     """
     if not if_check:
         return True
-    
+
     if check_always_true(if_check):
         return True
 
@@ -132,34 +134,34 @@ def validate_if_check(if_check, variables):
 
     return result
 
+
 @staticmethod
 def decompose_action_ref(action_path, vars, repo_name):
-    """
-    """
+    """ """
     action_parts = {
         "key": action_path,
-        "path": action_path.split('@')[0] if '@' in action_path else action_path,
-        "ref": action_path.split('@')[1] if '@' in action_path else '',
-        "local": action_path.startswith('./'),
-        "args": vars.get('with', {})
+        "path": action_path.split("@")[0] if "@" in action_path else action_path,
+        "ref": action_path.split("@")[1] if "@" in action_path else "",
+        "local": action_path.startswith("./"),
+        "args": vars.get("with", {}),
     }
-    
-    if 'docker://' in action_path or action_parts['path'].startswith('actions/'):
+
+    if "docker://" in action_path or action_parts["path"].startswith("actions/"):
         # Gato-X doesn't support docker actions
         # and we ignore official GitHub actions for analysis.
         return None
 
-    if not action_parts['local']:
-        path_parts = action_parts['path'].split('/')
+    if not action_parts["local"]:
+        path_parts = action_parts["path"].split("/")
 
-        action_parts['repo'] = "/".join(path_parts[0:2])
+        action_parts["repo"] = "/".join(path_parts[0:2])
         if len(path_parts) > 2:
-            action_parts['path'] = "/".join(action_parts['path'].split('/')[2:])
+            action_parts["path"] = "/".join(action_parts["path"].split("/")[2:])
         else:
             # Standard action path in base directory
-            action_parts['path'] = ''
+            action_parts["path"] = ""
     else:
-        action_parts['path'] = action_parts['path'][2:]
-        action_parts['repo'] = repo_name   
+        action_parts["path"] = action_parts["path"][2:]
+        action_parts["repo"] = repo_name
 
     return action_parts

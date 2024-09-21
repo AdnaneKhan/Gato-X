@@ -17,12 +17,14 @@ limitations under the License.
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 
+
 class CacheManager:
     """
     Singleton class that manages an in-memory cache for workflows and reusable actions.
 
     TODO: Integrate with Redis.
     """
+
     _instance = None
 
     def __new__(cls):
@@ -43,13 +45,13 @@ class CacheManager:
         """
         key = f"{repo_slug}:{workflow_name}"
         return self.workflow_cache.get(key, None)
-        
+
     def is_repo_cached(self, repo_slug: str):
         """
         Check if a repository is in the in-memory dictionary.
         """
         return repo_slug in self.repo_wf_lookup
-        
+
     def is_action_cached(self, repo_slug: str, action_path: str, ref: str):
         """
         Check if action is cached.
@@ -73,7 +75,7 @@ class CacheManager:
         """
         key = f"{repo_slug}:{action_path}:{ref}"
         return self.action_cache.get(key, None)
-    
+
     def set_repository(self, repository: Repository):
         """
         Set a repository in the in-memory dictionary.

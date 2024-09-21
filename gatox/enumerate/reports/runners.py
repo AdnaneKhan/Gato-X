@@ -18,14 +18,13 @@ from gatox.cli.output import Output
 from gatox.enumerate.reports.report import Report
 from gatox.models.repository import Repository
 
+
 class RunnersReport(Report):
-    """Generate a report on self-hosted runners attached to the repository.
-    """
+    """Generate a report on self-hosted runners attached to the repository."""
 
     @classmethod
     def report_runners(cls, repo: Repository):
-        """Reports Self-Hosted Runners attached to the repository.
-        """
+        """Reports Self-Hosted Runners attached to the repository."""
         if repo.accessible_runners:
             cls.print_divider()
             cls.print_header(repo, "Self-Hosted Runners")
@@ -33,7 +32,7 @@ class RunnersReport(Report):
             Output.generic(
                 f" Potential Runner Workflows: {Output.yellow(', '.join(repo.sh_workflow_names))}"
             )
-            
+
             for runner in repo.accessible_runners:
                 Output.generic(f"{'-'*78}")
                 if runner.non_ephemeral:

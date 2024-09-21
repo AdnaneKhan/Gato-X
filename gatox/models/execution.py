@@ -4,14 +4,13 @@ from gatox.models.organization import Organization
 from gatox.models.organization import Repository
 
 
-class Execution():
+class Execution:
     """Simple wrapper class to provide accessor methods against a full Gato
     execution run.
     """
 
     def __init__(self):
-        """Initialize wrapper class.
-        """
+        """Initialize wrapper class."""
         self.user_details = None
         self.organizations: list[Organization] = []
         self.repositories: list[Repository] = []
@@ -46,15 +45,17 @@ class Execution():
 
         if self.user_details:
             representation = {
-                "username": self.user_details['user'],
-                "scopes": self.user_details['scopes'],
+                "username": self.user_details["user"],
+                "scopes": self.user_details["scopes"],
                 "enumeration": {
                     "timestamp": self.timestamp.ctime(),
-                    "organizations": [organization.toJSON() for organization in
-                                      self.organizations],
-                    "repositories": [repository.toJSON() for
-                                     repository in self.repositories]
-                }
+                    "organizations": [
+                        organization.toJSON() for organization in self.organizations
+                    ],
+                    "repositories": [
+                        repository.toJSON() for repository in self.repositories
+                    ],
+                },
             }
 
             return representation

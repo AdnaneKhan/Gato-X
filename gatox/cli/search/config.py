@@ -1,6 +1,6 @@
-
 from gatox.cli.colors import Fore, Style
 from gatox.util.arg_utils import StringType
+
 
 def configure_parser_search(parser):
     """Helper method to add arguments to the search subparser.
@@ -9,31 +9,33 @@ def configure_parser_search(parser):
         parser: Add arguments to the search module subparser.
     """
     parser.add_argument(
-        "--target", "-t",
+        "--target",
+        "-t",
         help="Organization to enumerate using GitHub code search.",
         metavar=f"{Fore.RED}ORGANIZATION{Style.RESET_ALL}",
         required=False,
     )
 
     parser.add_argument(
-        "--query", "-q",
+        "--query",
+        "-q",
         help="Pass a custom query to GitHub code search",
         metavar="QUERY",
-        required=False
+        required=False,
     )
 
     parser.add_argument(
-        "--sourcegraph", "-sg",
+        "--sourcegraph",
+        "-sg",
         help="Use Sourcegraph API to search for self-hosted runners.",
         required=False,
-        action="store_true"
+        action="store_true",
     )
 
     parser.add_argument(
-        "--output-text", "-oT",
-        help=(
-            "Save enumeration output to text file."
-        ),
+        "--output-text",
+        "-oT",
+        help=("Save enumeration output to text file."),
         metavar="TEXT_FILE",
-        type=StringType(256)
+        type=StringType(256),
     )

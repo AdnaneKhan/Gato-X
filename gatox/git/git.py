@@ -4,6 +4,7 @@ import subprocess
 import logging
 import hashlib
 import yaml
+from yaml import CSafeLoader
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,15 @@ class Git:
     repository content.
     """
 
-    def __init__(self, pat, repo_name: str, username="Gato-X",
-                 email="gato-x@pwn.com", proxies=None,
-                 github_url="github.com"):
+    def __init__(
+        self,
+        pat,
+        repo_name: str,
+        username="Gato-X",
+        email="gato-x@pwn.com",
+        proxies=None,
+        github_url="github.com",
+    ):
         """Initialize the git abstraction class. This class managed a
         checked-out git repository located in a temporary directory.
 
@@ -40,7 +47,7 @@ class Git:
             self.github_url = github_url
 
         if self.github_url != "github.com" or proxies:
-            os.environ["GIT_SSL_NO_VERIFY"] = 'True'
+            os.environ["GIT_SSL_NO_VERIFY"] = "True"
 
         if proxies:
             os.environ["ALL_PROXY"] = proxies["https"]
@@ -50,32 +57,34 @@ class Git:
             f" https://{pat}@{self.github_url}/{repo_name}"
         )
 
-        self.config_command1 = (
-            f"git config user.name '{username}'"
-        )
+        self.config_command1 = f"git config user.name '{username}'"
 
-        self.config_command2 = (
-            f"git config user.email '{email}'"
-        )
+        self.config_command2 = f"git config user.email '{email}'"
 
-        if len(repo_name.split('/')) != 2:
+        if len(repo_name.split("/")) != 2:
             raise ValueError("Repository name but be in Org/Repo format!")
         self.repo_name = repo_name
 
     def __run_command(self, command):
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=self.temp_folder.name)
-        output, error = process.communicate()
-        return output.decode('utf-8'), error.decode('utf-8')
+        """ """
+        p = subprocess.Popen(
+            command.split(" "),
+            cwd=self.temp_folder.name,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        output, error = p.communicate()
+        return output.decode("utf-8"), error.decode("utf-8")
 
     def __get_last_commit_date(self, branch):
-        output, _ = self.__run_command(f'git log -1 --format=%cd --date=short {branch}')
+        output, _ = self.__run_command(f"git log -1 --format=%cd --date=short {branch}")
         return output.strip()
-    
+
     def __get_file_hash(self, file_path):
-        with open(os.path.join(self.temp_folder.name, file_path), 'rb') as file:
+        with open(os.path.join(self.temp_folder.name, file_path), "rb") as file:
             file_hash = hashlib.sha256(file.read()).hexdigest()
         return file_hash
-
 
     def get_non_default(self):
         """
@@ -106,65 +115,72 @@ class Git:
             It also handles exceptions by printing an error message but does not stop execution.
         """
         self.temp_folder = tempfile.TemporaryDirectory()
-        self.__run_command('git init')
+        self.__run_command("git init")
         # Add the remote repository
-        self.__run_command(f'git remote add origin https://github.com/{self.repo_name}.git')
+        self.__run_command(
+            f"git remote add origin https://{self.github_url}/{self.repo_name}.git"
+        )
 
         # Enable sparse checkout
-        self.__run_command('git config core.sparseCheckout true')
+        self.__run_command("git config core.sparseCheckout true")
 
-        self.__run_command('git config submodule.recurse false')
-        self.__run_command('git config index.sparse true')
-        self.__run_command('git sparse-checkout init --sparse-index')
-        self.__run_command('git sparse-checkout set "**/*.yml **/*.yaml')
-        out = self.__run_command('ls -la && pwd')
+        self.__run_command("git config submodule.recurse false")
+        self.__run_command("git config index.sparse true")
+        self.__run_command("git sparse-checkout init --sparse-index")
+        self.__run_command('git sparse-checkout set "**/*.yml **/*.yaml"')
         # Create the sparse-checkout file
-        with open(os.path.join(self.temp_folder.name,'.git/info/sparse-checkout'), 'w') as file:
-            file.write('.github/workflows')
+        with open(
+            os.path.join(self.temp_folder.name, ".git/info/sparse-checkout"), "w"
+        ) as file:
+            file.write(".github/workflows")
 
         self.__run_command("git fetch --no-tags --depth 1 --filter=blob:none")
-        def_branch = self.__run_command("git remote show origin | grep 'HEAD branch' | cut -d' ' -f5")[0].replace('\n','')
+        def_branch = self.__run_command(
+            "git remote show origin | grep 'HEAD branch' | cut -d' ' -f5"
+        )[0].replace("\n", "")
         self.__run_command(f"git checkout {def_branch}")
 
         # Dictionary to store file hashes from the main branch
         main_file_hashes = {}
         # just get main
-        self.__run_command('git pull')
+        self.__run_command("git pull")
         # Get the file hashes from the main branch
-        output, _ = self.__run_command('git ls-files .github/workflows/*.yml')
-        yml_files = output.split('\n')
+        output, _ = self.__run_command("git ls-files .github/workflows/*.yml")
+        yml_files = output.split("\n")
         for file in yml_files:
             if file:
                 main_file_hashes[file] = self.__get_file_hash(file)
 
         # Get the list of all branches
-        output, _ = self.__run_command('git branch -r')
-        branches = [branch.strip() for branch in output.split('\n') if branch.strip()]
+        output, _ = self.__run_command("git branch -r")
+        branches = [branch.strip() for branch in output.split("\n") if branch.strip()]
         hash_cache = set()
         values = []
         # Iterate over each branch
         for branch in branches:
             # Skip the main branch
-            if branch == f'origin/{def_branch}':
+            if branch == f"origin/{def_branch}":
                 continue
 
             # Checkout the branch
-            self.__run_command(f'git checkout {branch}')
+            self.__run_command(f"git checkout {branch}")
             # Get the date of the last commit for the branch
             last_commit_date = self.__get_last_commit_date(branch)
             # Check if the branch contains a .yml file with pull_request_target
-            output, _ = self.__run_command('git ls-files .github/workflows/*.yml')
-            output2, _ = self.__run_command('git ls-files .github/workflows/*.yaml')
-            yml_files = output.split('\n')
-            yml_files.extend(output2.split('\n'))
-     
+            output, _ = self.__run_command("git ls-files .github/workflows/*.yml")
+            output2, _ = self.__run_command("git ls-files .github/workflows/*.yaml")
+            yml_files = output.split("\n")
+            yml_files.extend(output2.split("\n"))
+
             for file in yml_files:
                 if file:
-                    with open(os.path.join(self.temp_folder.name,file), 'r') as f:
+                    with open(os.path.join(self.temp_folder.name, file), "r") as f:
                         content = f.read()
-                        if 'pull_request_target' in content:
+                        if "pull_request_target" in content:
                             try:
-                                parsed_yaml = yaml.safe_load(content)
+                                parsed_yaml = yaml.load(
+                                    content.replace("\t", "  "), Loader=CSafeLoader
+                                )
                                 file_hash = self.__get_file_hash(file)
                                 if file_hash == main_file_hashes.get(file):
                                     continue
@@ -175,18 +191,33 @@ class Git:
                                     # Only report once per hash
                                     continue
 
-                                if '/checkout' not in content:
+                                if "/checkout" not in content:
                                     continue
 
-                                if 'on' in parsed_yaml and 'pull_request_target' in parsed_yaml['on']:
-                                    vals = parsed_yaml['on']['pull_request_target']
-                                    if not vals or 'branches' not in vals:
-                                        values.append( (branch, file, content, last_commit_date))
-                                    elif vals and 'branches' in vals:
-                                        branch_matchers = vals['branches']
+                                if (
+                                    "on" in parsed_yaml
+                                    and "pull_request_target" in parsed_yaml["on"]
+                                ):
+                                    vals = parsed_yaml["on"]["pull_request_target"]
+                                    if not vals or "branches" not in vals:
+                                        values.append(
+                                            (branch, file, content, last_commit_date)
+                                        )
+                                    elif vals and "branches" in vals:
+                                        branch_matchers = vals["branches"]
                                         for br in branch_matchers:
-                                            if br.replace('*','', 2) in branch.split('/')[-1]:
-                                                values.append( (branch, file, content, last_commit_date))    
+                                            if (
+                                                br.replace("*", "", 2)
+                                                in branch.split("/")[-1]
+                                            ):
+                                                values.append(
+                                                    (
+                                                        branch,
+                                                        file,
+                                                        content,
+                                                        last_commit_date,
+                                                    )
+                                                )
                             except Exception as e:
                                 print(e)
                                 print("Error!")
@@ -273,17 +304,13 @@ class Git:
 
         ymls = []
 
-        if os.path.isdir(
-            os.path.join(repo_path, new_wd, ".github", "workflows")
-        ):
+        if os.path.isdir(os.path.join(repo_path, new_wd, ".github", "workflows")):
             workflows = os.listdir(
                 os.path.join(repo_path, new_wd, ".github", "workflows")
             )
 
             for wf in workflows:
-                wf_p = os.path.join(
-                            repo_path, new_wd, ".github", "workflows", wf
-                        )
+                wf_p = os.path.join(repo_path, new_wd, ".github", "workflows", wf)
                 if os.path.isfile(wf_p):
                     with open(
                         wf_p,
@@ -315,11 +342,11 @@ class Git:
         try:
 
             p = subprocess.Popen(
-                git_rebase.split(' '),
+                git_rebase.split(" "),
                 cwd=os.path.join(repo_path, new_wd),
                 env={
                     **os.environ,
-                    **{"GIT_SEQUENCE_EDITOR": "sed -i.bak 's/pick/drop/g'"}
+                    **{"GIT_SEQUENCE_EDITOR": "sed -i.bak 's/pick/drop/g'"},
                 },
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -335,8 +362,13 @@ class Git:
 
         return True
 
-    def commit_file(self, file_content: bytes, file_path: str,
-                    repo_path: str = None, message: str = "Test Commit"):
+    def commit_file(
+        self,
+        file_content: bytes,
+        file_path: str,
+        repo_path: str = None,
+        message: str = "Test Commit",
+    ):
         """Commit a file containing the provided content at the provided
         path.
 
@@ -353,18 +385,18 @@ class Git:
         new_wd = self.repo_name.split("/")[1]
         write_path = os.path.join(repo_path, new_wd, file_path)
         add_command = f"git add {file_path}"
-        commit_command = 'git commit -m'
+        commit_command = "git commit -m"
         rev_parse = "git rev-parse HEAD"
 
         ret = None
 
         try:
             os.makedirs(os.path.dirname(write_path), exist_ok=True)
-            with open(write_path, 'wb') as outfile:
+            with open(write_path, "wb") as outfile:
                 outfile.write(file_content)
 
             p = subprocess.Popen(
-                add_command.split(' '),
+                add_command.split(" "),
                 cwd=os.path.join(repo_path, new_wd),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -375,7 +407,7 @@ class Git:
                 logger.error("Git add operation did not succeed!")
                 raise Exception("Git add operation did not succeed!")
 
-            cmd = commit_command.split(' ')
+            cmd = commit_command.split(" ")
             cmd.append(message)
             p1 = subprocess.Popen(
                 cmd,
@@ -390,10 +422,10 @@ class Git:
                 raise Exception("Git commit operation did not suceeed!")
 
             p2 = subprocess.Popen(
-                rev_parse.split(' '),
+                rev_parse.split(" "),
                 cwd=os.path.join(repo_path, new_wd),
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
             )
             p2.wait()
 
@@ -410,9 +442,9 @@ class Git:
 
         return ret
 
-    def push_repository(self, upstream_branch: str, force: bool = False,
-                        repo_path:
-                        str = None):
+    def push_repository(
+        self, upstream_branch: str, force: bool = False, repo_path: str = None
+    ):
         """Push to the remote repository.
 
         Args:
@@ -427,35 +459,33 @@ class Git:
             bool: True if the push operation was successful.
 
         """
-        rev_parse = ("git rev-parse --abbrev-ref HEAD")
+        rev_parse = "git rev-parse --abbrev-ref HEAD"
         repo_path = repo_path if repo_path else self.temp_folder.name
 
         new_wd = self.repo_name.split("/")[1]
 
         p = subprocess.Popen(
-                rev_parse.split(' '),
-                cwd=os.path.join(repo_path, new_wd),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL
-            )
+            rev_parse.split(" "),
+            cwd=os.path.join(repo_path, new_wd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
         p.wait()
 
         # Need to decode and strip the newline off.
         branch_name = p.communicate()[0].decode().strip()
 
-        push_command = (
-            f"git push --set-upstream origin {branch_name}:{upstream_branch}"
-        )
+        push_command = f"git push --set-upstream origin {branch_name}:{upstream_branch}"
         if force:
             push_command += " -f"
 
         logger.info(f"Executing: {push_command}")
         p1 = subprocess.Popen(
-                push_command.split(' '),
-                cwd=os.path.join(repo_path, new_wd),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            push_command.split(" "),
+            cwd=os.path.join(repo_path, new_wd),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
         p1.wait()
 
         if p1.returncode != 0:
@@ -482,16 +512,17 @@ class Git:
         new_wd = self.repo_name.split("/")[1]
 
         p = subprocess.Popen(
-                delete_command.split(' '),
-                cwd=os.path.join(repo_path, new_wd),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL
-            )
+            delete_command.split(" "),
+            cwd=os.path.join(repo_path, new_wd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
         p.wait()
 
         if p.returncode != 0:
-            logger.error(f"Git push to delete branch {target_branch} "
-                         "did not succeed!")
+            logger.error(
+                f"Git push to delete branch {target_branch} " "did not succeed!"
+            )
             return False
 
         return True
