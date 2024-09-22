@@ -9,7 +9,7 @@ Pwn Requests, Actions Injection, TOCTOU Vulnerabilities, and Self-Hosted Runner 
 As an example, you can scan all repositories Apache's GitHub organization in minutes from a MacBook Air with a broadband internet connection.
 
 <p align="center">
-  <img src="demo.svg" width=600>
+  <img src="demo.svg" width=800>
 </p>
 
 Gato-X is an operator focused tool that is tuned to avoid false negatives. It will have a higher false positive rate than SAST tools like CodeQL, but Gato-X will give you everything you need to quickly determine if something is a true positive or not!
