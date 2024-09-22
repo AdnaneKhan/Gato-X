@@ -48,6 +48,25 @@ def test_cli_s2s_token(capfd):
     assert "supports GitHub OAuth and Personal Access Tokens" in err
 
 
+def test_cli_s2s_token_no_machine(capfd):
+    """Test case where a service-to-service token is provided."""
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    with pytest.raises(SystemExit):
+        cli.cli(["enumerate", "-r", "testOrg/testRepo"])
+    out, err = capfd.readouterr()
+    assert "supports GitHub OAuth and Personal Access Tokens" in err
+
+
+def test_cli_s2s_token_machine(capfd):
+    """Test case where a service-to-service token is provided."""
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
+    out, err = capfd.readouterr()
+    assert "Allowing the use of a GitHub App token for single repo enumeration" in out
+
+
 def test_cli_u2s_token(capfd):
     """Test case where a service-to-service token is provided."""
     os.environ["GH_TOKEN"] = "ghu_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
