@@ -98,10 +98,15 @@ def validate_arguments(args, parser):
         or re.match("^[a-fA-F0-9]{40}$", gh_token)
     ):
         if re.match("gh[usr]_[A-Za-z0-9]{36}$", gh_token):
-            parser.error(
-                f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X only"
-                " supports GitHub OAuth and Personal Access Tokens."
-            )
+            if not (args.machine and args.repository):
+                parser.error(
+                    f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X only"
+                    " supports GitHub OAuth and Personal Access Tokens."
+                )
+            else:
+                Output.info(
+                    "Allowing the use of a GitHub App token for single repo enumeration."
+                )
         else:
             parser.error(
                 f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is" " malformed!"
