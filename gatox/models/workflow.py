@@ -23,6 +23,7 @@ class Workflow:
         repo_name,
         workflow_contents,
         workflow_name,
+        default_branch="main",
         date=None,
         non_default=None,
         special_path=None,
@@ -34,7 +35,7 @@ class Workflow:
         if non_default:
             self.branch = non_default
         else:
-            self.branch = None
+            self.branch = default_branch
 
         # Only save off if it's a valid parse. RAM matters.
         try:
@@ -64,6 +65,9 @@ class Workflow:
             self.invalid = True
 
         self.date = date if date else datetime.now().isoformat()
+
+    def getPath(self):
+        return f".github/workflows/{self.workflow_name}"
 
     def isInvalid(self):
         return self.invalid

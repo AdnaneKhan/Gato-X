@@ -7,6 +7,7 @@ from concurrent.futures import as_completed
 from gatox.caching.cache_manager import CacheManager
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.cli.output import Output
 
 
@@ -169,6 +170,13 @@ class DataIngestor:
             owner = result["nameWithOwner"]
             cache.set_empty(owner)
             # Empty means no YAMLs, so just skip.
+
+            default_branch = (
+                result["defaultBranchRef"]["name"]
+                if result["defaultBranchRef"]
+                else "main"
+            )
+
             if result["object"]:
                 for yml_node in result["object"]["entries"]:
                     yml_name = yml_node["name"]
@@ -178,9 +186,12 @@ class DataIngestor:
                     ):
                         if "text" in yml_node["object"]:
                             contents = yml_node["object"]["text"]
-                            wf_wrapper = Workflow(owner, contents, yml_name)
+                            wf_wrapper = Workflow(
+                                owner, contents, yml_name, default_branch=default_branch
+                            )
 
                             cache.set_workflow(owner, yml_name, wf_wrapper)
+                            WorkflowGraphBuilder().build_graph_from_yaml(wf_wrapper)
 
             repo_data = {
                 "full_name": result["nameWithOwner"],

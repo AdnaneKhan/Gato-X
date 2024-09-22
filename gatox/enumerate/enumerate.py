@@ -12,6 +12,7 @@ from gatox.enumerate.organization import OrganizationEnum
 from gatox.enumerate.recommender import Recommender
 from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.caching.cache_manager import CacheManager
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,67 @@
+import re
+
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
+
+
+pattern = re.compile(
+    r"checkout\s+(\$\{\{)?\s*(\S*([a-z$_]+)\S*)\s*(\}\})?", re.IGNORECASE
+)
+
+
+@staticmethod
+def parse_script(script):
+    """
+    Parse a script and return a list of tokens.
+
+    Args:
+        script (str): The script to parse.
+
+    Returns:
+        list: A list of tokens.
+    """
+
+
+@staticmethod
+def parse_script(contents: str):
+    """Processes run steps for additional context"""
+    if not contents:
+        return {}
+
+    return_dict = {
+        "is_checkout": False,
+        "metadata": None,
+        "is_sink": False,
+    }
+
+    if "git checkout" in contents or "pr checkout" in contents:
+        match = pattern.search(contents)
+        if match:
+            ref = match.group(2)
+
+            static_vals = ["base", "main", "master"]
+
+            for prefix in ConfigurationManager().WORKFLOW_PARSING["PR_ISH_VALUES"]:
+                if prefix in ref.lower() and not any(
+                    substring in ref.lower() for substring in static_vals
+                ):
+                    return_dict["metadata"] = ref
+                    return_dict["is_checkout"] = True
+
+    if check_sinks(contents):
+        return_dict["is_sink"] = True
+    return return_dict
+
+
+@staticmethod
+def check_sinks(script):
+    """Check if the script contain a sink."""
+    sinks = ConfigurationManager().WORKFLOW_PARSING["SINKS"]
+
+    for sink in sinks:
+        if sink in script:
+            return True
 
 
 @staticmethod
@@ -165,3 +226,14 @@ def decompose_action_ref(action_path, vars, repo_name):
         action_parts["repo"] = repo_name
 
     return action_parts
+
+
+@staticmethod
+def parse_github_path(path):
+    parts = path.split("@")
+    ref = parts[1] if len(parts) > 1 else "main"
+    repo_path = parts[0].split("/")
+    repo_slug = "/".join(repo_path[0:2])
+    file_path = "/".join(repo_path[2:]) if len(repo_path) > 1 else ""
+
+    return repo_slug, file_path, ref
