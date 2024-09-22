@@ -6,7 +6,7 @@
 Gato-X is a _FAST_ scanning and attack tool for GitHub Actions pipelines. You can use it to identify
 Pwn Requests, Actions Injection, TOCTOU Vulnerabilities, and Self-Hosted Runner takeover at scale using just a single API token.
 
-As an example, you can scan all ~5000 public repositories in Microsoft's GitHub organization in minutes from a MacBook Air with a broadband internet connection.
+As an example, you can scan all repositories Apache's GitHub organization in minutes from a MacBook Air with a broadband internet connection.
 
 <p align="center">
   <img src="demo.svg" width=600>
