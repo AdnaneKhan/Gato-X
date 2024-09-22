@@ -3,24 +3,25 @@
 
 # Gato (Github Attack TOolkit) - Extreme Edition
 
-## What is Gato-X?
+Gato-X is a _FAST_ scanning and attack tool for GitHub Actions pipelines. You can use it to identify
+Pwn Requests, Actions Injection, TOCTOU Vulnerabilities, and Self-Hosted Runner takeover at scale using just a single API token.
 
-Gato Extreme Edition is a hard fork of Gato, which was originally developed by 
-@AdnaneKhan, @mas0nd, and @DS-koolaid. Gato-X is maintained 
-by @AdnaneKhan and serves to automate advanced enumeration and exploitation
-techniques against GitHub repositories and organizations for security research purposes.
+As an example, you can scan all ~5000 public repositories in Microsoft's GitHub organization in minutes from a MacBook Air with a broadband internet connection.
 
-Gato-X accompanies the **BlackHat USA 2024 talk: Self-Hosted GitHub CI/CD Runners: Continuous Integration, Continuous Destruction**
-and the **DEF CON 32 talk Grand Theft Actions: Abusing Self-Hosted GitHub Runners** at scale.
+Gato-X is an operator focused tool that is tuned to avoid false negatives, so it will have a higher false positive rate than SAST tools like CodeQL, but Gato-X will give you everything you need to quickly determine if something is a true positive or not!
+
+The `search` and `enumerate` modes are safe to run on all public repositories, and
+you will not violate any rules by doing so.
+
+Gato-X's attack features should only be used with authorization, and make sure
+to follow responsible disclosure if you find vulnerabilities with Gato-X.
 
 **Gato-X is a powerful tool and should only be used for ethical security research purposes.**
 
-If scanning repositories, then the `search` and `enumerate` modes are 
-safe to run. They will perform no mutable operations and only perform read requests.
-As of writing, enumeration will not generate any audit log events.
 
 ## Table of Contents
 
+- [What is Gato-X?](#what-is-gato-x)
 - [New Features](#new-features)
   - [Automated Self Hosted Runner Takeover](#automated-self-hosted-runner-attacks)
   - [Enumeration for Pwn Requests and Injection](#enumeration-for-github-actions-injection-and-pwn-requests)
@@ -41,6 +42,15 @@ As of writing, enumeration will not generate any audit log events.
 - [Contributing](#contributing)
 - [License](#license)
 
+## What is Gato-X?
+
+Gato Extreme Edition is a hard fork of Gato, which was originally developed by 
+@AdnaneKhan, @mas0nd, and @DS-koolaid. Gato-X is maintained 
+by @AdnaneKhan and serves to automate advanced enumeration and exploitation
+techniques against GitHub repositories and organizations for security research purposes.
+
+Gato-X accompanies the **BlackHat USA 2024 talk: Self-Hosted GitHub CI/CD Runners: Continuous Integration, Continuous Destruction**
+and the **DEF CON 32 talk Grand Theft Actions: Abusing Self-Hosted GitHub Runners** at scale.
 
 ## New Features
 
