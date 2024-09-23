@@ -43,29 +43,31 @@ class CacheManager:
         """
         Get a workflow from the in-memory dictionary.
         """
-        key = f"{repo_slug}:{workflow_name}"
+        key = f"{repo_slug.lower()}:{workflow_name}"
         return self.workflow_cache.get(key, None)
 
     def is_repo_cached(self, repo_slug: str):
         """
         Check if a repository is in the in-memory dictionary.
         """
-        return repo_slug in self.repo_wf_lookup
+        return repo_slug.lower() in self.repo_wf_lookup
 
     def is_action_cached(self, repo_slug: str, action_path: str, ref: str):
         """
         Check if action is cached.
         """
-        key = f"{repo_slug}:{action_path}:{ref}"
+        key = f"{repo_slug.lower()}:{action_path}:{ref}"
         return key in self.action_cache
 
     def get_workflows(self, repo_slug: str):
         """
         Get all workflows for a repository from the in-memory dictionary.
         """
-        wf_keys = self.repo_wf_lookup.get(repo_slug, None)
+        wf_keys = self.repo_wf_lookup.get(repo_slug.lower(), None)
         if wf_keys:
-            return [self.workflow_cache[f"{repo_slug}:{key}"] for key in wf_keys]
+            return [
+                self.workflow_cache[f"{repo_slug.lower()}:{key}"] for key in wf_keys
+            ]
         else:
             return set()
 
@@ -73,41 +75,41 @@ class CacheManager:
         """
         Get an action from the in-memory dictionary.
         """
-        key = f"{repo_slug}:{action_path}:{ref}"
+        key = f"{repo_slug.lower()}:{action_path}:{ref}"
         return self.action_cache.get(key, None)
 
     def set_repository(self, repository: Repository):
         """
         Set a repository in the in-memory dictionary.
         """
-        key = repository.name
+        key = repository.name.lower()
         self.repo_store[key] = repository
 
     def get_repository(self, repo_slug: str):
         """
         Get a repository from the in-memory dictionary.
         """
-        return self.repo_store.get(repo_slug, None)
+        return self.repo_store.get(repo_slug.lower(), None)
 
     def set_workflow(self, repo_slug: str, workflow_name: str, value: Workflow):
         """
         Set a workflow in the in-memory dictionary.
         """
-        key = f"{repo_slug}:{workflow_name}"
-        if repo_slug not in self.repo_wf_lookup:
-            self.repo_wf_lookup[repo_slug] = set()
-        self.repo_wf_lookup[repo_slug].add(workflow_name)
+        key = f"{repo_slug.lower()}:{workflow_name}"
+        if repo_slug.lower() not in self.repo_wf_lookup:
+            self.repo_wf_lookup[repo_slug.lower()] = set()
+        self.repo_wf_lookup[repo_slug.lower()].add(workflow_name)
         self.workflow_cache[key] = value
 
     def set_empty(self, repo_slug: str):
         """
         Set an empty value in the in-memory dictionary for a repository.
         """
-        self.repo_wf_lookup[repo_slug] = set()
+        self.repo_wf_lookup[repo_slug.lower()] = set()
 
     def set_action(self, repo_slug: str, action_path: str, ref: str, value: str):
         """
         Set an action in the in-memory dictionary.
         """
-        key = f"{repo_slug}:{action_path}:{ref}"
+        key = f"{repo_slug.lower()}:{action_path}:{ref}"
         self.action_cache[key] = value

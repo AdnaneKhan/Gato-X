@@ -65,6 +65,26 @@ class Enumerator:
         self.org_e = OrganizationEnum(self.api)
 
     def __setup_user_info(self):
+        """Sets up user/app token information."""
+        if not self.user_perms and self.api.is_app_token():
+            installation_info = self.api.get_installation_repos()
+
+            if installation_info:
+                count = installation_info["total_count"]
+                if count > 0:
+                    Output.info(
+                        f"Gato-X is using valid a GitHub App installation token!"
+                    )
+                    self.user_perms = {
+                        "user": "Github App",
+                        "scopes": [],
+                        "name": "GATO-X App Mode",
+                    }
+
+                    return True
+                else:
+                    return False
+
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:

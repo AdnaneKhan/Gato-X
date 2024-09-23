@@ -45,7 +45,26 @@ def test_cli_s2s_token(capfd):
     with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
-    assert "supports GitHub OAuth and Personal Access Tokens" in err
+    assert "not support App tokens without machine flag" in err
+
+
+def test_cli_s2s_token_no_machine(capfd):
+    """Test case where a service-to-service token is provided."""
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    with pytest.raises(SystemExit):
+        cli.cli(["enumerate", "-r", "testOrg/testRepo"])
+    out, err = capfd.readouterr()
+    assert "not support App tokens without machine flag" in err
+
+
+def test_cli_s2s_token_machine(capfd):
+    """Test case where a service-to-service token is provided."""
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
+    out, err = capfd.readouterr()
+    assert "Allowing the use of a GitHub App token for single repo enumeration" in out
 
 
 def test_cli_u2s_token(capfd):
@@ -55,7 +74,7 @@ def test_cli_u2s_token(capfd):
     with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
-    assert "supports GitHub OAuth and Personal Access Tokens" in err
+    assert "Provided GitHub PAT is malformed or unsupported" in err
 
 
 @mock.patch("gatox.cli.cli.Enumerator")

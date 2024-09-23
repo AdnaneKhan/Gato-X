@@ -272,6 +272,10 @@ class Api:
             return False
         return True
 
+    def is_app_token(self):
+        """Returns if the API is using a GitHub App installation token."""
+        return self.pat.startswith("ghs_")
+
     def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
@@ -1728,6 +1732,12 @@ class Api:
                 return res
 
         return None
+
+    def get_installation_repos(self):
+        """ """
+        response = self.call_get("/installation/repositories")
+        if response.status_code == 200:
+            return response.json()
 
     def get_commit_merge_date(self, repo: str, sha: str):
         """Gets the date of the merge commit."""
