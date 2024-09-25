@@ -1,14 +1,15 @@
 from gatox.workflow_graph.nodes.node import Node
+from gatox.models.repository import Repository
 
 
-class JobNode(Node):
-    """Wrapper class for a Github Actions worflow job."""
+class RepoNode(Node):
+    """Wrapper class for a GitHub repository."""
 
-    def __init__(self, job_name: str, ref: str, repo_name: str, workflow_path: str):
-        """Constructor for job wrapper."""
+    def __init__(self, repo_wrapper: Repository):
+        """Constructor for repo wrapper."""
 
         # Create a unique ID for this step.
-        self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}"
+        self.name = f"{repo_wrapper.name}"
 
     def __hash__(self):
         return hash((self.name, self.__class__.__name__))
@@ -17,7 +18,8 @@ class JobNode(Node):
         return isinstance(other, self.__class__) and self.name == other.name
 
     def get_attrs(self):
-        """ """
+        """ 
+        """
         return {
             self.__class__.__name__: True,
-        }
+        } 

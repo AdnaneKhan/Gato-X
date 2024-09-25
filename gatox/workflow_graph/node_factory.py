@@ -1,8 +1,10 @@
 from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
+from gatox.workflow_graph.nodes.repo import RepoNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.models.workflow import Workflow
+from gatox.models.repository import Repository
 
 from gatox.workflow_parser.utility import parse_github_path
 
@@ -16,6 +18,21 @@ class NodeFactory:
     """
 
     NODE_CACHE = {}
+
+    @staticmethod
+    def create_repo_node(repo_wrapper: Repository):
+        """
+        Create a RepoNode and cache it.
+
+        Args:
+            repo_wrapper: Repository: Repository wrapper
+        """
+        if repo_wrapper.name in NodeFactory.NODE_CACHE:
+            return NodeFactory.NODE_CACHE[repo_wrapper.name]
+        else:
+            repo_node = RepoNode(repo_wrapper)
+            NodeFactory.NODE_CACHE[repo_node.name] = repo_node
+            return repo_node
 
     @staticmethod
     def create_job_node(job_name, ref, repo_name, workflow_path):

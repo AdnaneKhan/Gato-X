@@ -1,6 +1,7 @@
 import networkx as nx
 
 from gatox.models.workflow import Workflow
+from gatox.models.repository import Repository
 from gatox.workflow_graph.node_factory import NodeFactory
 
 
@@ -17,12 +18,15 @@ class WorkflowGraphBuilder:
 
         return cls._instance
 
-    def build_graph_from_yaml(self, workflow_wrapper: Workflow):
+    def build_graph_from_yaml(self, workflow_wrapper: Workflow, repo_wrapper: Repository):
         """
         Build a graph from a workflow yaml file.
         """
-        if workflow_wrapper.isInvalid():
+        if workflow_wrapper.isInvalid() or not repo_wrapper:
             return
+
+        repo = NodeFactory.create_repo_node(repo_wrapper)
+        self.graph.add_node(repo, **repo.get_attrs())
 
         workflow = workflow_wrapper.parsed_yml
 
@@ -34,6 +38,7 @@ class WorkflowGraphBuilder:
         )
 
         self.graph.add_node(wf_node, **wf_node.get_attrs())
+        self.graph.add_edge(repo, wf_node, relation="contains")
 
         jobs = workflow.get("jobs", {})
         for job_name, job_def in jobs.items():

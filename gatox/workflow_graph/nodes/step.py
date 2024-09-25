@@ -71,6 +71,7 @@ class StepNode(Node):
     def get_attrs(self):
         """ """
         return {
+            self.__class__.__name__: True,
             "type": self.type,
             "is_gate": False,
             "is_checkout": self.is_checkout,

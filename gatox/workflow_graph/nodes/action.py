@@ -29,6 +29,7 @@ class ActionNode(Node):
     def get_attrs(self):
         """ """
         return {
+            self.__class__.__name__: True,
             "type": self.type,
             "is_gate": self.is_gate,
             "is_checkout": self.is_checkout,

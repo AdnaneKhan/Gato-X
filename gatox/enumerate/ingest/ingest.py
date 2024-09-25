@@ -177,22 +177,6 @@ class DataIngestor:
                 else "main"
             )
 
-            if result["object"]:
-                for yml_node in result["object"]["entries"]:
-                    yml_name = yml_node["name"]
-                    if yml_node["type"] == "blob" and (
-                        yml_name.lower().endswith("yml")
-                        or yml_name.lower().endswith("yaml")
-                    ):
-                        if "text" in yml_node["object"]:
-                            contents = yml_node["object"]["text"]
-                            wf_wrapper = Workflow(
-                                owner, contents, yml_name, default_branch=default_branch
-                            )
-
-                            cache.set_workflow(owner, yml_name, wf_wrapper)
-                            WorkflowGraphBuilder().build_graph_from_yaml(wf_wrapper)
-
             repo_data = {
                 "full_name": result["nameWithOwner"],
                 "html_url": result["url"],
@@ -235,3 +219,19 @@ class DataIngestor:
 
             repo_wrapper = Repository(repo_data)
             cache.set_repository(repo_wrapper)
+            
+            if result["object"]:
+                for yml_node in result["object"]["entries"]:
+                    yml_name = yml_node["name"]
+                    if yml_node["type"] == "blob" and (
+                        yml_name.lower().endswith("yml")
+                        or yml_name.lower().endswith("yaml")
+                    ):
+                        if "text" in yml_node["object"]:
+                            contents = yml_node["object"]["text"]
+                            wf_wrapper = Workflow(
+                                owner, contents, yml_name, default_branch=default_branch
+                            )
+
+                            cache.set_workflow(owner, yml_name, wf_wrapper)
+                            WorkflowGraphBuilder().build_graph_from_yaml(wf_wrapper, repo_wrapper)

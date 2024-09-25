@@ -13,4 +13,6 @@ class Node:
 
     def get_attrs(self):
         """ """
-        return {}
+        return {
+            self.__class__.__name__: True
+        } 

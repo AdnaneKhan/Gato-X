@@ -60,6 +60,12 @@ class WorkflowNode(Node):
     def get_attrs(self):
         """Retrieve node attributes associated with the Workflow node."""
         if self.uninitialized:
-            return {"status": "uninitialized"}
+            return {
+                self.__class__.__name__: True,
+                "status": "uninitialized"
+            }
         else:
-            return {"status": "initialized", "triggers": self.triggers}
+            return {
+                self.__class__.__name__: True,
+                "status": "initialized", "triggers": self.triggers
+            }
