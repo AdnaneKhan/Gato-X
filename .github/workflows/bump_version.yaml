@@ -10,7 +10,7 @@ on:
 
 jobs:
   bump-version:
-  if: ${{ github.actor == 'AdnaneKhan' }}
+    if: ${{ github.actor == 'AdnaneKhan' }}
     runs-on: ubuntu-latest
     env:
       NEW_VERSION: ${{ github.event.inputs.new_version }}
