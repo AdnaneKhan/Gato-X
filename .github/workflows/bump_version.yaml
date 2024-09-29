@@ -42,7 +42,7 @@ jobs:
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          source_branch: ${{ env.BRANCH_NAME }}
+          branch: ${{ env.BRANCH_NAME }}
           base: main
           title: "Bump version to ${{ env.NEW_VERSION }}"
           body: "This PR bumps the version to ${{ env.NEW_VERSION }}"
