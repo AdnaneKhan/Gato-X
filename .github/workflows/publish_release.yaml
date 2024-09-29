@@ -62,7 +62,7 @@ jobs:
           name: python-package-distributions
         path: dist/
   release:
-    name:  Publish Gato-X Distribution 📦 to PyPI
+    name: Publish Gato-X Distribution 📦 to PyPI
     needs: [check_version, build_artifact]
     if: needs.check_version.outputs.version_bumped == 'true'
     runs-on: ubuntu-latest
@@ -83,24 +83,24 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-    - name: Publish Distribution
-      uses: pypa/gh-action-pypi-publish@0ab0b79471669eb3a4d647e625009c62f9f3b241 # v1.10.1
-    - name: Sign the dists with Sigstore
-      uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46
-      with:
-        inputs: >-
-          ./dist/*.tar.gz
-          ./dist/*.whl
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
-      with:
-        tag_name: v${{ needs.check_version.outputs.version }}
-        name: Gato-X Release v${{ needs.check_version.outputs.version }}
-        body: |
-          Release of version v${{ needs.check_version.outputs.version }}
-        files:
-          ./dist/*.tar.gz
-          ./dist/*.whl
-          ./dist/*.sigstore.json
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Distribution
+        uses: pypa/gh-action-pypi-publish@0ab0b79471669eb3a4d647e625009c62f9f3b241 # v1.10.1
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
+        with:
+          tag_name: v${{ needs.check_version.outputs.version }}
+          name: Gato-X Release v${{ needs.check_version.outputs.version }}
+          body: |
+            Release of version v${{ needs.check_version.outputs.version }}
+          files:
+            ./dist/*.tar.gz
+            ./dist/*.whl
+            ./dist/*.sigstore.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
