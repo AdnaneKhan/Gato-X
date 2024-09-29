@@ -12,12 +12,15 @@ jobs:
   bump-version:
     if: ${{ github.actor == 'AdnaneKhan' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     env:
       NEW_VERSION: ${{ github.event.inputs.new_version }}
       BRANCH_NAME: bump_version_${{ github.event.inputs.new_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
