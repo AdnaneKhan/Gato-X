@@ -30,6 +30,7 @@ jobs:
           else
             echo "version_bumped=false" >> $GITHUB_OUTPUT
             echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
+          fi
   build_artifact:
     name: Build and upload artifact
     runs-on: ubuntu-latest
