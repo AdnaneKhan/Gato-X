@@ -27,11 +27,13 @@ class ActionNode(Node):
         return isinstance(other, self.__class__) and self.name == other.name
 
     def get_attrs(self):
-        """ """
+        """ 
+        """
         return {
             self.__class__.__name__: True,
             "type": self.type,
-            "is_gate": self.is_gate,
+            "is_soft_gate": False,
+            "is_hard_gate": False,
             "is_checkout": self.is_checkout,
             "if_check": self.if_condition,
             "is_sink": self.is_sink,

@@ -28,11 +28,11 @@ class NodeFactory:
             repo_wrapper: Repository: Repository wrapper
         """
         if repo_wrapper.name in NodeFactory.NODE_CACHE:
-            return NodeFactory.NODE_CACHE[repo_wrapper.name]
+            return NodeFactory.NODE_CACHE[repo_wrapper.name], False
         else:
             repo_node = RepoNode(repo_wrapper)
             NodeFactory.NODE_CACHE[repo_node.name] = repo_node
-            return repo_node
+            return repo_node, True
 
     @staticmethod
     def create_job_node(job_name, ref, repo_name, workflow_path):
@@ -49,8 +49,12 @@ class NodeFactory:
             JobNode: The created JobNode instance.
         """
         job_node = JobNode(job_name, ref, repo_name, workflow_path)
-        NodeFactory.NODE_CACHE[job_node.name] = job_node
-        return job_node
+
+        if job_node.name in NodeFactory.NODE_CACHE[job_node.name]:
+            return  NodeFactory.NODE_CACHE[job_node.name]
+        else:
+            NodeFactory.NODE_CACHE[job_node.name] = job_node
+            return job_node
 
     @staticmethod
     def create_workflow_node(workflow_data: Workflow, ref, repo_name, workflow_path):
@@ -67,7 +71,6 @@ class NodeFactory:
             WorkflowNode: The created WorkflowNode instance.
         """
         workflow_node = WorkflowNode(ref, repo_name, workflow_path)
-
         if workflow_node.name in NodeFactory.NODE_CACHE:
             NodeFactory.NODE_CACHE[workflow_node.name].initialize(workflow_data)
             return NodeFactory.NODE_CACHE[workflow_node.name]
@@ -79,7 +82,8 @@ class NodeFactory:
 
     @staticmethod
     def create_called_workflow_node(callee: str, caller_ref, caller_repo):
-        """ """
+        """ 
+        """
 
         if callee.startswith("./"):
             workflow_name = callee.split("/")[-1]

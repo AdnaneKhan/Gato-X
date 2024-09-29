@@ -9,6 +9,8 @@ pattern = re.compile(
     r"checkout\s+(\$\{\{)?\s*(\S*([a-z$_]+)\S*)\s*(\}\})?", re.IGNORECASE
 )
 
+CONTEXT_REGEX = re.compile(r"\${{\s*([^}]+[^\s])\s?\s*}}")
+
 
 @staticmethod
 def parse_script(script):
@@ -32,7 +34,7 @@ def parse_script(contents: str):
     return_dict = {
         "is_checkout": False,
         "metadata": None,
-        "is_sink": False,
+        "is_sink": False
     }
 
     if "git checkout" in contents or "pr checkout" in contents:
@@ -161,6 +163,23 @@ def filter_tokens(tokens, strict=False):
         tokens_knownbad.extend(tokens_sus)
     return tokens_knownbad
 
+@staticmethod
+def getTokens(contents):
+    """Get the context tokens from the step."""
+    if contents:
+        finds = CONTEXT_REGEX.findall(contents)
+
+        extension = None
+        for find in finds:
+            if " || " in find:
+                extension = find.split(" || ")
+                break
+
+        if extension:
+            finds.extend(extension)
+        return finds
+    else:
+        return []
 
 @staticmethod
 def check_always_true(if_check):

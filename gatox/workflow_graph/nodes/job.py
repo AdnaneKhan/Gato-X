@@ -17,7 +17,14 @@ class JobNode(Node):
         return isinstance(other, self.__class__) and self.name == other.name
 
     def get_attrs(self):
-        """ """
-        return {
+        """ 
+        """
+
+        attr_dict = {
             self.__class__.__name__: True,
+            "type": self.type,
+            "is_soft_gate": False,
+            "is_hard_gate": False
         }
+
+        return attr_dict

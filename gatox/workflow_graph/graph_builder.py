@@ -17,6 +17,14 @@ class WorkflowGraphBuilder:
             cls._instance.graph = nx.DiGraph()
 
         return cls._instance
+    
+    def build_lone_repo_graph(self, repo_wrapper: Repository):
+        """
+        Build a graph node for a repository that has no workflows.
+        """
+        repo, added = NodeFactory.create_repo_node(repo_wrapper)
+        if added:
+            self.graph.add_node(repo, **repo.get_attrs())
 
     def build_graph_from_yaml(self, workflow_wrapper: Workflow, repo_wrapper: Repository):
         """
@@ -25,8 +33,9 @@ class WorkflowGraphBuilder:
         if workflow_wrapper.isInvalid() or not repo_wrapper:
             return
 
-        repo = NodeFactory.create_repo_node(repo_wrapper)
-        self.graph.add_node(repo, **repo.get_attrs())
+        repo, added = NodeFactory.create_repo_node(repo_wrapper)
+        if added:
+            self.graph.add_node(repo, **repo.get_attrs())
 
         workflow = workflow_wrapper.parsed_yml
 
@@ -72,7 +81,10 @@ class WorkflowGraphBuilder:
                     workflow_wrapper.getPath(),
                 )
                 self.graph.add_node(need_node, **need_node.get_attrs())
-                self.graph.add_edge(need_node, job_node, relation="needs")
+                self.graph.add_edge(need_node, job_node, relation="depends")
+
+            if not needs:
+                self.graph.add_edge(wf_node, job_node, relation="contains")
 
             # Handle steps
             steps = job_def.get("steps", [])
@@ -87,9 +99,13 @@ class WorkflowGraphBuilder:
                     iter,
                 )
                 self.graph.add_node(step_node, **step_node.get_attrs())
-                self.graph.add_edge(job_node, step_node, relation="contains")
+
+                # Steps are sequential, so for reachability
+                # the job only contains the first step.
                 if prev_step_node:
                     self.graph.add_edge(prev_step_node, step_node, relation="next")
+                else:
+                    self.graph.add_edge(job_node, step_node, relation="contains")
                 prev_step_node = step_node
                 # Handle actions
                 if "uses" in step:

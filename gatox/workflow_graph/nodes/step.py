@@ -1,4 +1,4 @@
-from gatox.workflow_parser.utility import parse_script
+from gatox.workflow_parser.utility import parse_script, getTokens, filter_tokens
 
 from gatox.workflow_graph.nodes.node import Node
 
@@ -32,6 +32,7 @@ class StepNode(Node):
         else:
             self.if_condition = ""
         self.is_sink = False
+        self.contexts = []
         self.metadata = False
 
         if self.type == "script":
@@ -59,6 +60,8 @@ class StepNode(Node):
         self.is_sink = insights["is_sink"]
         self.metadata = insights["metadata"]
 
+        self.contexts = filter_tokens(getTokens(script))
+
     def __process_action(self, action: str):
         """ """
 
@@ -70,11 +73,19 @@ class StepNode(Node):
 
     def get_attrs(self):
         """ """
-        return {
+        attr_dict = {
             self.__class__.__name__: True,
             "type": self.type,
-            "is_gate": False,
+            "is_soft_gate": False,
+            "is_hard_gate": False,
             "is_checkout": self.is_checkout,
             "if_check": self.if_condition,
             "is_sink": self.is_sink,
         }
+
+        # If the step uses a potentially injectable context variable
+        # then we mark it as such.
+        if self.contexts:
+            attr_dict['injectable'] = True
+
+        return attr_dict
