@@ -308,6 +308,7 @@ def test_enum_self(mock_enumerate):
     cli.cli(["enum", "-s"])
     mock_enumerate.assert_called_once()
 
+
 @mock.patch("gatox.models.execution.Execution.add_repositories")
 @mock.patch("gatox.models.execution.Execution.add_organizations")
 @mock.patch("gatox.enumerate.enumerate.Enumerator.self_enumeration")

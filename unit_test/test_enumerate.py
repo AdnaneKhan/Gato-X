@@ -574,7 +574,7 @@ def test_enum_self_no_repos(mock_api, capfd):
         http_proxy=None,
         output_yaml=False,
         skip_log=True,
-        output_json="test.json"
+        output_json="test.json",
     )
 
     mock_api.return_value.is_app_token.return_value = False
