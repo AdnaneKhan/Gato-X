@@ -153,6 +153,7 @@ class Enumerator:
 
         Returns:
             bool: False if the PAT is not valid for enumeration.
+            (list, list): Tuple containing list of orgs and list of repos.
         """
 
         self.__setup_user_info()
@@ -330,12 +331,13 @@ class Enumerator:
         Args:
             repo_names (list): Repository name in {Org/Owner}/Repo format.
         """
+        repo_wrappers = []
         if not self.__setup_user_info():
-            return False
+            return repo_wrappers
 
         if len(repo_names) == 0:
             Output.error("The list of repositories was empty!")
-            return
+            return repo_wrappers
 
         Output.info(
             f"Querying and caching workflow YAML files "
@@ -344,7 +346,6 @@ class Enumerator:
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
         self.__query_graphql_workflows(queries)
 
-        repo_wrappers = []
         try:
             for repo in repo_names:
                 repo_obj = self.enumerate_repo_only(repo, len(repo_names) > 100)

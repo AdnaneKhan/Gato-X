@@ -564,3 +564,28 @@ def test_unscoped_token(mock_api, capfd):
     out, _ = capfd.readouterr()
     assert "Self-enumeration requires the repo scope!" in escape_ansi(out)
     assert status is False
+
+
+@patch("gatox.enumerate.enumerate.Api")
+def test_enum_self_no_repos(mock_api, capfd):
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        output_yaml=False,
+        skip_log=True,
+        output_json="test.json",
+    )
+
+    mock_api.return_value.is_app_token.return_value = False
+    mock_api.return_value.check_user.return_value = {
+        "user": "testUser",
+        "scopes": ["repo"],
+    }
+
+    orgs, repos = gh_enumeration_runner.self_enumeration()
+
+    assert orgs == []
+    assert repos == []
+
+    out, _ = capfd.readouterr()
