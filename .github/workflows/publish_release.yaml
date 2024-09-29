@@ -60,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
-        path: dist/
+          path: dist/
   release:
     name: Publish Gato-X Distribution 📦 to PyPI
     needs: [check_version, build_artifact]
