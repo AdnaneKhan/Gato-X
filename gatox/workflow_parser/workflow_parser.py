@@ -164,6 +164,9 @@ class WorkflowParser:
             for trigger in triggers:
                 if trigger in risky_triggers:
                     vulnerable_triggers.append(trigger)
+        elif isinstance(triggers, str):
+            if triggers in risky_triggers:
+                vulnerable_triggers.append(triggers)
         elif isinstance(triggers, dict):
             for trigger, trigger_conditions in triggers.items():
                 if trigger in risky_triggers:
@@ -256,6 +259,7 @@ class WorkflowParser:
                             bump_confidence = False
                         elif if_check == "":
                             pass
+
                         step_details.append(
                             {
                                 "ref": step.metadata,
@@ -295,6 +299,7 @@ class WorkflowParser:
             dict: A dictionary containing the job names as keys and a
             list of potentially vulnerable tokens as values.
         """
+
         vulnerable_triggers = self.get_vulnerable_triggers()
         if not vulnerable_triggers and not bypass:
             return {}
