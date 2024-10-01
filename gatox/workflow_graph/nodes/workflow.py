@@ -16,12 +16,16 @@ class WorkflowNode(Node):
         # processed yet.
         self.uninitialized = True
         self.triggers = []
+        self.vars = {}
 
     def __hash__(self):
         return hash((self.name, self.__class__.__name__))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.name == other.name
+
+    def set_params(self, params):
+        self.params = params
 
     def __get_triggers(self, workflow_data: dict):
         """Retrieve the triggers associated with the Workflow node."""
@@ -51,21 +55,32 @@ class WorkflowNode(Node):
                     extracted_triggers.append(trigger)
 
         return extracted_triggers
+    
+    def __get_envs(self, workflow_data: dict):
+        if 'env' in workflow_data:
+            return workflow_data['env']
 
     def initialize(self, workflow: Workflow):
         """Initialize the Workflow node with the parsed workflow data."""
         self.triggers = self.__get_triggers(workflow.parsed_yml)
+
+        self.env_vars = self.__get_envs(workflow.parsed_yml)
         self.uninitialized = False
+
+    def get_tags(self):
+        """ """
+        tags = set([self.__class__.__name__])
+
+        if self.uninitialized:
+            tags.add("uninitialized")
+        else:
+            tags.add("initialized")
+
+        for trigger in self.triggers:
+            tags.add(trigger)
+
+        return tags
 
     def get_attrs(self):
         """Retrieve node attributes associated with the Workflow node."""
-        if self.uninitialized:
-            return {
-                self.__class__.__name__: True,
-                "status": "uninitialized"
-            }
-        else:
-            return {
-                self.__class__.__name__: True,
-                "status": "initialized", "triggers": self.triggers
-            }
+        return {}

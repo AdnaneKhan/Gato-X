@@ -10,6 +10,10 @@ pattern = re.compile(
 )
 
 CONTEXT_REGEX = re.compile(r"\${{\s*([^}]+[^\s])\s?\s*}}")
+LARGER_RUNNER_REGEX_LIST = re.compile(
+        r"(windows|ubuntu)-(24.04|22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb"
+    )
+MATRIX_KEY_EXTRACTION_REGEX = re.compile(r"{{\s*matrix\.([\w-]+)\s*}}")
 
 
 @staticmethod
@@ -24,6 +28,68 @@ def parse_script(script):
         list: A list of tokens.
     """
 
+@staticmethod
+def process_matrix(job_def, runs_on):
+    """Process case where runner is specified via matrix."""
+    matrix_match = MATRIX_KEY_EXTRACTION_REGEX.search(runs_on)
+
+    if matrix_match:
+        matrix_key = matrix_match.group(1)
+    else:
+        return False
+    # Check if strategy exists in the yaml file
+    if "strategy" in job_def and "matrix" in job_def["strategy"]:
+        matrix = job_def["strategy"]["matrix"]
+
+        # Use previously acquired key to retrieve list of OSes
+        if matrix_key in matrix:
+            os_list = matrix[matrix_key]
+        elif "include" in matrix:
+            inclusions = matrix["include"]
+            os_list = []
+            for inclusion in inclusions:
+                if matrix_key in inclusion:
+                    os_list.append(inclusion[matrix_key])
+        else:
+            return False
+
+        # We only need ONE to be self hosted, others can be
+        # GitHub hosted
+        for key in os_list:
+            if type(key) is str:
+                if key not in ConfigurationManager().WORKFLOW_PARSING[
+                    "GITHUB_HOSTED_LABELS"
+                ] and not LARGER_RUNNER_REGEX_LIST.match(key):
+                    return True
+            # list of labels
+            elif type(key) is list:
+                return True
+
+@staticmethod
+def process_runner(runs_on):
+    """
+    Processes the runner for the job.
+    """
+    if type(runs_on) is list:
+        for label in runs_on:
+            if (
+                label
+                in ConfigurationManager().WORKFLOW_PARSING["GITHUB_HOSTED_LABELS"]
+            ):
+                break
+            if LARGER_RUNNER_REGEX_LIST.match(label):
+                break
+        else:
+            return True
+    elif type(runs_on) is str:
+        if (
+            runs_on
+            in ConfigurationManager().WORKFLOW_PARSING["GITHUB_HOSTED_LABELS"]
+        ):
+            return False
+        if LARGER_RUNNER_REGEX_LIST.match(runs_on):
+            return False
+        return True
 
 @staticmethod
 def parse_script(contents: str):
@@ -31,11 +97,7 @@ def parse_script(contents: str):
     if not contents:
         return {}
 
-    return_dict = {
-        "is_checkout": False,
-        "metadata": None,
-        "is_sink": False
-    }
+    return_dict = {"is_checkout": False, "metadata": None, "is_sink": False}
 
     if "git checkout" in contents or "pr checkout" in contents:
         match = pattern.search(contents)
@@ -163,6 +225,7 @@ def filter_tokens(tokens, strict=False):
         tokens_knownbad.extend(tokens_sus)
     return tokens_knownbad
 
+
 @staticmethod
 def getTokens(contents):
     """Get the context tokens from the step."""
@@ -180,6 +243,7 @@ def getTokens(contents):
         return finds
     else:
         return []
+
 
 @staticmethod
 def check_always_true(if_check):

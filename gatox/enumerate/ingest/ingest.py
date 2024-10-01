@@ -219,7 +219,7 @@ class DataIngestor:
 
             repo_wrapper = Repository(repo_data)
             cache.set_repository(repo_wrapper)
-            
+
             if result["object"]:
                 for yml_node in result["object"]["entries"]:
                     yml_name = yml_node["name"]
@@ -234,4 +234,6 @@ class DataIngestor:
                             )
 
                             cache.set_workflow(owner, yml_name, wf_wrapper)
-                            WorkflowGraphBuilder().build_graph_from_yaml(wf_wrapper, repo_wrapper)
+                            WorkflowGraphBuilder().build_graph_from_yaml(
+                                wf_wrapper, repo_wrapper
+                            )

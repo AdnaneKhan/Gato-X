@@ -50,8 +50,8 @@ class NodeFactory:
         """
         job_node = JobNode(job_name, ref, repo_name, workflow_path)
 
-        if job_node.name in NodeFactory.NODE_CACHE[job_node.name]:
-            return  NodeFactory.NODE_CACHE[job_node.name]
+        if job_node.name in NodeFactory.NODE_CACHE:
+            return NodeFactory.NODE_CACHE[job_node.name]
         else:
             NodeFactory.NODE_CACHE[job_node.name] = job_node
             return job_node
@@ -82,8 +82,7 @@ class NodeFactory:
 
     @staticmethod
     def create_called_workflow_node(callee: str, caller_ref, caller_repo):
-        """ 
-        """
+        """ """
 
         if callee.startswith("./"):
             workflow_name = callee.split("/")[-1]
