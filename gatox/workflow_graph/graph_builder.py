@@ -97,7 +97,7 @@ class WorkflowGraphBuilder:
                     need,
                     workflow_wrapper.branch,
                     workflow_wrapper.repo_name,
-                    workflow_wrapper.getPath()
+                    workflow_wrapper.getPath(),
                 )
                 self.graph.add_node(need_node, **need_node.get_attrs())
                 self.graph.add_edge(need_node, job_node, relation="depends")
@@ -137,7 +137,7 @@ class WorkflowGraphBuilder:
                         action_name,
                         workflow_wrapper.branch,
                         workflow_wrapper.getPath(),
-                        workflow_wrapper.repo_name
+                        workflow_wrapper.repo_name,
                     )
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")

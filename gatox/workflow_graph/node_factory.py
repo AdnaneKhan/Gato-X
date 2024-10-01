@@ -73,6 +73,8 @@ class NodeFactory:
         workflow_node = WorkflowNode(ref, repo_name, workflow_path)
         if workflow_node.name in NodeFactory.NODE_CACHE:
             NodeFactory.NODE_CACHE[workflow_node.name].initialize(workflow_data)
+            # Need to flip the tags.
+
             return NodeFactory.NODE_CACHE[workflow_node.name]
         else:
             NodeFactory.NODE_CACHE[workflow_node.name] = workflow_node

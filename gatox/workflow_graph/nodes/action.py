@@ -40,8 +40,6 @@ class ActionNode(Node):
         self.initialized = False
         self.type = "UNK"
 
-
-
     def __hash__(self):
         """
         Return the hash value of the ActionNode instance.

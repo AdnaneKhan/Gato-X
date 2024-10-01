@@ -1,5 +1,6 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 
+
 class InjectionVisitor:
     """This class implements a graph visitor tasked with identifying
     injection issues from workflows.
@@ -13,18 +14,19 @@ class InjectionVisitor:
 
     @staticmethod
     def find_injections(graph):
-        """
-        """
+        """ """
 
-        nodes = graph.get_nodes_for_tags([
-            "issue_comment",
-            "pull_request_target",
-            "workflow_run",
-            "fork",
-            "issues",
-            "discussion",
-            "discussion_comment"
-        ])
+        nodes = graph.get_nodes_for_tags(
+            [
+                "issue_comment",
+                "pull_request_target",
+                "workflow_run",
+                "fork",
+                "issues",
+                "discussion",
+                "discussion_comment",
+            ]
+        )
 
         all_paths = []
 
@@ -42,8 +44,5 @@ class InjectionVisitor:
                 # or get passed through workflow calls
                 # we also want to make sure to track inside of
                 # composite actions.
-                
 
         # Now we have all reponodes
-        
-

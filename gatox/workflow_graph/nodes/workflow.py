@@ -55,10 +55,10 @@ class WorkflowNode(Node):
                     extracted_triggers.append(trigger)
 
         return extracted_triggers
-    
+
     def __get_envs(self, workflow_data: dict):
-        if 'env' in workflow_data:
-            return workflow_data['env']
+        if "env" in workflow_data:
+            return workflow_data["env"]
 
     def initialize(self, workflow: Workflow):
         """Initialize the Workflow node with the parsed workflow data."""

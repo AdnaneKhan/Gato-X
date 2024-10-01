@@ -2,6 +2,7 @@ from gatox.workflow_graph.nodes.node import Node
 
 from gatox.workflow_parser.utility import process_matrix, process_runner
 
+
 class JobNode(Node):
     """
     Wrapper class for a GitHub Actions workflow job.
@@ -11,9 +12,7 @@ class JobNode(Node):
         params (dict): Parameters associated with the job node.
     """
 
-    def __init__(
-        self, job_name: str, ref: str, repo_name: str, workflow_path: str
-    ):
+    def __init__(self, job_name: str, ref: str, repo_name: str, workflow_path: str):
         """
         Constructor for the job wrapper.
 
@@ -27,6 +26,7 @@ class JobNode(Node):
         self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}"
         self.params = {}
         self.if_condition = None
+        self.self_hosted = False
 
     def __hash__(self):
         """
@@ -36,19 +36,19 @@ class JobNode(Node):
             int: The hash value of the JobNode instance.
         """
         return hash((self.name, self.__class__.__name__))
-    
-    def _check_selfhosted(self, runs_on: dict):
+
+    def _check_selfhosted(self, job_def: dict):
         """Returns true if the job might run on a self-hosted runner."""
-        
+
         # Easy
-        if "self-hosted" in runs_on:
+        if "self-hosted" in job_def["runs-on"]:
             return True
         # Process a matrix job
-        elif "matrix." in runs_on:
-            return process_matrix(runs_on)
+        elif "matrix." in job_def["runs-on"]:
+            return process_matrix(job_def, job_def["runs-on"])
         # Process standard label
         else:
-            return process_runner(runs_on)
+            return process_runner(job_def["runs-on"])
 
     def populate(self, job_def):
         if "if" in job_def:
@@ -57,6 +57,9 @@ class JobNode(Node):
         params = job_def.get("with", {})
         if params:
             self.set_params(params)
+
+        if "run-on" in job_def:
+            self.self_hosted = self._check_selfhosted(job_def)
 
     def __eq__(self, other):
         """
@@ -81,6 +84,10 @@ class JobNode(Node):
             set: A set containing the class name of the JobNode instance.
         """
         tags = set([self.__class__.__name__])
+
+        if self.self_hosted:
+            tags.add("self-hosted")
+
         return tags
 
     def get_attrs(self):

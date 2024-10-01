@@ -67,8 +67,8 @@ class StepNode(Node):
     def __process_action(self, step_data: str):
         """ """
         uses = step_data["uses"]
-        if 'with' in step_data:
-            self.params = step_data['with']
+        if "with" in step_data:
+            self.params = step_data["with"]
 
         if "/checkout" in uses and "with" in step_data and "ref" in step_data["with"]:
             ref_param = step_data["with"]["ref"]

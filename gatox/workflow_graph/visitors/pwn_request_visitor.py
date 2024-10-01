@@ -1,5 +1,6 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 
+
 class PwnRequestVisitor:
     """ """
 
@@ -11,13 +12,12 @@ class PwnRequestVisitor:
     def find_pwn_requests(graph: TaggedGraph):
 
         # Now we have all reponodes
-        nodes = graph.get_nodes_for_tags([
-            "issue_comment",
-            "pull_request_target"
-        ])
+        nodes = graph.get_nodes_for_tags(
+            ["issue_comment", "pull_request_target", "workflow_run"]
+        )
 
         all_paths = []
-        
+
         for cn in nodes:
             paths = graph.dfs_to_tag(cn, "checkout")
             if paths:
@@ -25,8 +25,12 @@ class PwnRequestVisitor:
 
         for path_set in all_paths:
             for path in path_set:
-                print(path)
-                
+
+                for node in path:
+                    print(node)
+                    if "JobNode" in node.name:
+                        print(node.if_condition)
+
                 # Start at the workflow, and iterate down
 
                 # If workflow has env vars, then capture them.
@@ -44,7 +48,7 @@ class PwnRequestVisitor:
 
                 # We have to analyze the reference to determine if it is mutable or not.
                 # If it comes from an input, then we need to check if it is injectable.
-                
+
                 # If soft gate and mutable, then we have TOCTOU
                 # If soft gate and immutable, then we suppress.
 
@@ -53,4 +57,3 @@ class PwnRequestVisitor:
                 # If we find a sink, no gate, then we have HIGH
                 # If no sink but we have untrusted checkout without gate, then MEDIUM
                 # If we have TOCTOU and no sink then LOW.
-            

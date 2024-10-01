@@ -120,7 +120,7 @@ class TaggedGraph(nx.DiGraph):
         - A set of nodes associated with the tag. Returns an empty set if the tag does not exist.
         """
         return self.tags.get(tag, set())
-    
+
     def get_nodes_for_tags(self, tags: list):
         nodeset = set()
 

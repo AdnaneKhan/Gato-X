@@ -11,8 +11,8 @@ pattern = re.compile(
 
 CONTEXT_REGEX = re.compile(r"\${{\s*([^}]+[^\s])\s?\s*}}")
 LARGER_RUNNER_REGEX_LIST = re.compile(
-        r"(windows|ubuntu)-(24.04|22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb"
-    )
+    r"(windows|ubuntu)-(24.04|22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb"
+)
 MATRIX_KEY_EXTRACTION_REGEX = re.compile(r"{{\s*matrix\.([\w-]+)\s*}}")
 
 
@@ -27,6 +27,7 @@ def parse_script(script):
     Returns:
         list: A list of tokens.
     """
+
 
 @staticmethod
 def process_matrix(job_def, runs_on):
@@ -65,6 +66,7 @@ def process_matrix(job_def, runs_on):
             elif type(key) is list:
                 return True
 
+
 @staticmethod
 def process_runner(runs_on):
     """
@@ -72,24 +74,19 @@ def process_runner(runs_on):
     """
     if type(runs_on) is list:
         for label in runs_on:
-            if (
-                label
-                in ConfigurationManager().WORKFLOW_PARSING["GITHUB_HOSTED_LABELS"]
-            ):
+            if label in ConfigurationManager().WORKFLOW_PARSING["GITHUB_HOSTED_LABELS"]:
                 break
             if LARGER_RUNNER_REGEX_LIST.match(label):
                 break
         else:
             return True
     elif type(runs_on) is str:
-        if (
-            runs_on
-            in ConfigurationManager().WORKFLOW_PARSING["GITHUB_HOSTED_LABELS"]
-        ):
+        if runs_on in ConfigurationManager().WORKFLOW_PARSING["GITHUB_HOSTED_LABELS"]:
             return False
         if LARGER_RUNNER_REGEX_LIST.match(runs_on):
             return False
         return True
+
 
 @staticmethod
 def parse_script(contents: str):
