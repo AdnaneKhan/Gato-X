@@ -4,6 +4,7 @@ import pathlib
 
 from unittest import mock
 from gatox.cli import cli
+from unittest.mock import patch
 
 from gatox.util.arg_utils import read_file_and_validate_lines
 from gatox.util.arg_utils import is_valid_directory
@@ -17,15 +18,17 @@ def mock_settings_env_vars(request):
         yield
 
 
-def test_cli_no_gh_token(capfd):
+@patch("builtins.input", return_value="")
+def test_cli_no_gh_token(mock_input, capfd):
     """Test case where no GH Token is provided"""
     del os.environ["GH_TOKEN"]
 
-    with pytest.raises(OSError):
+    with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
 
-    out, err = capfd.readouterr()
-    assert "Please enter" in out
+    mock_input.assert_called_with(
+        "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
+    )
 
 
 def test_cli_fine_grained_pat(capfd):
