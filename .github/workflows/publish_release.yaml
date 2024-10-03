@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   check_version:
@@ -38,7 +39,7 @@ jobs:
     permissions:
       id-token: write
       attestations: write
-    if: needs.check_version.outputs.version_bumped == 'true'
+    if: needs.check_version.outputs.version_bumped == 'true' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4 
 
@@ -65,7 +66,7 @@ jobs:
   release:
     name: Publish Gato-X Distribution 📦 to PyPI
     needs: [check_version, build_artifact]
-    if: needs.check_version.outputs.version_bumped == 'true'
+    if: needs.check_version.outputs.version_bumped == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: release
