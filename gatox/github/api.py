@@ -1119,15 +1119,17 @@ class Api:
             return False
 
         artifacts = req.json().get("artifacts", [])
-        download_url = artifacts[0]["archive_download_url"]
 
-        archive = self.call_get(download_url.replace("https://api.github.com", ""))
+        if artifacts:
+            download_url = artifacts[0]["archive_download_url"]
 
-        with zipfile.ZipFile(io.BytesIO(archive.content)) as artifact:
-            for zipinfo in artifact.infolist():
-                with artifact.open(zipinfo) as run_log:
-                    content = run_log.read()
-                    files[zipinfo.filename] = content
+            archive = self.call_get(download_url.replace("https://api.github.com", ""))
+
+            with zipfile.ZipFile(io.BytesIO(archive.content)) as artifact:
+                for zipinfo in artifact.infolist():
+                    with artifact.open(zipinfo) as run_log:
+                        content = run_log.read()
+                        files[zipinfo.filename] = content
 
         return files
 
