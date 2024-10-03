@@ -101,7 +101,7 @@ jobs:
           name: Gato-X Release v${{ needs.check_version.outputs.version }}
           body: |
             Release of version v${{ needs.check_version.outputs.version }}
-          files:
+          files: |
             ./dist/*.tar.gz
             ./dist/*.whl
             ./dist/*.sigstore.json
