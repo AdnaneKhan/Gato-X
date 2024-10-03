@@ -90,8 +90,10 @@ class WorkflowGraphBuilder:
             if callee:
                 self.add_callee_job(workflow_wrapper, callee, job_def, job_node)
 
-            # Handle job dependencies
             needs = job_def.get("needs", [])
+            # If single entry then set as array
+            if type(needs) == str:
+                needs = [needs]
             for need in needs:
                 need_node = NodeFactory.create_job_node(
                     need,

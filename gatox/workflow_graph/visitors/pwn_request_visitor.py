@@ -7,6 +7,7 @@ class PwnRequestVisitor:
     @staticmethod
     def check_gating():
         pass
+    
 
     @staticmethod
     def find_pwn_requests(graph: TaggedGraph):
@@ -23,13 +24,36 @@ class PwnRequestVisitor:
             if paths:
                 all_paths.append(paths)
 
+        results = []
+
         for path_set in all_paths:
             for path in path_set:
 
-                for node in path:
-                    print(node)
-                    if "JobNode" in node.name:
-                        print(node.if_condition)
+                input_lookup = {}
+
+                for index, node in enumerate(path):
+                    if "JobNode" in node.get_tags():
+                        if node.deployments:
+                            print(node.deployments)
+                        
+                    elif "StepNode" in node.get_tags():
+
+                        
+
+                        if node.get_attrs()['is_hard_gate']:
+                            print("HARD GATE - CONT")
+                        
+                        if node.get_attrs()['is_soft_gate']:
+                            print("SOFT GATE")
+                    elif "WorkflowNode" in node.get_tags():
+
+                        if index != 0 and 'JobNode' in path[index - 1].get_tags():
+                            # Caller node
+                            node_params = path[index - 1].params
+                            # Set lookup for input params
+                            input_lookup[node] = node_params
+
+                        pass
 
                 # Start at the workflow, and iterate down
 

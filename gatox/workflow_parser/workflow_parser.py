@@ -76,7 +76,7 @@ class WorkflowParser:
         elif non_default:
             self.branch = non_default
         else:
-            self.branch = None
+            self.branch = workflow_wrapper.branch
 
         self.composites = self.extract_referenced_actions()
 

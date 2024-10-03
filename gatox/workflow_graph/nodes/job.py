@@ -26,6 +26,7 @@ class JobNode(Node):
         self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}"
         self.params = {}
         self.if_condition = None
+        self.deployments = []
         self.self_hosted = False
 
     def __hash__(self):
@@ -58,8 +59,14 @@ class JobNode(Node):
         if params:
             self.set_params(params)
 
-        if "run-on" in job_def:
+        if "runs-on" in job_def:
             self.self_hosted = self._check_selfhosted(job_def)
+
+        if "environment" in job_def:
+            if type(job_def["environment"]) == list:
+                self.deployments.extend(job_def["environment"])
+            else:
+                self.deployments.append(job_def["environment"])
 
     def __eq__(self, other):
         """
@@ -100,6 +107,6 @@ class JobNode(Node):
         attr_dict = {
             self.__class__.__name__: True,
             "is_soft_gate": False,
-            "is_hard_gate": False,
+            "is_hard_gate": False
         }
         return attr_dict

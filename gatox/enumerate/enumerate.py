@@ -13,6 +13,8 @@ from gatox.enumerate.recommender import Recommender
 from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.caching.cache_manager import CacheManager
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+from gatox.workflow_graph.node_factory import NodeFactory
+from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +240,10 @@ class Enumerator:
                     continue
                 Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
 
+                if not CacheManager().is_repo_cached(repo.name):
+                    # TODO: rebuild cache for the missed repository.
+                    pass
+
                 cached_repo = CacheManager().get_repository(repo.name)
                 if cached_repo:
                     repo = cached_repo
@@ -258,6 +264,12 @@ class Enumerator:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
         return organization
+
+    def enumerate_new(self):
+        """Temporarily build new enumeration functionality
+        alongside the old one and then will cut over.
+        """
+        PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph)
 
     def enumerate_repo_only(self, repo_name: str, large_enum=False):
         """Enumerate only a single repository. No checks for org-level
@@ -334,4 +346,6 @@ class Enumerator:
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
+
+        self.enumerate_new()
         return repo_wrappers
