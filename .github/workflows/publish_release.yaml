@@ -87,7 +87,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Publish Distribution
-        uses: pypa/gh-action-pypi-publish@0ab0b79471669eb3a4d647e625009c62f9f3b241 # v1.10.1
+        uses: pypa/gh-action-pypi-publish@897895f1e160c830e369f9779632ebc134688e1b # v1.10.2
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46
         with:
