@@ -2,6 +2,7 @@ from gatox.workflow_graph.nodes.node import Node
 
 from gatox.workflow_parser.utility import decompose_action_ref
 
+
 class ActionNode(Node):
     """
     Wrapper class for a GitHub Actions workflow action.
@@ -20,21 +21,22 @@ class ActionNode(Node):
 
     # Set of actions that we do not need
     # to pull down yamls for.
-    KNOWN_GOOD = set([
-        "azure/login",
-        "github/codeql-action/analyze",
-        "docker/login-action",
-        "github/codeql-action",
-        "github/codeql-action/init",
-        "codecov/codecov-action",
-        "docker/setup-buildx-action",
-        "actions-cool/check-user-permission"
-    ])
+    KNOWN_GOOD = set(
+        [
+            "azure/login",
+            "github/codeql-action/analyze",
+            "docker/login-action",
+            "github/codeql-action",
+            "github/codeql-action/init",
+            "codecov/codecov-action",
+            "docker/setup-buildx-action",
+            "actions-cool/check-user-permission",
+        ]
+    )
 
-    KNOWN_GATES = set([
-        "sushichop/action-repository-permission",
-        "actions-cool/check-user-permission"
-    ])
+    KNOWN_GATES = set(
+        ["sushichop/action-repository-permission", "actions-cool/check-user-permission"]
+    )
 
     def __init__(
         self, action_name: str, ref: str, action_path: str, repo_name: str, params: dict
@@ -62,24 +64,24 @@ class ActionNode(Node):
 
         self.action_info = decompose_action_ref(action_name, repo_name)
 
-        if not self.action_info['local']:
-            
-            if '@' in self.action_info['key']:
-                initial_path = self.action_info['key'].split('@')[0]
+        if not self.action_info["local"]:
+
+            if "@" in self.action_info["key"]:
+                initial_path = self.action_info["key"].split("@")[0]
             else:
-                initial_path = self.action_info['key']
+                initial_path = self.action_info["key"]
             # By default, we only check actions if they belong to another
             # repo in the same org.
-            if not self.action_info['key'].startswith(repo_name.split('/')[0]):
+            if not self.action_info["key"].startswith(repo_name.split("/")[0]):
                 self.initialized = True
-            if self.action_info['key'].startswith('actions/'):
+            if self.action_info["key"].startswith("actions/"):
                 self.initialized = True
             if initial_path in self.KNOWN_GOOD:
                 self.initialized = True
 
             if initial_path in self.KNOWN_GATES:
                 self.is_gate = True
-        elif self.action_info['docker']:
+        elif self.action_info["docker"]:
             # We don't resolve docker actions
             self.initialized = True
 
@@ -138,5 +140,5 @@ class ActionNode(Node):
             self.__class__.__name__: True,
             "type": self.type,
             "is_soft_gate": False,
-            "is_hard_gate": False
+            "is_hard_gate": False,
         }

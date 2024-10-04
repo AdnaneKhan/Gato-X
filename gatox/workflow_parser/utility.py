@@ -94,7 +94,13 @@ def parse_script(contents: str):
     if not contents:
         return {}
 
-    return_dict = {"is_checkout": False, "metadata": None, "is_sink": False, "hard_gate": False, "soft_gate": False}
+    return_dict = {
+        "is_checkout": False,
+        "metadata": None,
+        "is_sink": False,
+        "hard_gate": False,
+        "soft_gate": False,
+    }
 
     if "git checkout" in contents or "pr checkout" in contents:
         match = pattern.search(contents)
@@ -287,13 +293,13 @@ def decompose_action_ref(action_path: str, repo_name: str):
         "path": action_path.split("@")[0] if "@" in action_path else action_path,
         "ref": action_path.split("@")[1] if "@" in action_path else "",
         "local": action_path.startswith("./"),
-        "docker": False
+        "docker": False,
     }
 
     if "docker://" in action_path:
         # Gato-X doesn't support docker actions
         # and we ignore official GitHub actions for analysis.
-        action_parts['docker'] = True
+        action_parts["docker"] = True
         return action_parts
 
     if not action_parts["local"]:

@@ -2,6 +2,7 @@ from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 
 from gatox.github.api import Api
 
+
 class InjectionVisitor:
     """This class implements a graph visitor tasked with identifying
     injection issues from workflows.
@@ -32,7 +33,8 @@ class InjectionVisitor:
         all_paths = []
 
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "injection", api)
+            paths = graph.dfs_to_tag(cn, "injectable", api)
+
             if paths:
                 all_paths.append(paths)
 

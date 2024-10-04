@@ -38,11 +38,10 @@ class StepNode(Node):
         self.contexts = []
         self.metadata = False
 
-        if 'outputs' in step_data:
-            self.outputs = step_data['outputs']
+        if "outputs" in step_data:
+            self.outputs = step_data["outputs"]
         else:
             self.outputs = {}
-
 
         if self.type == "script":
             self.__process_script(step_data["run"])

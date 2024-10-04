@@ -111,6 +111,6 @@ class JobNode(Node):
         attr_dict = {
             self.__class__.__name__: True,
             "is_soft_gate": False,
-            "is_hard_gate": False
+            "is_hard_gate": False,
         }
         return attr_dict

@@ -17,7 +17,9 @@ class Composite:
         self.composite = False
         self.parsed_yml = None
         try:
-            self.parsed_yml = yaml.load(action_yml.replace("\t", "  "), Loader=CSafeLoader)
+            self.parsed_yml = yaml.load(
+                action_yml.replace("\t", "  "), Loader=CSafeLoader
+            )
         except (
             yaml.parser.ParserError,
             yaml.scanner.ScannerError,

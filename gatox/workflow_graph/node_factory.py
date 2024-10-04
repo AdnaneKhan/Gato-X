@@ -140,7 +140,7 @@ class NodeFactory:
 
         Returns:
             ActionNode: The created ActionNode instance.
-        """ 
+        """
         name = f"{repo_name}:{ref}:{action_path}:{action_name}"
         if name in NodeFactory.NODE_CACHE:
             return NodeFactory.NODE_CACHE[name]

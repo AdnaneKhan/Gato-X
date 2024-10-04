@@ -1,20 +1,20 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from gatox.github.api import Api
-from gatox.github.gql_queries import GqlQueries
-from gatox.models.repository import Repository
-from gatox.models.organization import Organization
+from gatox.caching.cache_manager import CacheManager
 from gatox.cli.output import Output
-from gatox.enumerate.repository import RepositoryEnum
+from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.enumerate.organization import OrganizationEnum
 from gatox.enumerate.recommender import Recommender
-from gatox.enumerate.ingest.ingest import DataIngestor
-from gatox.caching.cache_manager import CacheManager
+from gatox.enumerate.repository import RepositoryEnum
+from gatox.github.api import Api
+from gatox.github.gql_queries import GqlQueries
+from gatox.models.organization import Organization
+from gatox.models.repository import Repository
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
-from gatox.workflow_graph.node_factory import NodeFactory
+from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
+from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,32 @@ class Enumerator:
                     end="\r",
                 )
                 DataIngestor.construct_workflow_cache(future.result())
+
+    def __retrieve_missing_ymls(self, repo_name: str):
+        """Retrieve all workflow yaml files for a given repository.
+
+        Args:
+            repo_name (str): Repository name in {Org/Owner}/Repo format.
+        """
+        repo = CacheManager().is_repo_cached(repo_name)
+        if not repo:
+            repo_data = self.api.get_repository(repo_name)
+            if repo_data:
+                repo = Repository(repo_data)
+                CacheManager().set_repository(repo)
+
+                if repo:
+                    workflows = self.api.retrieve_workflow_ymls(repo)
+
+                    for workflow in workflows:
+                        CacheManager().set_workflow(
+                            repo, workflow.workflow_name, workflow
+                        )
+            else:
+                Output.warn(
+                    f"Unable to retrieve workflows for {Output.bright(repo_name)}! "
+                    "Ensure the repository exists and the user has access."
+                )
 
     def validate_only(self):
         """Validates the PAT access and exits."""
@@ -241,16 +267,13 @@ class Enumerator:
                 Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
 
                 if not CacheManager().is_repo_cached(repo.name):
-                    # TODO: rebuild cache for the missed repository.
-                    pass
+                    self.__retrieve_missing_ymls(repo.name)
 
                 cached_repo = CacheManager().get_repository(repo.name)
                 if cached_repo:
                     repo = cached_repo
 
-                self.repo_e.enumerate_repository(
-                    repo, large_org_enum=len(enum_list) > 25
-                )
+                self.repo_e.enumerate_repository(repo)
                 self.repo_e.enumerate_repository_secrets(repo)
 
                 organization.set_repository(repo)
@@ -272,9 +295,12 @@ class Enumerator:
         alongside the old one and then will cut over.
         """
         Output.info("Traversing graph!")
-        PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph, self.api)
 
-    def enumerate_repo_only(self, repo_name: str, large_enum=False):
+        PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph, self.api)
+        RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
+        InjectionVisitor.find_injections(WorkflowGraphBuilder().graph, self.api)
+
+    def enumerate_repo_only(self, repo_name: str):
         """Enumerate only a single repository. No checks for org-level
         self-hosted runners will be performed in this case.
 
@@ -302,7 +328,7 @@ class Enumerator:
 
             Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
 
-            self.repo_e.enumerate_repository(repo, large_org_enum=large_enum)
+            self.repo_e.enumerate_repository(repo)
             self.repo_e.enumerate_repository_secrets(repo)
             Recommender.print_repo_secrets(
                 self.user_perms["scopes"], repo.secrets + repo.org_secrets
@@ -339,16 +365,18 @@ class Enumerator:
         )
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
         self.__query_graphql_workflows(queries)
+        for repo in repo_names:
+            self.__retrieve_missing_ymls(repo)
 
         repo_wrappers = []
         try:
             for repo in repo_names:
-                repo_obj = self.enumerate_repo_only(repo, len(repo_names) > 100)
+                repo_obj = self.enumerate_repo_only(repo)
                 if repo_obj:
                     repo_wrappers.append(repo_obj)
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
-        
+
         self.enumerate_new()
 
         return repo_wrappers

@@ -7,7 +7,6 @@ from gatox.models.execution import Repository
 from gatox.models.secret import Secret
 from gatox.models.runner import Runner
 from gatox.github.api import Api
-from gatox.caching.cache_manager import CacheManager
 from gatox.notifications.send_webhook import send_slack_webhook
 
 logger = logging.getLogger(__name__)
@@ -111,17 +110,13 @@ class RepositoryEnum:
         # Return the most recent timestamp string
         return time1 if date1 > date2 else time2
 
-
-    def enumerate_repository(self, repository: Repository, large_org_enum=False):
+    def enumerate_repository(self, repository: Repository):
         """Enumerate a repository, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
 
         Args:
             repository (Repository): Wrapper object created from calling the
             API and retrieving a repository.
-            large_org_enum (bool, optional): Whether to only
-            perform run log enumeration if workflow analysis indicates likely
-            use of a self-hosted runner. Defaults to False.
         """
         runner_detected = False
 
@@ -147,7 +142,6 @@ class RepositoryEnum:
                 ]
 
                 repository.set_runners(repo_runners)
-
 
     def enumerate_repository_secrets(self, repository: Repository):
         """Enumerate secrets accessible to a repository.

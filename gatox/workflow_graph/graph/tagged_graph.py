@@ -27,7 +27,7 @@ class TaggedGraph(nx.DiGraph):
         path.append(current_node)
         visited.add(current_node)
 
-        if 'uninitialized' in current_node.get_tags():
+        if "uninitialized" in current_node.get_tags():
             self.builder.initialize_node(current_node, api)
 
         if target_tag in current_node.get_tags():
