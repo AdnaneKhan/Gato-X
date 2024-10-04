@@ -1,5 +1,6 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 
+from gatox.github.api import Api
 
 class InjectionVisitor:
     """This class implements a graph visitor tasked with identifying
@@ -13,7 +14,7 @@ class InjectionVisitor:
         pass
 
     @staticmethod
-    def find_injections(graph):
+    def find_injections(graph: TaggedGraph, api: Api):
         """ """
 
         nodes = graph.get_nodes_for_tags(
@@ -31,7 +32,7 @@ class InjectionVisitor:
         all_paths = []
 
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "injection")
+            paths = graph.dfs_to_tag(cn, "injection", api)
             if paths:
                 all_paths.append(paths)
 

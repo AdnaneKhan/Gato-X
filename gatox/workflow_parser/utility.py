@@ -94,7 +94,7 @@ def parse_script(contents: str):
     if not contents:
         return {}
 
-    return_dict = {"is_checkout": False, "metadata": None, "is_sink": False}
+    return_dict = {"is_checkout": False, "metadata": None, "is_sink": False, "hard_gate": False, "soft_gate": False}
 
     if "git checkout" in contents or "pr checkout" in contents:
         match = pattern.search(contents)
@@ -109,6 +109,9 @@ def parse_script(contents: str):
                 ):
                     return_dict["metadata"] = ref
                     return_dict["is_checkout"] = True
+
+    if "isCrossRepository" in contents and "GITHUB_OUTPUT" in contents:
+        return_dict["hard_gate"] = True
 
     if check_sinks(contents):
         return_dict["is_sink"] = True

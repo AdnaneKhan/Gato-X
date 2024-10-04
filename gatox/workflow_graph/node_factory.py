@@ -5,7 +5,7 @@ from gatox.workflow_graph.nodes.repo import RepoNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
-from gatox.models.composite import Composite
+from gatox.caching.cache_manager import CacheManager
 from gatox.workflow_parser.utility import parse_github_path
 
 

@@ -29,6 +29,7 @@ class JobNode(Node):
         self.if_condition = None
         self.deployments = []
         self.self_hosted = False
+        self.outputs = {}
 
     def __hash__(self):
         """
@@ -55,6 +56,8 @@ class JobNode(Node):
     def populate(self, job_def):
         if "if" in job_def:
             self.if_condition = job_def["if"].replace("\n", "")
+
+        self.outputs = job_def.get("outputs", {})
 
         params = job_def.get("with", {})
         if params:

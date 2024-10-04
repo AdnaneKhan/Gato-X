@@ -16,7 +16,7 @@ class WorkflowNode(Node):
         # processed yet.
         self.uninitialized = True
         self.triggers = []
-        self.vars = {}
+        self.env_vars = {}
 
     def __hash__(self):
         return hash((self.name, self.__class__.__name__))
@@ -65,6 +65,8 @@ class WorkflowNode(Node):
     def __get_envs(self, workflow_data: dict):
         if "env" in workflow_data:
             return workflow_data["env"]
+        else:
+            return {}
 
     def initialize(self, workflow: Workflow):
         """Initialize the Workflow node with the parsed workflow data."""

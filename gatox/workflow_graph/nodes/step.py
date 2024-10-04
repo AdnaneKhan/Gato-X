@@ -33,9 +33,16 @@ class StepNode(Node):
         else:
             self.if_condition = ""
         self.is_sink = False
+        self.hard_gate = False
         self.params = {}
         self.contexts = []
         self.metadata = False
+
+        if 'outputs' in step_data:
+            self.outputs = step_data['outputs']
+        else:
+            self.outputs = {}
+
 
         if self.type == "script":
             self.__process_script(step_data["run"])
@@ -61,6 +68,8 @@ class StepNode(Node):
         self.is_checkout = insights["is_checkout"]
         self.is_sink = insights["is_sink"]
         self.metadata = insights["metadata"]
+        self.hard_gate = insights["hard_gate"]
+        self.soft_gate = insights["soft_gate"]
 
         self.contexts = filter_tokens(getTokens(script))
 
@@ -109,6 +118,9 @@ class StepNode(Node):
 
         if self.contexts:
             tags.add("injectable")
+
+        if self.hard_gate:
+            tags.add("permission_blocker")
 
         return tags
 

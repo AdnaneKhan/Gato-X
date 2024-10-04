@@ -18,7 +18,7 @@ class WorkflowGraphBuilder:
         """
         if cls._instance is None:
             cls._instance = super(WorkflowGraphBuilder, cls).__new__(cls)
-            cls._instance.graph = TaggedGraph()
+            cls._instance.graph = TaggedGraph(cls._instance)
 
         return cls._instance
 
@@ -47,7 +47,7 @@ class WorkflowGraphBuilder:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
 
-    def initialize_action_node(self, node: ActionNode, api):
+    def _initialize_action_node(self, node: ActionNode, api):
         """
         Initialize an ActionNode by retrieving and parsing its contents.
     
@@ -110,7 +110,7 @@ class WorkflowGraphBuilder:
                 else:
                     self.graph.add_edge(node, step_node, relation="contains")
 
-    def initialize_callee_node(self, workflow: WorkflowNode, api):
+    def _initialize_callee_node(self, workflow: WorkflowNode, api):
         """Initialize a callee workflow with the workflow yaml
         """
         if 'uninitialized' in workflow.get_tags():
@@ -234,13 +234,10 @@ class WorkflowGraphBuilder:
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
 
-    def initialize_nodes(self, api):
-        uninit_nodes = self.graph.get_nodes_by_tag(
-            "uninitialized"
-        ).copy()
-        for node in uninit_nodes:
-            if 'ActionNode' in node.get_tags():
-                self.initialize_action_node(node, api)
-                self.graph.remove_tags_from_node(node, ['uninitialized'])
-            elif 'WorkflowNode' in node.get_tags():
-                self.initialize_callee_node(node, api)
+    def initialize_node(self, node, api):
+        tags = node.get_tags()
+        if 'uninitialized' in tags:
+            if 'ActionNode' in tags:
+                self._initialize_action_node(node, api)
+            elif 'WorkflowNode' in tags:
+                self._initialize_callee_node(node, api)

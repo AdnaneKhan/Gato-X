@@ -27,11 +27,13 @@ class ActionNode(Node):
         "github/codeql-action",
         "github/codeql-action/init",
         "codecov/codecov-action",
-        "docker/setup-buildx-action"
+        "docker/setup-buildx-action",
+        "actions-cool/check-user-permission"
     ])
 
     KNOWN_GATES = set([
-        "sushichop/action-repository-permission"
+        "sushichop/action-repository-permission",
+        "actions-cool/check-user-permission"
     ])
 
     def __init__(
@@ -65,7 +67,7 @@ class ActionNode(Node):
             if '@' in self.action_info['key']:
                 initial_path = self.action_info['key'].split('@')[0]
             else:
-                initial_path - self.action_info['key']
+                initial_path = self.action_info['key']
             # By default, we only check actions if they belong to another
             # repo in the same org.
             if not self.action_info['key'].startswith(repo_name.split('/')[0]):

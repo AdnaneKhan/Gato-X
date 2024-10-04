@@ -2,7 +2,7 @@ import networkx as nx
 
 
 class TaggedGraph(nx.DiGraph):
-    def __init__(self, **attr):
+    def __init__(self, builder, **attr):
         """
         Initialize the TaggedGraph.
 
@@ -10,28 +10,32 @@ class TaggedGraph(nx.DiGraph):
         - **attr: Arbitrary keyword arguments to initialize the graph.
         """
         super().__init__(**attr)
+        self.builder = builder
         self.tags = {}  # Dictionary to map tags to sets of nodes
 
-    def dfs_to_tag(self, start_node, target_tag):
+    def dfs_to_tag(self, start_node, target_tag, api):
 
         path = list()
         all_paths = list()
         visited = set()
 
-        self._dfs(start_node, target_tag, path, all_paths, visited)
+        self._dfs(start_node, target_tag, path, all_paths, visited, api)
 
         return all_paths
 
-    def _dfs(self, current_node, target_tag, path, all_paths, visited):
+    def _dfs(self, current_node, target_tag, path, all_paths, visited, api):
         path.append(current_node)
         visited.add(current_node)
+
+        if 'uninitialized' in current_node.get_tags():
+            self.builder.initialize_node(current_node, api)
 
         if target_tag in current_node.get_tags():
             all_paths.append(list(path))
         else:
             for neighbor in self.neighbors(current_node):
                 if neighbor not in visited:
-                    self._dfs(neighbor, target_tag, path, all_paths, visited)
+                    self._dfs(neighbor, target_tag, path, all_paths, visited, api)
 
         path.pop()
         visited.remove(current_node)

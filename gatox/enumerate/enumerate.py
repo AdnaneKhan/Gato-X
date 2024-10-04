@@ -271,9 +271,6 @@ class Enumerator:
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
-
-        Output.info("Resolving actions!")
-        WorkflowGraphBuilder().initialize_nodes(self.api)
         Output.info("Traversing graph!")
         PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph, self.api)
 
