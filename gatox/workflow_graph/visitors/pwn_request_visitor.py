@@ -1,20 +1,21 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
-
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+from gatox.github.api import Api
 
 class PwnRequestVisitor:
-    """ """
+    """
+    """
 
     @staticmethod
     def check_gating():
         pass
     
-
     @staticmethod
-    def find_pwn_requests(graph: TaggedGraph):
+    def find_pwn_requests(graph: TaggedGraph, api: Api):
 
         # Now we have all reponodes
         nodes = graph.get_nodes_for_tags(
-            ["issue_comment", "pull_request_target", "workflow_run"]
+            ["issue_comment", "pull_request_target", "workflow_run", "pull_request_target:labeled"]
         )
 
         all_paths = []
@@ -28,32 +29,51 @@ class PwnRequestVisitor:
 
         for path_set in all_paths:
             for path in path_set:
-
                 input_lookup = {}
 
+                approval_gate = False
+
                 for index, node in enumerate(path):
-                    if "JobNode" in node.get_tags():
+                    tags = node.get_tags()
+
+                    if "JobNode" in tags:
+                        # Check deployment environment rules
                         if node.deployments:
-                            print(node.deployments)
-                        
-                    elif "StepNode" in node.get_tags():
+                            rules = api.get_all_environment_protection_rules(
+                                    node.repo_name
+                            )
+                            for deployment in node.deployments:
+                                if deployment in rules:
+                                    approval_gate = True
+                                    break
 
+                        paths = graph.dfs_to_tag(node, "permission_check")
+                        if paths:
+                            approval_gate = True
                         
-
-                        if node.get_attrs()['is_hard_gate']:
-                            print("HARD GATE - CONT")
+                    elif "StepNode" in tags:
                         
-                        if node.get_attrs()['is_soft_gate']:
-                            print("SOFT GATE")
-                    elif "WorkflowNode" in node.get_tags():
-
+                        if node.is_checkout:
+                            # Terminal
+                            if approval_gate and "head.sha" not in node.metadata:
+                                results.append(path)
+                                break
+                                
+                    elif "WorkflowNode" in tags:
                         if index != 0 and 'JobNode' in path[index - 1].get_tags():
-                            # Caller node
+                            # Caller job node
                             node_params = path[index - 1].params
                             # Set lookup for input params
                             input_lookup[node] = node_params
 
                         pass
+                    elif "ActionNode" in tags:
+                        tags = node.get_tags()
+                
+                        if 'uninitialized' in tags: 
+                            WorkflowGraphBuilder().initialize_action_node(node, api)
+                            graph.remove_tags_from_node(node, ['uninitialized'])
+        print(len(results))
 
                 # Start at the workflow, and iterate down
 

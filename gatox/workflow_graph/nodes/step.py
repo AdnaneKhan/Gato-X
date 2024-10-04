@@ -76,7 +76,7 @@ class StepNode(Node):
             if type(ref_param) is not str:
                 self.is_checkout = False
             elif "${{" in ref_param and "base" not in ref_param:
-                # self.metadata = ref_param
+                self.metadata = ref_param
                 self.is_checkout = True
         elif (
             "github-script" in uses

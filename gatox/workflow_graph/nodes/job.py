@@ -25,6 +25,7 @@ class JobNode(Node):
         # Create a unique ID for this step.
         self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}"
         self.params = {}
+        self.repo_name = repo_name
         self.if_condition = None
         self.deployments = []
         self.self_hosted = False

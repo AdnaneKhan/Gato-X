@@ -1,10 +1,12 @@
-import networkx as nx
-
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
+from gatox.models.composite import Composite
 from gatox.workflow_graph.node_factory import NodeFactory
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.nodes.job import JobNode
+from gatox.workflow_graph.nodes.action import ActionNode
+from gatox.workflow_graph.nodes.workflow import WorkflowNode
+from gatox.caching.cache_manager import CacheManager
 
 
 class WorkflowGraphBuilder:
@@ -35,7 +37,7 @@ class WorkflowGraphBuilder:
         Adds a reference to a called workflow (reusable workflow)
         """
         if not job_def or not job_node:
-            return
+            return   
 
         callee_node = NodeFactory.create_called_workflow_node(
             callee, workflow_wrapper.branch, workflow_wrapper.repo_name
@@ -45,6 +47,87 @@ class WorkflowGraphBuilder:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
 
+    def initialize_action_node(self, node: ActionNode, api):
+        """
+        Initialize an ActionNode by retrieving and parsing its contents.
+    
+        Args:
+            node (ActionNode): The action node to initialize.
+            api (object): The API client used to retrieve raw action contents.
+        """
+        action_metadata = node.action_info
+        node.initialized = True
+    
+        def get_action_contents(repo, path, ref):
+            """
+            Retrieve and cache the action contents.
+    
+            Args:
+                repo (str): The repository name.
+                path (str): The path to the action file.
+                ref (str): The reference (e.g., branch or tag).
+    
+            Returns:
+                str: The contents of the action file.
+            """
+            contents = CacheManager().get_action(repo, path, ref)
+            if not contents:
+                contents = api.retrieve_raw_action(repo, path, ref)
+                if contents:
+                    CacheManager().set_action(repo, path, ref, contents)
+            return contents
+    
+        ref = node.caller_ref if action_metadata['local'] else action_metadata['ref']
+        contents = get_action_contents(action_metadata["repo"], action_metadata["path"], ref)
+    
+        if not contents:
+            return False
+    
+        parsed_action = Composite(contents)
+    
+        if parsed_action.composite:
+            steps = parsed_action.parsed_yml["runs"].get("steps", [])
+    
+            prev_step_node = None
+            for iter, step in enumerate(steps):
+                
+                calling_name = parsed_action.parsed_yml.get("name", f"EMPTY")
+                step_node = NodeFactory.create_step_node(
+                    step,
+                    ref,
+                    action_metadata["repo"],
+                    action_metadata["path"],
+                    calling_name,
+                    iter
+                )
+                self.graph.add_node(step_node, **step_node.get_attrs())
+    
+                # Steps are sequential, so for reachability checks
+                # the job only "contains" the first step.
+                if prev_step_node:
+                    self.graph.add_edge(prev_step_node, step_node, relation="next")
+                    prev_step_node = step_node
+                else:
+                    self.graph.add_edge(node, step_node, relation="contains")
+
+    def initialize_callee_node(self, workflow: WorkflowNode, api):
+        """Initialize a callee workflow with the workflow yaml
+        """
+        if 'uninitialized' in workflow.get_tags():
+            slug, ref, path = workflow.get_parts()
+            callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
+            if not callee_wf:
+                callee_wf = api.retrieve_repo_file(
+                    slug, path, ref
+                )
+                if callee_wf:
+                    CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
+
+            self.graph.remove_tags_from_node(workflow, ['uninitialized'])
+
+            self.build_workflow_jobs(callee_wf, workflow)
+
+        
     def build_graph_from_yaml(
         self, workflow_wrapper: Workflow, repo_wrapper: Repository
     ):
@@ -58,8 +141,6 @@ class WorkflowGraphBuilder:
         if added:
             self.graph.add_node(repo, **repo.get_attrs())
 
-        workflow = workflow_wrapper.parsed_yml
-
         wf_node = NodeFactory.create_workflow_node(
             workflow_wrapper,
             workflow_wrapper.branch,
@@ -67,9 +148,17 @@ class WorkflowGraphBuilder:
             workflow_wrapper.getPath(),
         )
 
+        if not 'uninitialized' in wf_node.get_tags():
+            self.graph.remove_tags_from_node(wf_node, 'uninitialized')
+ 
         self.graph.add_node(wf_node, **wf_node.get_attrs())
         self.graph.add_edge(repo, wf_node, relation="contains")
 
+        self.build_workflow_jobs(workflow_wrapper, wf_node)
+
+    def build_workflow_jobs(self, workflow_wrapper: Workflow, wf_node: WorkflowNode):
+        
+        workflow = workflow_wrapper.parsed_yml
         jobs = workflow.get("jobs", {})
 
         if not jobs:
@@ -119,6 +208,7 @@ class WorkflowGraphBuilder:
                     job_name,
                     iter,
                 )
+                    
                 self.graph.add_node(step_node, **step_node.get_attrs())
 
                 # Steps are sequential, so for reachability checks
@@ -143,3 +233,14 @@ class WorkflowGraphBuilder:
                     )
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
+
+    def initialize_nodes(self, api):
+        uninit_nodes = self.graph.get_nodes_by_tag(
+            "uninitialized"
+        ).copy()
+        for node in uninit_nodes:
+            if 'ActionNode' in node.get_tags():
+                self.initialize_action_node(node, api)
+                self.graph.remove_tags_from_node(node, ['uninitialized'])
+            elif 'WorkflowNode' in node.get_tags():
+                self.initialize_callee_node(node, api)

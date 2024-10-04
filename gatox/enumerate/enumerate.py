@@ -263,13 +263,19 @@ class Enumerator:
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
+        self.enumerate_new()
+
         return organization
 
     def enumerate_new(self):
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
-        PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph)
+
+        Output.info("Resolving actions!")
+        WorkflowGraphBuilder().initialize_nodes(self.api)
+        Output.info("Traversing graph!")
+        PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph, self.api)
 
     def enumerate_repo_only(self, repo_name: str, large_enum=False):
         """Enumerate only a single repository. No checks for org-level
@@ -345,7 +351,7 @@ class Enumerator:
                     repo_wrappers.append(repo_obj)
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
-
-
+        
         self.enumerate_new()
+
         return repo_wrappers

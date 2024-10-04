@@ -277,20 +277,21 @@ def validate_if_check(if_check, variables):
 
 
 @staticmethod
-def decompose_action_ref(action_path, vars, repo_name):
+def decompose_action_ref(action_path: str, repo_name: str):
     """ """
     action_parts = {
         "key": action_path,
         "path": action_path.split("@")[0] if "@" in action_path else action_path,
         "ref": action_path.split("@")[1] if "@" in action_path else "",
         "local": action_path.startswith("./"),
-        "args": vars.get("with", {}),
+        "docker": False
     }
 
-    if "docker://" in action_path or action_parts["path"].startswith("actions/"):
+    if "docker://" in action_path:
         # Gato-X doesn't support docker actions
         # and we ignore official GitHub actions for analysis.
-        return None
+        action_parts['docker'] = True
+        return action_parts
 
     if not action_parts["local"]:
         path_parts = action_parts["path"].split("/")

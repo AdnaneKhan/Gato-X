@@ -5,7 +5,7 @@ from gatox.workflow_graph.nodes.repo import RepoNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
-
+from gatox.models.composite import Composite
 from gatox.workflow_parser.utility import parse_github_path
 
 
@@ -73,7 +73,6 @@ class NodeFactory:
         workflow_node = WorkflowNode(ref, repo_name, workflow_path)
         if workflow_node.name in NodeFactory.NODE_CACHE:
             NodeFactory.NODE_CACHE[workflow_node.name].initialize(workflow_data)
-            # Need to flip the tags.
 
             return NodeFactory.NODE_CACHE[workflow_node.name]
         else:
@@ -141,7 +140,11 @@ class NodeFactory:
 
         Returns:
             ActionNode: The created ActionNode instance.
-        """
-        action_node = ActionNode(action_name, ref, action_path, repo_name, params)
-        NodeFactory.NODE_CACHE[action_node.name] = action_node
-        return action_node
+        """ 
+        name = f"{repo_name}:{ref}:{action_path}:{action_name}"
+        if name in NodeFactory.NODE_CACHE:
+            return NodeFactory.NODE_CACHE[name]
+        else:
+            action_node = ActionNode(action_name, ref, action_path, repo_name, params)
+            NodeFactory.NODE_CACHE[action_node.name] = action_node
+            return action_node

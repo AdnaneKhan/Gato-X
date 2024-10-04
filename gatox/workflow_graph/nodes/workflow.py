@@ -27,6 +27,12 @@ class WorkflowNode(Node):
     def set_params(self, params):
         self.params = params
 
+    def get_parts(self):
+
+        repo, ref, path = self.name.split(':')
+
+        return repo, ref, path
+
     def __get_triggers(self, workflow_data: dict):
         """Retrieve the triggers associated with the Workflow node."""
         triggers = workflow_data["on"]

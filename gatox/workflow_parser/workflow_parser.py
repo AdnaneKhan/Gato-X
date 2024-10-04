@@ -198,95 +198,95 @@ class WorkflowParser:
                     return self.backtrack_gate(job.needs)
         return False
 
-    def analyze_checkouts(self):
-        """Analyze if any steps within the workflow utilize the
-        'actions/checkout' action with a 'ref' parameter.
+    # def analyze_checkouts(self):
+    #     """Analyze if any steps within the workflow utilize the
+    #     'actions/checkout' action with a 'ref' parameter.
 
-        Returns:
-            job_checkouts: List of 'ref' values within the 'actions/checkout' steps.
-        """
-        job_checkouts = {}
-        if "jobs" not in self.parsed_yml:
-            return job_checkouts
+    #     Returns:
+    #         job_checkouts: List of 'ref' values within the 'actions/checkout' steps.
+    #     """
+    #     job_checkouts = {}
+    #     if "jobs" not in self.parsed_yml:
+    #         return job_checkouts
 
-        for job in self.jobs:
-            job_content = {
-                "check_steps": [],
-                "if_check": job.evaluateIf(),
-                "confidence": "UNKNOWN",
-                "gated": False,
-            }
-            step_details = []
-            bump_confidence = False
+    #     for job in self.jobs:
+    #         job_content = {
+    #             "check_steps": [],
+    #             "if_check": job.evaluateIf(),
+    #             "confidence": "UNKNOWN",
+    #             "gated": False,
+    #         }
+    #         step_details = []
+    #         bump_confidence = False
 
-            if job.isCaller():
-                self.callees.append(job.uses.split("/")[-1])
-            elif job.external_caller:
-                self.callees.append(job.uses)
+    #         if job.isCaller():
+    #             self.callees.append(job.uses.split("/")[-1])
+    #         elif job.external_caller:
+    #             self.callees.append(job.uses)
 
-            if job_content["if_check"] and job_content["if_check"].startswith(
-                "RESTRICTED"
-            ):
-                job_content["gated"] = True
+    #         if job_content["if_check"] and job_content["if_check"].startswith(
+    #             "RESTRICTED"
+    #         ):
+    #             job_content["gated"] = True
 
-            for step in job.steps:
-                # If the step is a gate, exit now, we can't reach the rest of the job.
-                if step.is_gate:
-                    job_content["gated"] = True
-                elif step.is_checkout:
-                    # Check if the dependant jobs are gated.
-                    if job.needs:
-                        job_content["gated"] = self.backtrack_gate(job.needs)
-                    # If the step is a checkout and the ref is pr sha, then no TOCTOU is possible.
-                    if job_content["gated"] and (
-                        "github.event.pull_request.head.sha" in step.metadata.lower()
-                        or (
-                            "sha" in step.metadata.lower()
-                            and "env." in step.metadata.lower()
-                        )
-                    ):
-                        # Break out of this job.
-                        break
-                    else:
-                        if_check = step.evaluateIf()
-                        if if_check and if_check.startswith("EVALUATED"):
-                            bump_confidence = True
-                        elif if_check and "RESTRICTED" in if_check:
-                            # In the future, we will exit here.
-                            bump_confidence = False
-                        elif if_check == "":
-                            pass
-                        step_details.append(
-                            {
-                                "ref": step.metadata,
-                                "if_check": if_check,
-                                "step_name": step.name,
-                            }
-                        )
+    #         for step in job.steps:
+    #             # If the step is a gate, exit now, we can't reach the rest of the job.
+    #             if step.is_gate:
+    #                 job_content["gated"] = True
+    #             elif step.is_checkout:
+    #                 # Check if the dependant jobs are gated.
+    #                 if job.needs:
+    #                     job_content["gated"] = self.backtrack_gate(job.needs)
+    #                 # If the step is a checkout and the ref is pr sha, then no TOCTOU is possible.
+    #                 if job_content["gated"] and (
+    #                     "github.event.pull_request.head.sha" in step.metadata.lower()
+    #                     or (
+    #                         "sha" in step.metadata.lower()
+    #                         and "env." in step.metadata.lower()
+    #                     )
+    #                 ):
+    #                     # Break out of this job.
+    #                     break
+    #                 else:
+    #                     if_check = step.evaluateIf()
+    #                     if if_check and if_check.startswith("EVALUATED"):
+    #                         bump_confidence = True
+    #                     elif if_check and "RESTRICTED" in if_check:
+    #                         # In the future, we will exit here.
+    #                         bump_confidence = False
+    #                     elif if_check == "":
+    #                         pass
+    #                     step_details.append(
+    #                         {
+    #                             "ref": step.metadata,
+    #                             "if_check": if_check,
+    #                             "step_name": step.name,
+    #                         }
+    #                     )
 
-                elif step_details and step.is_sink:
-                    # Confirmed sink, so set to HIGH if reachable via expression parser or no check at all
-                    job_content["confidence"] = (
-                        "HIGH"
-                        if (
-                            job_content["if_check"]
-                            and job_content["if_check"].startswith("EVALUATED")
-                        )
-                        or (bump_confidence and not job_content["if_check"])
-                        or (
-                            not job_content["if_check"]
-                            and (
-                                not step.evaluateIf()
-                                or step.evaluateIf().startswith("EVALUATED")
-                            )
-                        )
-                        else "MEDIUM"
-                    )
+    #             elif step_details and step.is_sink:
+    #                 # Confirmed sink, so set to HIGH if reachable via expression parser or no check at all
+    #                 job_content["confidence"] = (
+    #                     "HIGH"
+    #                     if (
+    #                         job_content["if_check"]
+    #                         and job_content["if_check"].startswith("EVALUATED")
+    #                     )
+    #                     or (bump_confidence and not job_content["if_check"])
+    #                     or (
+    #                         not job_content["if_check"]
+    #                         and (
+    #                             not step.evaluateIf()
+    #                             or step.evaluateIf().startswith("EVALUATED")
+    #                         )
+    #                     )
+    #                     else "MEDIUM"
+    #                 )
 
-            job_content["check_steps"] = step_details
-            job_checkouts[job.job_name] = job_content
+    #         job_content["check_steps"] = step_details
+    #         job_checkouts[job.job_name] = job_content
 
-        return job_checkouts
+    #     return job_checkouts
 
     def check_pwn_request(self, bypass=False):
         """Check for potential pwn request vulnerabilities.
