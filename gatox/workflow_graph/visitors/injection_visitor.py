@@ -1,6 +1,6 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_parser.utility import CONTEXT_REGEX
-
+from gatox.workflow_parser.utility import check_sus, getTokens
 
 from gatox.github.api import Api
 
@@ -54,6 +54,7 @@ class InjectionVisitor:
 
                     if "JobNode" in tags:
                         # Check deployment environment rules
+                        
                         if node.deployments:
                             rules = api.get_all_environment_protection_rules(
                                 node.repo_name
@@ -70,6 +71,12 @@ class InjectionVisitor:
                         if paths:
                             break
 
+                        env_vars = node.env_vars
+                        for key, val in env_vars.items():
+                            if type(val) is str:
+                                if "github." in val:
+                                    env_lookup[key] = val
+
                         if node.outputs:
                             for o_key, val in node.outputs.items():
                                 if "env." in val and val not in env_lookup:
@@ -81,6 +88,11 @@ class InjectionVisitor:
                             # We need to figure out what variables referenced.
                             # also, need to consider the multi tag DFS option
                             # because the true injection might be later.
+                            
+                            if approval_gate is True:
+                                continue
+
+                            filtered_contexts = []
 
                             for variable in node.contexts:
 
@@ -100,16 +112,25 @@ class InjectionVisitor:
                                         original_val = env_lookup[processed_var]
                                         variable = original_val
 
+                                    filtered_contexts.append(variable)
+
                                 elif "env." in variable:
                                     for key, val in env_lookup.items():
                                         if key in variable:
                                             variable = val
+                                            filtered_contexts.append(variable)
                                             break
+                                else:
+                                    filtered_contexts.append(variable)
 
-                            if approval_gate is True:
-                                break
-
-                            results.append(path)
+                            for val in filtered_contexts:
+                                if '${{' in val:
+                                    val = getTokens(val)
+                                    if val:
+                                        val = val[0]
+                                if val and check_sus(val):
+                                    print(val)
+                                    results.append(path)
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():
                             # Caller job node
@@ -133,5 +154,7 @@ class InjectionVisitor:
                 # or get passed through workflow calls
                 # we also want to make sure to track inside of
                 # composite actions.
+        for path in results:
+            print(path)
 
         # Now we have all reponodes

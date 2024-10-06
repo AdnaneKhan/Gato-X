@@ -28,6 +28,7 @@ class JobNode(Node):
         self.repo_name = repo_name
         self.if_condition = None
         self.deployments = []
+        self.env_vars = {}
         self.self_hosted = False
         self.outputs = {}
 
@@ -71,6 +72,10 @@ class JobNode(Node):
                 self.deployments.extend(job_def["environment"])
             else:
                 self.deployments.append(job_def["environment"])
+
+
+        if "env" in job_def:
+            self.env_vars = job_def["env"]
 
     def __eq__(self, other):
         """
