@@ -35,7 +35,11 @@ class ActionNode(Node):
     )
 
     KNOWN_GATES = set(
-        ["sushichop/action-repository-permission", "actions-cool/check-user-permission"]
+        [
+            "sushichop/action-repository-permission",
+            "actions-cool/check-user-permission",
+            "dependabot/fetch-metadata",
+        ]
     )
 
     def __init__(

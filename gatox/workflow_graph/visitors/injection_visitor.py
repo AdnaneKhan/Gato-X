@@ -1,4 +1,6 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
+from gatox.workflow_parser.utility import CONTEXT_REGEX
+
 
 from gatox.github.api import Api
 
@@ -31,6 +33,7 @@ class InjectionVisitor:
         )
 
         all_paths = []
+        results = []
 
         for cn in nodes:
             paths = graph.dfs_to_tag(cn, "injectable", api)
@@ -40,7 +43,90 @@ class InjectionVisitor:
 
         for path_set in all_paths:
             for path in path_set:
-                print(path)
+                input_lookup = {}
+                env_lookup = {}
+                flexible_lookup = {}
+
+                approval_gate = False
+
+                for index, node in enumerate(path):
+                    tags = node.get_tags()
+
+                    if "JobNode" in tags:
+                        # Check deployment environment rules
+                        if node.deployments:
+                            rules = api.get_all_environment_protection_rules(
+                                node.repo_name
+                            )
+                            for deployment in node.deployments:
+                                if deployment in rules:
+                                    approval_gate = True
+
+                        paths = graph.dfs_to_tag(node, "permission_check", api)
+                        if paths:
+                            approval_gate = True
+
+                        paths = graph.dfs_to_tag(node, "permission_blocker", api)
+                        if paths:
+                            break
+
+                        if node.outputs:
+                            for o_key, val in node.outputs.items():
+                                if "env." in val and val not in env_lookup:
+                                    for key in env_lookup.keys():
+                                        if key in val:
+                                            flexible_lookup[o_key] = env_lookup[key]
+                    elif "StepNode" in tags:
+                        if "injectable" in tags:
+                            # We need to figure out what variables referenced.
+                            # also, need to consider the multi tag DFS option
+                            # because the true injection might be later.
+
+                            for variable in node.contexts:
+
+                                if "inputs." in variable:
+                                    if "${{" in variable:
+                                        processed_var = CONTEXT_REGEX.findall(variable)
+                                        if processed_var:
+                                            processed_var = processed_var[0]
+                                            if "inputs." in processed_var:
+                                                processed_var = processed_var.replace(
+                                                    "inputs.", ""
+                                                )
+                                    else:
+                                        processed_var = variable
+
+                                    if processed_var in env_lookup:
+                                        original_val = env_lookup[processed_var]
+                                        variable = original_val
+
+                                elif "env." in variable:
+                                    for key, val in env_lookup.items():
+                                        if key in variable:
+                                            variable = val
+                                            break
+
+                            if approval_gate is True:
+                                break
+
+                            results.append(path)
+                    elif "WorkflowNode" in tags:
+                        if index != 0 and "JobNode" in path[index - 1].get_tags():
+                            # Caller job node
+                            node_params = path[index - 1].params
+                            # Set lookup for input params
+                            input_lookup.update(node_params)
+                        if index == 0:
+                            if "pull_request_target:labeled" in tags:
+                                approval_gate = True
+
+                            # Check workflow environment variables.
+                            # for env vars that are github.event.*
+                            env_vars = node.env_vars
+                            for key, val in env_vars.items():
+                                if type(val) is str:
+                                    if "github." in val:
+                                        env_lookup[key] = val
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps

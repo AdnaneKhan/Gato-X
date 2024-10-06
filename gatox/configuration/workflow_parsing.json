@@ -82,6 +82,7 @@
             "key",
             "url",
             "link",
+            "regression",
             "steps.generate_token.outputs.token"
         ],
         "SINKS": [
@@ -93,7 +94,11 @@
             "npm install",
             "npm run",
             "tox",
-            "pnpm run"
+            "pnpm run",
+            "mvn",
+            "pip install -e",
+            "goreleaser",
+            "bundle"
         ]
     }
 }
