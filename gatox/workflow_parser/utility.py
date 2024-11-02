@@ -118,6 +118,8 @@ def parse_script(contents: str):
 
     if "isCrossRepository" in contents and "GITHUB_OUTPUT" in contents:
         return_dict["hard_gate"] = True
+    if "github.rest.repos.checkCollaborator" in contents:
+        return_dict["soft_gate"] = True
 
     if check_sinks(contents):
         return_dict["is_sink"] = True

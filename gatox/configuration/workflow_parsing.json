@@ -83,7 +83,10 @@
             "url",
             "link",
             "regression",
-            "steps.generate_token.outputs.token"
+            "steps.generate_token.outputs.token",
+            "issue",
+            "outputs.status",
+            "outputs.name"
         ],
         "SINKS": [
             "make",
@@ -98,7 +101,23 @@
             "mvn",
             "pip install -e",
             "goreleaser",
-            "bundle"
+            "bundle",
+            "rubocop",
+            "rake",
+            "mypy",
+            "tflint",
+            "gradle",
+            "go generate",
+            "eslint",
+            "checkcov",
+            "ant",
+            "bundle",
+            "prettier",
+            "gomplate",
+            "maven",
+            "pylint",
+            "rake",
+            "mdformat"
         ]
     }
 }

@@ -121,6 +121,8 @@ class WorkflowGraphBuilder:
                 callee_wf = api.retrieve_repo_file(slug, path, ref)
                 if callee_wf:
                     CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
+                else:
+                    return
 
             self.graph.remove_tags_from_node(workflow, ["uninitialized"])
 

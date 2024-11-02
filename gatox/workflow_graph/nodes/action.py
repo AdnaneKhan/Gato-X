@@ -39,6 +39,7 @@ class ActionNode(Node):
             "sushichop/action-repository-permission",
             "actions-cool/check-user-permission",
             "dependabot/fetch-metadata",
+            "shopify/snapit",
         ]
     )
 

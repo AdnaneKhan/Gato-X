@@ -1,6 +1,6 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_parser.utility import CONTEXT_REGEX
-from gatox.workflow_parser.utility import check_sus, getTokens
+from gatox.workflow_parser.utility import getTokens, filter_tokens
 
 from gatox.github.api import Api
 
@@ -29,15 +29,18 @@ class InjectionVisitor:
                 "issues",
                 "discussion",
                 "discussion_comment",
+                "pull_request_review_comment",
+                "pull_request_review"
             ]
         )
 
         all_paths = []
         results = []
 
+        rule_cache = {}
+
         for cn in nodes:
             paths = graph.dfs_to_tag(cn, "injectable", api)
-
             if paths:
                 all_paths.append(paths)
 
@@ -54,11 +57,15 @@ class InjectionVisitor:
 
                     if "JobNode" in tags:
                         # Check deployment environment rules
-                        
+
                         if node.deployments:
-                            rules = api.get_all_environment_protection_rules(
-                                node.repo_name
-                            )
+                            if node.repo_name in rule_cache:
+                                rules = rule_cache[node.repo_name]
+                            else:
+                                rules = api.get_all_environment_protection_rules(
+                                    node.repo_name
+                                )
+                                rule_cache[node.repo_name] = rules
                             for deployment in node.deployments:
                                 if deployment in rules:
                                     approval_gate = True
@@ -88,14 +95,13 @@ class InjectionVisitor:
                             # We need to figure out what variables referenced.
                             # also, need to consider the multi tag DFS option
                             # because the true injection might be later.
-                            
+
                             if approval_gate is True:
                                 continue
 
                             filtered_contexts = []
 
                             for variable in node.contexts:
-
                                 if "inputs." in variable:
                                     if "${{" in variable:
                                         processed_var = CONTEXT_REGEX.findall(variable)
@@ -124,12 +130,11 @@ class InjectionVisitor:
                                     filtered_contexts.append(variable)
 
                             for val in filtered_contexts:
-                                if '${{' in val:
+                                if "${{" in val:
                                     val = getTokens(val)
                                     if val:
                                         val = val[0]
-                                if val and check_sus(val):
-                                    print(val)
+                                if val:
                                     results.append(path)
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():
@@ -155,6 +160,7 @@ class InjectionVisitor:
                 # we also want to make sure to track inside of
                 # composite actions.
         for path in results:
+            print("Potential injection:")
             print(path)
 
         # Now we have all reponodes

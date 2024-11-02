@@ -48,6 +48,7 @@ class PwnRequestVisitor:
                 all_paths.append(paths)
 
         results = []
+        rule_cache = {}
 
         for path_set in all_paths:
             for path in path_set:
@@ -63,21 +64,26 @@ class PwnRequestVisitor:
                     if "JobNode" in tags:
                         # Check deployment environment rules
                         if node.deployments:
-                            rules = api.get_all_environment_protection_rules(
-                                node.repo_name
-                            )
+                            if node.repo_name in rule_cache:
+                                rules = rule_cache[node.repo_name]
+                            else:
+
+                                rules = api.get_all_environment_protection_rules(
+                                    node.repo_name
+                                )
+                                rule_cache[node.repo_name] = rules
                             for deployment in node.deployments:
                                 if deployment in rules:
                                     approval_gate = True
                                     continue
 
-                        paths = graph.dfs_to_tag(node, "permission_check", api)
-                        if paths:
-                            approval_gate = True
-
                         paths = graph.dfs_to_tag(node, "permission_blocker", api)
                         if paths:
                             break
+
+                        paths = graph.dfs_to_tag(node, "permission_check", api)
+                        if paths:
+                            approval_gate = True
 
                         if node.outputs:
                             for o_key, val in node.outputs.items():
@@ -99,12 +105,17 @@ class PwnRequestVisitor:
                                             processed_var = processed_var.replace(
                                                 "inputs.", ""
                                             )
+                                    else:
+                                        processed_var = node.metadata
                                 else:
+
                                     processed_var = node.metadata
 
                                 if processed_var in env_lookup:
                                     original_val = env_lookup[processed_var]
                                     checkout_ref = original_val
+                                elif processed_var in input_lookup:
+                                    checkout_ref = input_lookup[processed_var]
 
                             elif "env." in node.metadata:
                                 for key, val in env_lookup.items():
@@ -112,19 +123,23 @@ class PwnRequestVisitor:
                                         checkout_ref = val
                                         break
 
-                            if approval_gate and PwnRequestVisitor.check_mutable_ref(
-                                checkout_ref
-                            ):
+                            if (
+                                approval_gate
+                                and PwnRequestVisitor.check_mutable_ref(checkout_ref)
+                            ) or not approval_gate:
                                 results.append(path)
-                                break
-                            elif not approval_gate:
-                                results.append(path)
-                                break
+                                # sinks = graph.dfs_to_tag(node, "sink", api)
 
                         if node.outputs:
                             for key, val in node.outputs.items():
                                 if "env." in val:
                                     pass
+
+                        if node.hard_gate:
+                            break
+
+                        if node.soft_gate:
+                            approval_gate = True
 
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():
@@ -151,4 +166,5 @@ class PwnRequestVisitor:
                             WorkflowGraphBuilder()._initialize_action_node(node, api)
                             graph.remove_tags_from_node(node, ["uninitialized"])
         for path in results:
+            print("Potential pwn request:")
             print(path)
