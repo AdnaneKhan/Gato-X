@@ -1,5 +1,6 @@
 import yaml
 
+
 class Payloads:
     """Collection of payload template used for various attacks."""
 
@@ -123,7 +124,11 @@ fi
 
     @staticmethod
     def create_ror_workflow(
-        workflow_name: str, run_name: str, gist_url: str, runner_labels: list, target_os: str = "linux"
+        workflow_name: str,
+        run_name: str,
+        gist_url: str,
+        runner_labels: list,
+        target_os: str = "linux",
     ):
         """ """
         yaml_file = {}

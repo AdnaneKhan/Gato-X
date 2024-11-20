@@ -154,7 +154,7 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--c2-repo",
         metavar="C2_REPO",
-        help="Name of an existing Gato-X C2 repository in Owner/Repo format."
+        help="Name of an existing Gato-X C2 repository in Owner/Repo format.",
     )
 
     parser.add_argument(

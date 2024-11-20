@@ -195,9 +195,13 @@ def attack(args, parser):
         )
 
         if args.payload_only:
-            
+
             gh_attack_runner.payload_only(
-                args.target_os, args.target_arch, args.labels, c2_repo=args.c2_repo, keep_alive=args.keep_alive
+                args.target_os,
+                args.target_arch,
+                args.labels,
+                c2_repo=args.c2_repo,
+                keep_alive=args.keep_alive,
             )
         elif args.runner_on_runner:
             gh_attack_runner.runner_on_runner(

