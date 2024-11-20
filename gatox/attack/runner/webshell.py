@@ -587,10 +587,10 @@ class WebShell(Attacker):
 
             Output.info(f"There are {len(runners)} runner(s) connected to {c2_repo}:")
             for runner in runners:
-
                 runner_name = runner["name"]
 
-                labels = ", ".join([label["name"] for label in runner["labels"]])
-                Output.tabbed(f"Name: {runner_name} - Labels: {labels}")
+                labels = ", ".join([Output.yellow(label["name"]) for label in runner["labels"]])
+                status = runner["status"]
+                Output.tabbed(f"Name: {Output.red(runner_name)} - Labels: {labels} - Status: {Output.bright(status)}")
         else:
             Output.error("No runners connected to C2 repository!")

