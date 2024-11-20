@@ -90,6 +90,8 @@ class Attacker:
                 result.json()["id"],
                 result.json()["files"][f"{gist_name}-{random_id}"]["raw_url"],
             )
+        else:
+            Output.error("Failed to create Gist!")
 
     def execute_and_wait_workflow(
         self,
