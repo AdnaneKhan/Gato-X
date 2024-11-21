@@ -93,7 +93,9 @@ class CacheManager:
         repo_slug = repo_slug.lower()
         wf_keys = self.repo_wf_lookup.get(repo_slug, None)
         if wf_keys:
-            return [self.workflow_cache[f"{repo_slug}:{key}"] for key in wf_keys]
+            return [
+                self.workflow_cache[f"{repo_slug.lower()}:{key}"] for key in wf_keys
+            ]
         else:
             return set()
 
@@ -143,11 +145,10 @@ class CacheManager:
             workflow_name (str): The name of the workflow.
             value (Workflow): The workflow object to cache.
         """
-        repo_slug = repo_slug.lower()
-        key = f"{repo_slug}:{workflow_name}"
-        if repo_slug not in self.repo_wf_lookup:
-            self.repo_wf_lookup[repo_slug] = set()
-        self.repo_wf_lookup[repo_slug].add(workflow_name)
+        key = f"{repo_slug.lower()}:{workflow_name}"
+        if repo_slug.lower() not in self.repo_wf_lookup:
+            self.repo_wf_lookup[repo_slug.lower()] = set()
+        self.repo_wf_lookup[repo_slug.lower()].add(workflow_name)
         self.workflow_cache[key] = value
 
     def set_empty(self, repo_slug: str):

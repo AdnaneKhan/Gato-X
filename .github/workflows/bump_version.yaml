@@ -1,0 +1,42 @@
+name: Bump Gato-X Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      new_version:
+        description: 'New semantic version, e.g. 1.0.2'
+        required: true
+        type: string
+
+jobs:
+  bump-version:
+    if: ${{ github.actor == 'AdnaneKhan' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      NEW_VERSION: ${{ github.event.inputs.new_version }}
+      BRANCH_NAME: bump_version_${{ github.event.inputs.new_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update pyproject.toml with new version
+        run: |
+          echo "Updating pyproject.toml with version $NEW_VERSION"
+          sed -i "s/^version\s*=.*/version = \"$NEW_VERSION\"/" pyproject.toml
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: pyproject.toml
+          commit-message: "Bump version to ${{ env.NEW_VERSION }}"
+          branch: ${{ env.BRANCH_NAME }}
+          base: main
+          title: "Bump version to ${{ env.NEW_VERSION }}"
+          body: "This PR bumps the version to ${{ env.NEW_VERSION }}"
+          draft: false

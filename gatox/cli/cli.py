@@ -97,14 +97,19 @@ def validate_arguments(args, parser):
         re.match("gh[po]_[A-Za-z0-9]{36}$", gh_token)
         or re.match("^[a-fA-F0-9]{40}$", gh_token)
     ):
-        if re.match("gh[usr]_[A-Za-z0-9]{36}$", gh_token):
-            parser.error(
-                f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X only"
-                " supports GitHub OAuth and Personal Access Tokens."
-            )
+        if re.match("gh[s]_[A-Za-z0-9]{36}$", gh_token):
+            if not (args.machine and args.repository):
+                parser.error(
+                    f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X does"
+                    " not support App tokens without machine flag."
+                )
+            else:
+                Output.info(
+                    "Allowing the use of a GitHub App token for single repo enumeration."
+                )
         else:
             parser.error(
-                f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is" " malformed!"
+                f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is malformed or unsupported!"
             )
 
     args_dict = vars(args)
@@ -190,8 +195,13 @@ def attack(args, parser):
         )
 
         if args.payload_only:
+
             gh_attack_runner.payload_only(
-                args.payload_only, args.target_os, args.target_arch, args.labels
+                args.target_os,
+                args.target_arch,
+                args.labels,
+                c2_repo=args.c2_repo,
+                keep_alive=args.keep_alive,
             )
         elif args.runner_on_runner:
             gh_attack_runner.runner_on_runner(
@@ -207,9 +217,15 @@ def attack(args, parser):
                 yaml_name=args.file_name,
                 run_name=args.name,
                 workflow_name=args.name,
+                c2_repo=args.c2_repo,
             )
         elif args.interact:
-            gh_attack_runner.interact_webshell(args.interact)
+            if args.c2_repo:
+                gh_attack_runner.interact_webshell(args.c2_repo)
+            else:
+                parser.error(
+                    f"{Fore.RED}[!] You must specify a C2 repo to interact with!"
+                )
 
     elif args.workflow:
         gh_attack_runner = Attacker(

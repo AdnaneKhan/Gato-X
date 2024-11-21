@@ -1,0 +1,109 @@
+name: Gato-X Release Workflow
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  check_version:
+    name: Check Version Bump
+    runs-on: ubuntu-latest
+    outputs:
+      version_bumped: ${{ steps.check.outputs.version_bumped }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Ensure access to the previous commit
+
+      - name: Check if version has been updated
+        id: check
+        run: |
+          PREV_VERSION=$(git show HEAD~1:pyproject.toml | grep "^version" | sed 's/version = "\(.*\)"/\1/')
+          CURR_VERSION=$(grep "^version" pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Previous version: $PREV_VERSION"
+          echo "Current version: $CURR_VERSION"
+          if [ "$PREV_VERSION" != "$CURR_VERSION" ]; then
+            echo "version_bumped=true" >> $GITHUB_OUTPUT
+            echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version_bumped=false" >> $GITHUB_OUTPUT
+            echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
+          fi
+  build_artifact:
+    name: Build and upload artifact
+    runs-on: ubuntu-latest
+    needs: check_version
+    permissions:
+      id-token: write
+      attestations: write
+    if: needs.check_version.outputs.version_bumped == 'true' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4 
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install pypa/build
+        run: >-
+          python3 -m
+          pip install
+          build
+          --user
+      - name: Build Binary wheel Source Tarball
+        run: python3 -m build
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'dist/gato_x-*'
+      - name: Store Distribution Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+  release:
+    name: Publish Gato-X Distribution 📦 to PyPI
+    needs: [check_version, build_artifact]
+    if: needs.check_version.outputs.version_bumped == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/gato-x
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Publish Distribution
+        uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8
+        with:
+          tag_name: v${{ needs.check_version.outputs.version }}
+          name: Gato-X Release v${{ needs.check_version.outputs.version }}
+          body: |
+            Release of version v${{ needs.check_version.outputs.version }}
+          files: |
+            ./dist/*.tar.gz
+            ./dist/*.whl
+            ./dist/*.sigstore.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

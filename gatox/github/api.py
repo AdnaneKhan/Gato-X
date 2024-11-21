@@ -272,6 +272,10 @@ class Api:
             return False
         return True
 
+    def is_app_token(self):
+        """Returns if the API is using a GitHub App installation token."""
+        return self.pat.startswith("ghs_")
+
     def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
@@ -1115,15 +1119,17 @@ class Api:
             return False
 
         artifacts = req.json().get("artifacts", [])
-        download_url = artifacts[0]["archive_download_url"]
 
-        archive = self.call_get(download_url.replace("https://api.github.com", ""))
+        if artifacts:
+            download_url = artifacts[0]["archive_download_url"]
 
-        with zipfile.ZipFile(io.BytesIO(archive.content)) as artifact:
-            for zipinfo in artifact.infolist():
-                with artifact.open(zipinfo) as run_log:
-                    content = run_log.read()
-                    files[zipinfo.filename] = content
+            archive = self.call_get(download_url.replace("https://api.github.com", ""))
+
+            with zipfile.ZipFile(io.BytesIO(archive.content)) as artifact:
+                for zipinfo in artifact.infolist():
+                    with artifact.open(zipinfo) as run_log:
+                        content = run_log.read()
+                        files[zipinfo.filename] = content
 
         return files
 
@@ -1728,6 +1734,12 @@ class Api:
                 return res
 
         return None
+
+    def get_installation_repos(self):
+        """ """
+        response = self.call_get("/installation/repositories")
+        if response.status_code == 200:
+            return response.json()
 
     def get_commit_merge_date(self, repo: str, sha: str):
         """Gets the date of the merge commit."""

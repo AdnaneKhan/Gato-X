@@ -68,6 +68,26 @@ class Enumerator:
         self.org_e = OrganizationEnum(self.api)
 
     def __setup_user_info(self):
+        """Sets up user/app token information."""
+        if not self.user_perms and self.api.is_app_token():
+            installation_info = self.api.get_installation_repos()
+
+            if installation_info:
+                count = installation_info["total_count"]
+                if count > 0:
+                    Output.info(
+                        f"Gato-X is using valid a GitHub App installation token!"
+                    )
+                    self.user_perms = {
+                        "user": "Github App",
+                        "scopes": [],
+                        "name": "GATO-X App Mode",
+                    }
+
+                    return True
+                else:
+                    return False
+
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:
@@ -162,6 +182,7 @@ class Enumerator:
 
         Returns:
             bool: False if the PAT is not valid for enumeration.
+            (list, list): Tuple containing list of orgs and list of repos.
         """
 
         self.__setup_user_info()
@@ -352,12 +373,13 @@ class Enumerator:
         Args:
             repo_names (list): Repository name in {Org/Owner}/Repo format.
         """
+        repo_wrappers = []
         if not self.__setup_user_info():
-            return False
+            return repo_wrappers
 
         if len(repo_names) == 0:
             Output.error("The list of repositories was empty!")
-            return
+            return repo_wrappers
 
         Output.info(
             f"Querying and caching workflow YAML files "
@@ -368,7 +390,6 @@ class Enumerator:
         for repo in repo_names:
             self.__retrieve_missing_ymls(repo)
 
-        repo_wrappers = []
         try:
             for repo in repo_names:
                 repo_obj = self.enumerate_repo_only(repo)

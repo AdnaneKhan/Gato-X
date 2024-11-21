@@ -4,6 +4,7 @@ import pathlib
 
 from unittest import mock
 from gatox.cli import cli
+from unittest.mock import patch
 
 from gatox.util.arg_utils import read_file_and_validate_lines
 from gatox.util.arg_utils import is_valid_directory
@@ -17,15 +18,17 @@ def mock_settings_env_vars(request):
         yield
 
 
-def test_cli_no_gh_token(capfd):
+@patch("builtins.input", return_value="")
+def test_cli_no_gh_token(mock_input, capfd):
     """Test case where no GH Token is provided"""
     del os.environ["GH_TOKEN"]
 
-    with pytest.raises(OSError):
+    with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
 
-    out, err = capfd.readouterr()
-    assert "Please enter" in out
+    mock_input.assert_called_with(
+        "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
+    )
 
 
 def test_cli_fine_grained_pat(capfd):
@@ -45,7 +48,26 @@ def test_cli_s2s_token(capfd):
     with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
-    assert "supports GitHub OAuth and Personal Access Tokens" in err
+    assert "not support App tokens without machine flag" in err
+
+
+def test_cli_s2s_token_no_machine(capfd):
+    """Test case where a service-to-service token is provided."""
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    with pytest.raises(SystemExit):
+        cli.cli(["enumerate", "-r", "testOrg/testRepo"])
+    out, err = capfd.readouterr()
+    assert "not support App tokens without machine flag" in err
+
+
+def test_cli_s2s_token_machine(capfd):
+    """Test case where a service-to-service token is provided."""
+    os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+    cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
+    out, err = capfd.readouterr()
+    assert "Allowing the use of a GitHub App token for single repo enumeration" in out
 
 
 def test_cli_u2s_token(capfd):
@@ -55,7 +77,7 @@ def test_cli_u2s_token(capfd):
     with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
-    assert "supports GitHub OAuth and Personal Access Tokens" in err
+    assert "Provided GitHub PAT is malformed or unsupported" in err
 
 
 @mock.patch("gatox.cli.cli.Enumerator")
@@ -288,6 +310,21 @@ def test_enum_self(mock_enumerate):
 
     cli.cli(["enum", "-s"])
     mock_enumerate.assert_called_once()
+
+
+@mock.patch("gatox.models.execution.Execution.add_repositories")
+@mock.patch("gatox.models.execution.Execution.add_organizations")
+@mock.patch("gatox.enumerate.enumerate.Enumerator.self_enumeration")
+def test_enum_self_json_empty(mock_enumerate, mock_executor_org, mock_executor_repo):
+    """Test enum command using the self enumerattion."""
+
+    mock_enumerate.return_value = ([], ["repo1", "repo2"])
+
+    cli.cli(["enum", "-s", "-oJ", "test.json"])
+    mock_enumerate.assert_called_once()
+
+    mock_executor_org.assert_called_with([])
+    mock_executor_repo.assert_called_with(["repo1", "repo2"])
 
 
 @mock.patch("gatox.cli.cli.Enumerator")

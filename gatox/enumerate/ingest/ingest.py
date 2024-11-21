@@ -177,6 +177,12 @@ class DataIngestor:
                 else "main"
             )
 
+            # If we are using app installation tokens, then
+            # the query might return empty for this field, but if
+            # we are here then we can read.
+            if not result["viewerPermission"]:
+                result["viewerPermission"] = "READ"
+
             repo_data = {
                 "full_name": result["nameWithOwner"],
                 "html_url": result["url"],
@@ -216,7 +222,6 @@ class DataIngestor:
                     if env["node"]["name"] != "github-pages"
                 ]
                 repo_data["environments"] = envs
-
             repo_wrapper = Repository(repo_data)
             cache.set_repository(repo_wrapper)
 

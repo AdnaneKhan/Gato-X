@@ -69,6 +69,9 @@ def test_init(mock_api):
 @patch("gatox.enumerate.enumerate.Api")
 def test_self_enumerate(mock_api, capsys):
     """Test constructor for enumerator."""
+
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -104,6 +107,8 @@ def test_enumerate_repo_admin(mock_api, capsys):
         skip_log=False,
     )
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -137,6 +142,8 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
         skip_log=False,
     )
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo"],
@@ -169,6 +176,8 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
         output_yaml=True,
         skip_log=False,
     )
+
+    mock_api.return_value.is_app_token.return_value = False
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -205,6 +214,8 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
         skip_log=False,
     )
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -239,6 +250,8 @@ def test_enumerate_repo_only(mock_api, capsys):
         skip_log=False,
     )
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -268,6 +281,8 @@ def test_enum_validate(mock_api, capfd):
         "scopes": ["repo", "workflow"],
     }
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_organizations.return_value = []
 
     gh_enumeration_runner = Enumerator(
@@ -293,6 +308,8 @@ def test_enum_repo(mock_api, mock_time, capfd):
         "scopes": ["repo", "workflow"],
     }
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
 
     gh_enumeration_runner = Enumerator(
@@ -317,6 +334,8 @@ def test_enum_org(mock_api, mock_time, capfd):
         "user": "testUser",
         "scopes": ["repo", "workflow", "admin:org"],
     }
+
+    mock_api.return_value.is_app_token.return_value = False
 
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
     mock_api.return_value.get_organization_details.return_value = TEST_ORG_DATA
@@ -396,6 +415,8 @@ def test_enum_repo_runner(mock_api, capfd):
         "scopes": ["repo", "workflow"],
     }
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.get_repo_runners.return_value = [
         {
             "id": 2,
@@ -457,6 +478,8 @@ def test_enum_repos(mock_api, mock_time, capfd):
         "scopes": ["repo", "workflow"],
     }
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
 
     gh_enumeration_runner = Enumerator(
@@ -480,6 +503,8 @@ def test_enum_repos_empty(mock_api, capfd):
         "user": "testUser",
         "scopes": ["repo", "workflow"],
     }
+
+    mock_api.return_value.is_app_token.return_value = False
 
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
 
@@ -508,6 +533,8 @@ def test_bad_token(mock_api):
         skip_log=True,
     )
 
+    mock_api.return_value.is_app_token.return_value = False
+
     mock_api.return_value.check_user.return_value = None
 
     val = gh_enumeration_runner.self_enumeration()
@@ -526,6 +553,7 @@ def test_unscoped_token(mock_api, capfd):
         skip_log=True,
     )
 
+    mock_api.return_value.is_app_token.return_value = False
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["public_repo"],
@@ -536,3 +564,28 @@ def test_unscoped_token(mock_api, capfd):
     out, _ = capfd.readouterr()
     assert "Self-enumeration requires the repo scope!" in escape_ansi(out)
     assert status is False
+
+
+@patch("gatox.enumerate.enumerate.Api")
+def test_enum_self_no_repos(mock_api, capfd):
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        output_yaml=False,
+        skip_log=True,
+        output_json="test.json",
+    )
+
+    mock_api.return_value.is_app_token.return_value = False
+    mock_api.return_value.check_user.return_value = {
+        "user": "testUser",
+        "scopes": ["repo"],
+    }
+
+    orgs, repos = gh_enumeration_runner.self_enumeration()
+
+    assert orgs == []
+    assert repos == []
+
+    out, _ = capfd.readouterr()

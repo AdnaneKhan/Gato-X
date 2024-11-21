@@ -152,10 +152,16 @@ def configure_parser_attack(parser):
     )
 
     parser.add_argument(
-        "--interact",
+        "--c2-repo",
         metavar="C2_REPO",
-        help="Interact with a C2 repository with an existing runner-on-runner.",
-        type=StringType(10),
+        help="Name of an existing Gato-X C2 repository in Owner/Repo format.",
+    )
+
+    parser.add_argument(
+        "--interact",
+        action="store_true",
+        help="Connect to a C2 repository and interact with connected runners.",
+        default=False,
     )
 
     parser.add_argument(
@@ -170,7 +176,7 @@ def configure_parser_attack(parser):
         "--target-os",
         metavar="TARGET_OS",
         help="Operating system for Runner-on-Runner attack. Options: windows, linux, osx.",
-        choices=["windows", "linux", "osx"],
+        choices=["win", "linux", "osx"],
     )
 
     parser.add_argument(
@@ -189,15 +195,7 @@ def configure_parser_attack(parser):
 
     parser.add_argument(
         "--payload-only",
-        metavar="C2_REPO",
-        help="Generaate payloads with the specified C2 repository. Used for manually deploying runner on runner.",
+        help="Generaate payloads with the specified C2 repository or creates a new one. Used for manually deploying runner on runner.",
         default=False,
-        type=StringType(64),
-    )
-
-    parser.add_argument(
-        "--runner-name",
-        metavar="RUNNER_NAME",
-        help="Name of the runner to be used in the attack. Required if using --interact.",
-        type=StringType(64),
+        action="store_true",
     )
