@@ -1,3 +1,5 @@
+from functools import reduce
+
 class GqlQueries:
     """Constructs graphql queries for use with the GitHub GraphQL api."""
 
@@ -220,20 +222,27 @@ class GqlQueries:
 
         for i in range(0, (len(repos) // 100) + 1):
 
-            top_len = len(repos) if len(repos) < (100 + i * 100) else (100 + i * 100)
+            top_len = len(repos) if len(repos) <  100 * (i + 1) else  100 * (i + 1)
+            # Use reduce to accumulate node_ids and can_push in a single iteration
+            node_ids, can_push = reduce(
+                lambda acc, repo: (
+                    acc[0] + [repo.repo_data["node_id"]],
+                    acc[1] or repo.can_push()
+                ),
+                repos[100 * i : top_len],
+                ([], False)
+            )
+            
             query = {
                 # We list envs if we have write access to one in the set (for secrets
                 # reasons, otherwise we don't list them)
                 "query": (
                     GqlQueries.GET_YMLS_ENV
-                    if repos[i].can_push()
+                    if can_push
                     else GqlQueries.GET_YMLS
                 ),
                 "variables": {
-                    "node_ids": [
-                        repo.repo_data["node_id"]
-                        for repo in repos[0 + 100 * i : top_len]
-                    ]
+                    "node_ids": node_ids
                 },
             }
 
