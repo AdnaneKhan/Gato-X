@@ -20,7 +20,6 @@ import string
 import time
 import re
 import datetime
-import yaml
 
 from gatox.attack.attack import Attacker
 from gatox.cli.output import Output
@@ -480,11 +479,7 @@ class WebShell(Attacker):
         else:
             dispatch_input["cmd"] = parameter
 
-        curr_time = (
-            datetime.datetime.now(tz=datetime.timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-        )
+        curr_time = AttackUtilities.get_time()
         success = self.api.issue_dispatch(
             c2_repo,
             target_workflow=workflow_name,

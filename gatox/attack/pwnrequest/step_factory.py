@@ -4,6 +4,8 @@ from gatox.attack.pwnrequest.steps.pull_request import PullRequest
 from gatox.attack.pwnrequest.steps.catcher import Catcher
 from gatox.attack.pwnrequest.steps.comment import CommentStep
 from gatox.attack.pwnrequest.steps.dispatch import DispatchStep
+from gatox.attack.pwnrequest.steps.feature_branch import FeatureBranch
+from gatox.attack.pwnrequest.steps.merge_pr import Merge
 
 
 class StepFactory:
@@ -41,10 +43,19 @@ class StepFactory:
                 steps.append(step)
             elif step_definition["type"] == "Dispatch":
                 step = DispatchStep(
+                    target,
                     step_definition["workflow"],
                     step_definition["inputs"],
                     target_branch=step_definition.get("target_branch", None),
                 )
+
+                steps.append(step)
+            elif step_definition["type"] == "FeatureBranch":
+                step = FeatureBranch()
+
+                steps.append(step)
+            elif step_definition["type"] == "Merge":
+                step = Merge()
 
                 steps.append(step)
 

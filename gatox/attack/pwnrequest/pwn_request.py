@@ -25,12 +25,22 @@ class PwnRequest(Attacker):
         )
 
         steps = StepFactory.create_steps(target_repo, attack_template)
-
         results = {}
+
+        Output.info("Setting up attack, please follow the prompts.")
         for step in steps:
+            status = step.setup(self.api)
+            if not status:
+                Output.error(f"Failed to setup step: {step}, aborting.")
+                return False
+
+        Output.info("All setup complete, starting attack.")
+        for step in steps:
+            Output.info(f"Executing step: {step.step_data}")
+
             status = step.preflight(self.api, previous_results=results)
             if not status:
-                Output.error(f"Failed to check preconditions for step: {step}")
+                Output.error(f"Failed perform preflight for step: {step}")
                 return False
 
             status = step.execute(self.api)

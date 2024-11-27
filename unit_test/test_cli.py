@@ -31,7 +31,8 @@ def test_cli_no_gh_token(mock_input, capfd):
     )
 
 
-def test_cli_fine_grained_pat(capfd):
+@mock.patch("gatox.cli.cli.Enumerator")
+def test_cli_fine_grained_pat(mock_enumerate, capfd):
     """Test case where an unsupported PAT is provided."""
     os.environ["GH_TOKEN"] = "github_pat_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -41,7 +42,8 @@ def test_cli_fine_grained_pat(capfd):
     assert "not supported" in err
 
 
-def test_cli_s2s_token(capfd):
+@mock.patch("gatox.cli.cli.Enumerator")
+def test_cli_s2s_token(mock_enumerate, capfd):
     """Test case where a service-to-service token is provided."""
     os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -51,7 +53,8 @@ def test_cli_s2s_token(capfd):
     assert "not support App tokens without machine flag" in err
 
 
-def test_cli_s2s_token_no_machine(capfd):
+@mock.patch("gatox.cli.cli.Enumerator")
+def test_cli_s2s_token_no_machine(mock_enumerate, capfd):
     """Test case where a service-to-service token is provided."""
     os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -61,7 +64,8 @@ def test_cli_s2s_token_no_machine(capfd):
     assert "not support App tokens without machine flag" in err
 
 
-def test_cli_s2s_token_machine(capfd):
+@mock.patch("gatox.cli.cli.Enumerator")
+def test_cli_s2s_token_machine(mock_enumerate, capfd):
     """Test case where a service-to-service token is provided."""
     os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -70,7 +74,8 @@ def test_cli_s2s_token_machine(capfd):
     assert "Allowing the use of a GitHub App token for single repo enumeration" in out
 
 
-def test_cli_u2s_token(capfd):
+@mock.patch("gatox.cli.cli.Enumerator")
+def test_cli_u2s_token(mock_enumerate, capfd):
     """Test case where a service-to-service token is provided."""
     os.environ["GH_TOKEN"] = "ghu_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 

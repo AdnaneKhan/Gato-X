@@ -321,7 +321,7 @@ class Api:
 
         return api_response
 
-    def call_post(self, url: str, params: dict = None):
+    def call_post(self, url: str, params: dict = None, credential_override=None):
         """Internal method to wrap a POST request so that proxies and headers
         do not need to be updated in each method.
 
@@ -335,9 +335,13 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making POST API request to {request_url}!")
 
+        post_header = copy.deepcopy(self.headers)
+        if credential_override:
+            post_header["Authorization"] = f"Bearer {credential_override}"
+
         api_response = requests.post(
             request_url,
-            headers=self.headers,
+            headers=post_header,
             proxies=self.proxies,
             json=params,
             verify=self.verify_ssl,
@@ -1173,27 +1177,39 @@ class Api:
 
         return False
 
-    def create_branch(self, repo_name: str, branch_name: str):
+    def create_branch(
+        self, repo_name: str, branch_name: str, credential_override: str = None
+    ):
         """Create a branch with the provided name.
 
         Args:
             repo_name (str): Name of repository in Org/Repo format.
             branch_name (str): Name of branch to create.
         """
-        branch_resp = self.call_get(f"/repos/{repo_name}/branches/{branch_name}")
+        branch_resp = self.call_get(
+            f"/repos/{repo_name}/branches/{branch_name}",
+            credential_override=credential_override,
+        )
         if branch_resp.status_code != 404:
             # Branch already exists
             return True
 
         resp = self.call_get(f"/repos/{repo_name}")
         default_branch = resp.json()["default_branch"]
-        resp = self.call_get(f"/repos/{repo_name}/git/ref/heads/{default_branch}")
+        resp = self.call_get(
+            f"/repos/{repo_name}/git/ref/heads/{default_branch}",
+            credential_override=credential_override,
+        )
         json_resp = resp.json()
         sha = json_resp["object"]["sha"]
 
         branch_data = {"ref": f"refs/heads/{branch_name}", "sha": sha}
 
-        resp = self.call_post(f"/repos/{repo_name}/git/refs", params=branch_data)
+        resp = self.call_post(
+            f"/repos/{repo_name}/git/refs",
+            params=branch_data,
+            credential_override=credential_override,
+        )
 
         if resp.status_code == 201:
             return True
@@ -1221,6 +1237,7 @@ class Api:
         commit_author: str = "Gato-X",
         commit_email: str = "gato-x@pwn.com",
         message="Testing",
+        credential_override=None,
     ):
         """Commits a file to the specified branch on a repository.
 
@@ -1235,11 +1252,15 @@ class Api:
         """
 
         # Create branch if it does not exist.
-        self.create_branch(repo_name, branch_name)
+        self.create_branch(
+            repo_name, branch_name, credential_override=credential_override
+        )
 
         # Check if the file exists on the target branch
         get_resp = self.call_get(
-            f"/repos/{repo_name}/contents/{file_path}", params={"ref": branch_name}
+            f"/repos/{repo_name}/contents/{file_path}",
+            params={"ref": branch_name},
+            credential_override=credential_override,
         )
         if get_resp.status_code == 200:
             # File exists, include the old SHA

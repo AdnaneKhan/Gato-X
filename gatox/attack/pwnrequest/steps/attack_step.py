@@ -3,7 +3,10 @@
 
 
 class AttackStep:
-    """ """
+    """Base class for attack step."""
+
+    SUCCESS_STATUS = "SUCCESS"
+    FAIL_STATUS = "FAILURE"
 
     def __init__(self, description, step_type, step_data):
         self.description = description
@@ -15,9 +18,17 @@ class AttackStep:
     def __str__(self):
         return f"{self.__class__.__name__} - {self.step_data}"
 
+    def sanity(self, api):
+        """Checks that should be done before executing the attack at all.
+
+        These are typically unauth checks to make sure conditions exist so that
+        the step would be possible in the first place.
+        """
+        return True
+
     def preflight(self, api, previous_results: dict = {}):
         """ """
-        pass
+        return True
 
     def execute(self, api):
         """Execute the step after validating pre-conditions."""
