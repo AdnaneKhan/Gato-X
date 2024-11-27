@@ -302,7 +302,7 @@ class Api:
         if credential_override:
             get_header["Authorization"] = f"Bearer {credential_override}"
 
-        for i in range(0, 5):
+        for _ in range(0, 5):
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
                 api_response = requests.get(
@@ -1180,10 +1180,14 @@ class Api:
             repo_name (str): Name of repository in Org/Repo format.
             branch_name (str): Name of branch to create.
         """
+        branch_resp = self.call_get(f"/repos/{repo_name}/branches/{branch_name}")
+        if branch_resp.status_code != 404:
+            # Branch already exists
+            return True
+
         resp = self.call_get(f"/repos/{repo_name}")
         default_branch = resp.json()["default_branch"]
         resp = self.call_get(f"/repos/{repo_name}/git/ref/heads/{default_branch}")
-
         json_resp = resp.json()
         sha = json_resp["object"]["sha"]
 
@@ -1207,57 +1211,6 @@ class Api:
 
         if resp.status_code == 204:
             return True
-
-    def create_branch(self, repo_name: str, branch_name: str):
-        """Creates a new branch in the specified repository."""
-        branch_resp = self.call_get(f"/repos/{repo_name}/branches/{branch_name}")
-        if branch_resp.status_code == 404:
-            # Branch does not exist, create it from the default branch
-            repo_info_resp = self.call_get(f"/repos/{repo_name}")
-            if repo_info_resp.status_code != 200:
-                Output.error(
-                    f"Error retrieving repository info: {repo_info_resp.status_code} {repo_info_resp.text}"
-                )
-                return None
-            default_branch = repo_info_resp.json().get("default_branch")
-            if not default_branch:
-                Output.error("Default branch not found.")
-                return None
-
-            # Get the latest commit SHA of the default branch
-            ref_resp = self.call_get(
-                f"/repos/{repo_name}/git/ref/heads/{default_branch}"
-            )
-            if ref_resp.status_code != 200:
-                Output.error(
-                    f"Error retrieving default branch ref: {ref_resp.status_code} {ref_resp.text}"
-                )
-                return None
-            source_sha = ref_resp.json().get("object", {}).get("sha")
-            if not source_sha:
-                Output.error("Source SHA not found.")
-                return None
-
-            # Create the new branch
-            create_ref_payload = {"ref": f"refs/heads/{branch_name}", "sha": source_sha}
-            create_ref_resp = self.call_post(
-                f"/repos/{repo_name}/git/refs", params=create_ref_payload
-            )
-            if create_ref_resp.status_code != 201:
-                Output.error(
-                    f"Error creating branch: {create_ref_resp.status_code} {create_ref_resp.text}"
-                )
-                return None
-            Output.info(f"Branch '{branch_name}' created successfully.")
-        elif branch_resp.status_code == 200:
-            # Branch exists
-            pass
-        else:
-            # Handle other errors
-            Output.error(
-                f"Error checking branch existence: {branch_resp.status_code} {branch_resp.text}"
-            )
-            return None
 
     def commit_file(
         self,
