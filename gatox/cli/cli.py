@@ -10,7 +10,9 @@ from gatox.cli.output import Output, SPLASH
 from gatox.cli.enumeration.config import configure_parser_enumerate
 from gatox.cli.search.config import configure_parser_search
 from gatox.cli.attack.config import configure_parser_attack
+from gatox.cli.pwnrequest.config import configure_parser_pwnrequest
 from gatox.enumerate.enumerate import Enumerator
+from gatox.attack.pwnrequest.pwn_request import PwnRequest
 from gatox.attack.attack import Attacker
 from gatox.attack.runner.webshell import WebShell
 from gatox.attack.secrets.secrets_attack import SecretsAttack
@@ -47,11 +49,19 @@ def cli(args):
 
     attack_parser = subparsers.add_parser(
         "attack",
-        help="CI/CD Attack Capabilities",
+        help="CI/CD Attack Capabilities, focusing on workflow file modification.",
         aliases=["a"],
         formatter_class=argparse.RawTextHelpFormatter,
     )
     attack_parser.set_defaults(func=attack)
+
+    pwnrequest_parser = subparsers.add_parser(
+        "pwnrequest",
+        help="Multi-step Pwn Request attack functionality.",
+        aliases=["pwn"],
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    pwnrequest_parser.set_defaults(func=pwnrequest)
 
     enumerate_parser = subparsers.add_parser(
         "enumerate",
@@ -72,6 +82,7 @@ def cli(args):
     configure_parser_attack(attack_parser)
     configure_parser_enumerate(enumerate_parser)
     configure_parser_search(search_parser)
+    configure_parser_pwnrequest(pwnrequest_parser)
 
     arguments = parser.parse_args(args)
 
@@ -375,6 +386,41 @@ def search(args, parser):
 
     if results:
         gh_search_runner.present_results(results, args.output_text)
+
+
+def pwnrequest(args, parser):
+    """Execute the pwnrequest attack mode."""
+    # Validate common arguments
+    validate_arguments(args, parser)
+
+    # Load and validate the attack template
+    import yaml
+
+    try:
+        with open(args.attack_template, "r") as template_file:
+            attack_template = yaml.safe_load(template_file)
+        # Validate the attack template as needed
+        # For example, check required keys
+    except yaml.YAMLError as exc:
+        Output.error(f"Error parsing attack template YAML file: {exc}")
+        exit(1)
+    except FileNotFoundError:
+        Output.error("Attack template YAML file not found.")
+        exit(1)
+
+    # Implement the attack using the loaded attack_template
+    # Initialize the attacker with appropriate parameters
+    timeout = int(args.timeout)
+
+    pwn_attacker = PwnRequest(
+        args.gh_token,
+        socks_proxy=args.socks_proxy,
+        http_proxy=args.http_proxy,
+        timeout=timeout,
+        github_url=args.api_url,
+    )
+
+    pwn_attacker.execute_attack(args.target, attack_template)
 
 
 def configure_parser_general(parser):

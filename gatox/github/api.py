@@ -276,7 +276,9 @@ class Api:
         """Returns if the API is using a GitHub App installation token."""
         return self.pat.startswith("ghs_")
 
-    def call_get(self, url: str, params: dict = None, strip_auth=False):
+    def call_get(
+        self, url: str, params: dict = None, strip_auth=False, credential_override=None
+    ):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
 
@@ -285,7 +287,8 @@ class Api:
             params (dict, optional): Parameters to pass to the request.
             strip_auth (bool): Whether to make the request without any auth
             token. Defaults to False.
-            Defaults to None.
+            credential_override (str, optional): Override the auth token with
+            the provided credential.
 
         Returns:
             Response: Returns the requests response object.
@@ -295,6 +298,9 @@ class Api:
         get_header = copy.deepcopy(self.headers)
         if strip_auth:
             del get_header["Authorization"]
+
+        if credential_override:
+            get_header["Authorization"] = f"Bearer {credential_override}"
 
         for i in range(0, 5):
             try:
@@ -544,6 +550,17 @@ class Api:
 
         if result.status_code == 200:
             return result.json()
+
+    def get_user(self):
+        """Retrieve the username of the authenticated user.
+
+        Returns:
+            str: Username of the authenticated user.
+        """
+        result = self.call_get("/user")
+
+        if result.status_code == 200:
+            return result.json()["login"]
 
     def get_user_type(self, username: str):
         """
@@ -1191,6 +1208,57 @@ class Api:
         if resp.status_code == 204:
             return True
 
+    def create_branch(self, repo_name: str, branch_name: str):
+        """Creates a new branch in the specified repository."""
+        branch_resp = self.call_get(f"/repos/{repo_name}/branches/{branch_name}")
+        if branch_resp.status_code == 404:
+            # Branch does not exist, create it from the default branch
+            repo_info_resp = self.call_get(f"/repos/{repo_name}")
+            if repo_info_resp.status_code != 200:
+                Output.error(
+                    f"Error retrieving repository info: {repo_info_resp.status_code} {repo_info_resp.text}"
+                )
+                return None
+            default_branch = repo_info_resp.json().get("default_branch")
+            if not default_branch:
+                Output.error("Default branch not found.")
+                return None
+
+            # Get the latest commit SHA of the default branch
+            ref_resp = self.call_get(
+                f"/repos/{repo_name}/git/ref/heads/{default_branch}"
+            )
+            if ref_resp.status_code != 200:
+                Output.error(
+                    f"Error retrieving default branch ref: {ref_resp.status_code} {ref_resp.text}"
+                )
+                return None
+            source_sha = ref_resp.json().get("object", {}).get("sha")
+            if not source_sha:
+                Output.error("Source SHA not found.")
+                return None
+
+            # Create the new branch
+            create_ref_payload = {"ref": f"refs/heads/{branch_name}", "sha": source_sha}
+            create_ref_resp = self.call_post(
+                f"/repos/{repo_name}/git/refs", params=create_ref_payload
+            )
+            if create_ref_resp.status_code != 201:
+                Output.error(
+                    f"Error creating branch: {create_ref_resp.status_code} {create_ref_resp.text}"
+                )
+                return None
+            Output.info(f"Branch '{branch_name}' created successfully.")
+        elif branch_resp.status_code == 200:
+            # Branch exists
+            pass
+        else:
+            # Handle other errors
+            Output.error(
+                f"Error checking branch existence: {branch_resp.status_code} {branch_resp.text}"
+            )
+            return None
+
     def commit_file(
         self,
         repo_name: str,
@@ -1205,32 +1273,55 @@ class Api:
 
         Args:
             repo_name (str): Name of repository to target.
-            branch_name (str): Branch name to commit to. Must exist, otherwise
-            the operation will fail.
+            branch_name (str): Branch name to commit to. Will be created if it does not exist.
             file_path (str): Path within to repository to commit file to.
             file_content (bytes): Content of the file to commit in bytes.
             commit_author (str): Author of the commit.
             commit_email (str): Email for commit.
             message (str): Commit message for testing.
         """
-        b64_contents = base64.b64encode(file_content)
+
+        # Create branch if it does not exist.
+        self.create_branch(repo_name, branch_name)
+
+        # Check if the file exists on the target branch
+        get_resp = self.call_get(
+            f"/repos/{repo_name}/contents/{file_path}", params={"ref": branch_name}
+        )
+        if get_resp.status_code == 200:
+            # File exists, include the old SHA
+            existing_file = get_resp.json()
+            file_sha = existing_file["sha"]
+        elif get_resp.status_code == 404:
+            # File does not exist, proceed without 'sha'
+            file_sha = None
+        else:
+            # Handle other errors
+            print(f"Error retrieving file: {get_resp.status_code} {get_resp.text}")
+            return None
+
+        b64_contents = base64.b64encode(file_content).decode("utf-8")
         commit_data = {
             "message": message,
-            "content": b64_contents.decode("utf-8"),
+            "content": b64_contents,
             "branch": branch_name,
             "committer": {"name": commit_author, "email": commit_email},
         }
 
+        if file_sha:
+            commit_data["sha"] = file_sha
+
+        # Commit the file
         resp = self.call_put(
             f"/repos/{repo_name}/contents/{file_path}", params=commit_data
         )
 
-        if resp.status_code == 201:
+        if resp.status_code in (200, 201):
             resp_json = resp.json()
             return resp_json["commit"]["sha"]
         else:
-            print(resp.status_code)
-            print(resp.text)
+            print(f"Error committing file: {resp.status_code} {resp.text}")
+            return None
 
     def retrieve_workflow_ymls(self, repo_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.
@@ -1771,3 +1862,66 @@ class Api:
 
             if pr_info["merged"]:
                 return pr_info["mergedAt"]
+
+    def get_gist_file(self, gist_filename, credential_override=None):
+        """List all secret gists belonging to the authenticated user and return the contents
+        of the gist that has a filename matching gist_filename. If the result is truncated,
+        make a subsequent request to the raw_url to get the full contents.
+        """
+        params = {"per_page": 100}
+
+        response = self.call_get(
+            "/gists", params=params, credential_override=credential_override
+        )
+        if response.status_code != 200:
+            return None
+        gists = response.json()
+        for gist in gists:
+            if not gist["public"]:
+                if gist_filename in gist["files"]:
+                    contents = self.call_get(
+                        f"/gists/{gist['id']}", credential_override=credential_override
+                    ).json()
+                    return contents["files"][gist_filename]["content"]
+
+        return None
+
+    def get_workflow_runs_by_user_and_trigger(
+        self, repo_name: str, user_name: str, workflow_file_name: str, trigger_events
+    ):
+        """Retrieve recent workflow runs where the triggering actor is the specified user,
+        the workflow file matches the provided one, and the triggering event is one of the provided triggers.
+
+        Args:
+            repo_name (str): The repository name in 'owner/repo' format.
+            user_name (str): The username of the triggering actor.
+            workflow_file_name (str): The path of the workflow file.
+            trigger_events (list): A list of triggering events to filter by.
+
+        Returns:
+            list: A list of workflow runs matching the criteria.
+        """
+        runs = []
+        page = 1
+        per_page = 100
+        events_query = ",".join(trigger_events)
+        while True:
+            params = {
+                "actor": user_name,
+                "event": events_query,
+                "per_page": per_page,
+                "page": page,
+            }
+            response = self.call_get(f"/repos/{repo_name}/actions/runs", params=params)
+            if response.status_code != 200:
+                # Handle error or break the loop
+                break
+            data = response.json()
+            workflow_runs = data.get("workflow_runs", [])
+            for run in workflow_runs:
+                if run["path"] == f".github/workflows/{workflow_file_name}":
+                    runs.append(run)
+            if len(workflow_runs) < per_page:
+                break
+            page += 1
+        return runs

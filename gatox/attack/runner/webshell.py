@@ -24,6 +24,7 @@ import yaml
 
 from gatox.attack.attack import Attacker
 from gatox.cli.output import Output
+from gatox.attack.utilities import AttackUtilities
 from gatox.attack.payloads.payloads import Payloads
 
 
@@ -177,22 +178,10 @@ class WebShell(Attacker):
             Output.error("Failed to check for target branch!")
             return False
 
-        repo_name = self.api.fork_repository(target_repo)
+        repo_name = AttackUtilities.fork_and_check_repository(
+            self.api, target_repo, self.timeout
+        )
         if not repo_name:
-            Output.error("Error while forking repository!")
-            return False
-
-        for i in range(self.timeout):
-            status = self.api.get_repository(repo_name)
-            if status:
-                Output.result(f"Successfully created fork: {repo_name}!")
-                time.sleep(5)
-                break
-            else:
-                time.sleep(1)
-
-        if not status:
-            Output.error(f"Forked repository not found after {self.timeout} seconds!")
             return False
 
         # Commit implantation workflow on fork, removing all other workflow files.
