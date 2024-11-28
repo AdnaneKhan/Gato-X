@@ -385,20 +385,25 @@ class Api:
 
         return api_response
 
-    def call_put(self, url: str, params: dict = None):
+    def call_put(self, url: str, params: dict = None, credential_override: str = None):
         """Internal method to wrap a PUT request so that proxies and headers
         do not need to be updated in each method.
 
         Args:
             url (stre): _description_
             params (dict, optional): _description_. Defaults to None.
+            credential_override (str, optional): _description_. Defaults to None.
         """
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
+        put_header = copy.deepcopy(self.headers)
+        if credential_override:
+            put_header["Authorization"] = f"Bearer {credential_override}"
+
         api_response = requests.put(
             request_url,
-            headers=self.headers,
+            headers=put_header,
             proxies=self.proxies,
             json=params,
             verify=self.verify_ssl,
@@ -408,7 +413,7 @@ class Api:
 
         return api_response
 
-    def call_delete(self, url: str, params: dict = None):
+    def call_delete(self, url: str, params: dict = None, credential_override=None):
         """Internal method to wrap a POST request so that proxies and headers
         do not need to be updated in each method.
 
@@ -422,9 +427,13 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
+        delete_header = copy.deepcopy(self.headers)
+        if credential_override:
+            delete_header["Authorization"] = f"Bearer {credential_override}"
+
         api_response = requests.delete(
             request_url,
-            headers=self.headers,
+            headers=delete_header,
             proxies=self.proxies,
             json=params,
             verify=self.verify_ssl,
@@ -1070,7 +1079,9 @@ class Api:
             return 0
         return 1 if data.get("conclusion", "failure") == "success" else -1
 
-    def delete_workflow_run(self, repo_name: str, workflow_id: int):
+    def delete_workflow_run(
+        self, repo_name: str, workflow_id: int, credential_override=None
+    ):
         """Deletes a previous workflow run.
 
         Args:
@@ -1080,7 +1091,10 @@ class Api:
         Returns:
             bool: True if the workflow was deleted, false otherwise.
         """
-        req = self.call_delete(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}")
+        req = self.call_delete(
+            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}",
+            credential_override=credential_override,
+        )
 
         return req.status_code == 204
 
@@ -1196,15 +1210,11 @@ class Api:
 
         resp = self.call_get(f"/repos/{repo_name}")
         default_branch = resp.json()["default_branch"]
-        resp = self.call_get(
-            f"/repos/{repo_name}/git/ref/heads/{default_branch}",
-            credential_override=credential_override,
-        )
-        json_resp = resp.json()
-        sha = json_resp["object"]["sha"]
 
-        branch_data = {"ref": f"refs/heads/{branch_name}", "sha": sha}
+        resp = self.call_get(f"/repos/{repo_name}/commits/{default_branch}", credential_override=credential_override)
+        latest_commit_sha = resp.json()["sha"]
 
+        branch_data = {"ref": f"refs/heads/{branch_name}", "sha": latest_commit_sha}
         resp = self.call_post(
             f"/repos/{repo_name}/git/refs",
             params=branch_data,
@@ -1252,9 +1262,12 @@ class Api:
         """
 
         # Create branch if it does not exist.
-        self.create_branch(
+        status = self.create_branch(
             repo_name, branch_name, credential_override=credential_override
         )
+
+        if not status:
+            return False
 
         # Check if the file exists on the target branch
         get_resp = self.call_get(
@@ -1270,9 +1283,7 @@ class Api:
             # File does not exist, proceed without 'sha'
             file_sha = None
         else:
-            # Handle other errors
-            print(f"Error retrieving file: {get_resp.status_code} {get_resp.text}")
-            return None
+            return False
 
         b64_contents = base64.b64encode(file_content).decode("utf-8")
         commit_data = {
@@ -1287,15 +1298,14 @@ class Api:
 
         # Commit the file
         resp = self.call_put(
-            f"/repos/{repo_name}/contents/{file_path}", params=commit_data
-        )
+            f"/repos/{repo_name}/contents/{file_path}", params=commit_data, credential_override=credential_override
+        )        
 
         if resp.status_code in (200, 201):
             resp_json = resp.json()
             return resp_json["commit"]["sha"]
         else:
-            print(f"Error committing file: {resp.status_code} {resp.text}")
-            return None
+            return False
 
     def retrieve_workflow_ymls(self, repo_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.

@@ -51,7 +51,11 @@ class StepFactory:
 
                 steps.append(step)
             elif step_definition["type"] == "FeatureBranch":
-                step = FeatureBranch()
+                step = FeatureBranch(
+                    target,
+                    step_definition["branch_name"],
+                    step_definition.get("modified_files", []),
+                )
 
                 steps.append(step)
             elif step_definition["type"] == "Merge":

