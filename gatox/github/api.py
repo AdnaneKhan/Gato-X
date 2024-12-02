@@ -1211,7 +1211,12 @@ class Api:
         resp = self.call_get(f"/repos/{repo_name}")
         default_branch = resp.json()["default_branch"]
 
-        resp = self.call_get(f"/repos/{repo_name}/commits/{default_branch}", credential_override=credential_override)
+        resp = self.call_get(
+            f"/repos/{repo_name}/commits/heads/{default_branch}",
+            params={"per_page": 1},
+            credential_override=credential_override,
+        )
+
         latest_commit_sha = resp.json()["sha"]
 
         branch_data = {"ref": f"refs/heads/{branch_name}", "sha": latest_commit_sha}
@@ -1298,8 +1303,10 @@ class Api:
 
         # Commit the file
         resp = self.call_put(
-            f"/repos/{repo_name}/contents/{file_path}", params=commit_data, credential_override=credential_override
-        )        
+            f"/repos/{repo_name}/contents/{file_path}",
+            params=commit_data,
+            credential_override=credential_override,
+        )
 
         if resp.status_code in (200, 201):
             resp_json = resp.json()

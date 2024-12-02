@@ -614,15 +614,10 @@ def test_create_branch(api_access, mock_all_requests):
             status_code=200,
             json=MagicMock(
                 return_value={
-                    "ref": "refs/heads/dev",
+                    "sha": "988881adc9fc3655077dc2d4d757d480b5ea0e11",
                     "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "url": "https://api.github.com/repos/testOrg/testRepo/git/refs/heads/dev",
-                    "object": {
-                        "sha": "988881adc9fc3655077dc2d4d757d480b5ea0e11",
-                        "type": "commit",
-                        "url": "https://api.github.com/repos/praetorian-inc/testOrg/commits/988881adc9fc3655077dc2d4d757d480b5ea0e11",
-                    },
-                }
+                    "url": "https://api.github.com/repos/testOrg/testRepo/commits/988881adc9fc3655077dc2d4d757d480b5ea0e11",
+                },
             ),
         ),
     ]
@@ -654,14 +649,9 @@ def test_create_branch_fail(api_access, mock_all_requests):
             status_code=200,
             json=MagicMock(
                 return_value={
-                    "ref": "refs/heads/dev",
+                    "sha": "988881adc9fc3655077dc2d4d757d480b5ea0e11",
                     "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "url": "https://api.github.com/repos/testOrg/testRepo/git/refs/heads/dev",
-                    "object": {
-                        "sha": "988881adc9fc3655077dc2d4d757d480b5ea0e11",
-                        "type": "commit",
-                        "url": "https://api.github.com/repos/praetorian-inc/testOrg/commits/988881adc9fc3655077dc2d4d757d480b5ea0e11",
-                    },
+                    "url": "https://api.github.com/repos/testOrg/testRepo/commits/988881adc9fc3655077dc2d4d757d480b5ea0e11",
                 }
             ),
         ),
