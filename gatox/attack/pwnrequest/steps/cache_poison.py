@@ -8,7 +8,8 @@ class CachePoison(AttackStep):
         """ """
         self.poison_payload = payload_path
 
-    def preflight(self, previous_results=None):
+    @AttackStep.require_params("cache_token", "cache_url")
+    def preflight(self, cache_token=None, cache_url=None):
         """Validates preconditions for executing this step."""
         pass
 

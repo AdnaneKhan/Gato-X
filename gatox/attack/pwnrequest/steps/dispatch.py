@@ -59,10 +59,11 @@ class DispatchStep(AttackStep):
 
         return True
 
-    def preflight(self, api, previous_results=None):
+    @AttackStep.require_params("secrets")
+    def preflight(self, api, secrets=None):
         """Validates preconditions for executing this step."""
 
-        self.credential = previous_results["secrets"]["values"]["system.github.token"]
+        self.credential = secrets["values"]["system.github.token"]
 
         status = api.call_get(
             f"/installation/repositories", credential_override=self.credential
@@ -73,7 +74,7 @@ class DispatchStep(AttackStep):
 
         Output.owned(f"Token is valid!")
         # We need to pass the secrets on.
-        self.output["secrets"] = previous_results["secrets"]
+        self.output["secrets"] = secrets
 
         return True
 

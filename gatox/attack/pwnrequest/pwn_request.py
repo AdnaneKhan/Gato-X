@@ -38,7 +38,7 @@ class PwnRequest(Attacker):
         for step in steps:
             Output.info(f"Executing step: {step.step_data}")
 
-            status = step.preflight(self.api, previous_results=results)
+            status = step.preflight(self.api, **results)
             if not status:
                 Output.error(f"Failed perform preflight for step: {step}")
                 return False

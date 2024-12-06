@@ -81,18 +81,18 @@ class Catcher(AttackStep):
             Output.error("Invalid exfiltration format!")
             return False
 
-    def preflight(self, api, previous_results=None):
+    @AttackStep.require_params("catcher_gist", "exfil_gist")
+    def preflight(self, api, catcher_gist=None, exfil_gist=None):
         """Validates preconditions for executing this step."""
         # Check if the gist exists
-        if previous_results:
-            self.catcher_id = previous_results.get("catcher_gist", None)
-            self.exfil_gist = previous_results.get("exfil_gist", None)
 
-            if self.catcher_id and self.exfil_gist:
-                return True
-            else:
-                Output.error("No previous results found!")
-                return False
+        if catcher_gist and exfil_gist:
+            self.catcher_gist = catcher_gist
+            self.exfil_gist = exfil_gist
+            return True
+        else:
+            Output.error("No previous results found!")
+            return False
 
     def execute(self, api: Api):
         """Execute the step after validating pre-conditions."""
@@ -101,7 +101,7 @@ class Catcher(AttackStep):
         start_time = time.time()
         while time.time() - start_time < self.timeout:
             gist_results = api.get_gist_file(
-                self.catcher_id, credential_override=self.gist_pat
+                self.catcher_gist, credential_override=self.gist_pat
             )
             # Process gist_results if needed
             if gist_results:

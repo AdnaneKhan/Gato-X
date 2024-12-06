@@ -43,9 +43,10 @@ class FeatureBranch(AttackStep):
 
         return True
 
-    def preflight(self, api, previous_results={}):
+    @AttackStep.require_params("secrets")
+    def preflight(self, api, secrets=None):
         # Validate the GITHUB_TOKEN
-        self.credential = previous_results["secrets"]["values"]["system.github.token"]
+        self.credential = secrets["values"]["system.github.token"]
 
         status = api.call_get(
             f"/installation/repositories", credential_override=self.credential

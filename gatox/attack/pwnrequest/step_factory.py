@@ -29,6 +29,7 @@ class StepFactory:
                     step_definition["target_workflow"],
                     gist_pat,
                     modified_files=step_definition.get("modified_files", []),
+                    has_payload=step_definition.get("has_payload", False),
                 )
 
                 steps.append(step)
@@ -38,7 +39,11 @@ class StepFactory:
 
                 steps.append(step)
             elif step_definition["type"] == "Comment":
-                step = CommentStep(step_definition["comment"])
+                step = CommentStep(
+                    target,
+                    step_definition["target_workflow"],
+                    step_definition["comment"],
+                )
 
                 steps.append(step)
             elif step_definition["type"] == "Dispatch":
