@@ -52,10 +52,14 @@ class Execution:
                 "enumeration": {
                     "timestamp": self.timestamp.ctime(),
                     "organizations": [
-                        organization.toJSON() for organization in self.organizations
+                        organization.toJSON()
+                        for organization in self.organizations
+                        if isinstance(organization, Organization)
                     ],
                     "repositories": [
-                        repository.toJSON() for repository in self.repositories
+                        organization.toJSON()
+                        for organization in self.organizations
+                        if isinstance(organization, Repository)
                     ],
                 },
             }
