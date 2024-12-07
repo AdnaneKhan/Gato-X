@@ -6,6 +6,6 @@ class IssueStep(AttackStep):
     GitHub API.
     """
 
-    def __init__(self):
+    def __init__(self, issue_body: str, issue_title: str):
         """ """
         pass
