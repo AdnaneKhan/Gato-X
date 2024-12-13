@@ -19,6 +19,7 @@ from gatox.configuration.configuration_manager import ConfigurationManager
 
 from gatox.enumerate.reports.report import Report
 from gatox.models.repository import Repository
+from gatox.workflow_parser.utility import check_risky_regexes
 
 
 class ActionsReport(Report):
@@ -173,6 +174,9 @@ class ActionsReport(Report):
                     in ConfigurationManager().WORKFLOW_PARSING["UNSAFE_CONTEXTS"]
                 ):
                     confidence = "HIGH"
+                elif confidence == "UNKNOWN" and var and check_risky_regexes(var):
+                    confidence = "MEDIUM"
+
             lines.append(f'Variables: {", ".join(val["variables"])}')
             if "if_checks" in val and val["if_checks"]:
                 lines.append(f' Step If-check: {val["if_checks"]}')
