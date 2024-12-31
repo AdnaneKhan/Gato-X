@@ -73,7 +73,6 @@ class JobNode(Node):
             else:
                 self.deployments.append(job_def["environment"])
 
-
         if "env" in job_def:
             self.env_vars = job_def["env"]
 

@@ -45,7 +45,9 @@ class StepNode(Node):
         if "name" in step_data:
             self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}:{step_data['name']}_{step_number}"
         else:
-            self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}:step_{step_number}"
+            self.name = (
+                f"{repo_name}:{ref}:{workflow_path}:{job_name}:step_{step_number}"
+            )
 
         self.type = self.__get_type(step_data)
         self.is_checkout = False
@@ -124,10 +126,7 @@ class StepNode(Node):
                     else:
                         self.metadata = ref_param
                         self.is_checkout = True
-        elif (
-            "github-script" in uses
-            and "script" in self.params
-        ):
+        elif "github-script" in uses and "script" in self.params:
             contents = self.params["script"]
             self.contexts = filter_tokens(getTokens(contents))
 

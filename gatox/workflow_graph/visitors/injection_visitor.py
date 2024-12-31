@@ -30,7 +30,7 @@ class InjectionVisitor:
                 "discussion",
                 "discussion_comment",
                 "pull_request_review_comment",
-                "pull_request_review"
+                "pull_request_review",
             ]
         )
 
