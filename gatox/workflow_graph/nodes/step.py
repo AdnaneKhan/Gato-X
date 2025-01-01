@@ -52,7 +52,10 @@ class StepNode(Node):
         self.type = self.__get_type(step_data)
         self.is_checkout = False
         self.id = step_data.get("id", None)
-        self.if_condition = step_data.get("if", "").replace("\n", "")
+        self.if_condition = step_data.get("if", "")
+        # Need to check if it's actually something because it could be none
+        if self.if_condition:
+            self.if_condition = self.if_condition.replace("github.", "")
         self.is_sink = False
         self.hard_gate = False
         self.soft_gate = False

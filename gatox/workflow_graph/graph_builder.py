@@ -165,6 +165,13 @@ class WorkflowGraphBuilder:
             return
 
         for job_name, job_def in jobs.items():
+
+            if not job_def:
+                # This means there is a syntax error
+                # in the workflow. Gato-X cannot process
+                # malformed workflows.
+                return
+
             job_node = NodeFactory.create_job_node(
                 job_name,
                 workflow_wrapper.branch,

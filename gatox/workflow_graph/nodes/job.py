@@ -66,7 +66,8 @@ class JobNode(Node):
         return self.workflow_path
 
     def populate(self, job_def):
-        if "if" in job_def:
+
+        if job_def and "if" in job_def:
             self.if_condition = job_def["if"].replace("\n", "")
 
         self.outputs = job_def.get("outputs", {})

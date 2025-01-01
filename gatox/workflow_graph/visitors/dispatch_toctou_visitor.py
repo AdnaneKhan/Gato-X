@@ -62,6 +62,21 @@ class DispatchTOCTOUVisitor:
                             if not node.inputs:
                                 break
 
+                            pr_num_found = False
+                            # Prrocess inputs to determine if any contain a PR number.
+                            # this is a heuristic, but the key goal here
+                            # is to identify workflows that are taking a PR number
+                            # or mutable reference.
+                            for key, val in node.inputs.items():
+                                if "sha" in key.lower():
+                                    break
+                                elif "pr" in key or "pull_request" in key:
+                                    pr_num_found = True
+                                    break
+
+                            if not pr_num_found:
+                                break
+
                             # Check workflow environment variables.
                             # for env vars that are github.event.*
                             env_vars = node.env_vars

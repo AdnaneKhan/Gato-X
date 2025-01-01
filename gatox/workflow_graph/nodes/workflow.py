@@ -65,14 +65,18 @@ class WorkflowNode(Node):
         return extracted_triggers
 
     def __get_inputs(self, workflow_data: dict):
-        if (
-            "workflow_dispatch" in self.triggers
-            and isinstance(workflow_data["on"]["workflow_dispatch"], dict)
-            and "inputs" in workflow_data["on"]["workflow_dispatch"]
-        ):
-            return workflow_data["on"]["workflow_dispatch"]
-        else:
-            return {}
+        try:
+            if (
+                "workflow_dispatch" in self.triggers
+                and isinstance(workflow_data["on"], dict)
+                and isinstance(workflow_data["on"]["workflow_dispatch"], dict)
+                and "inputs" in workflow_data["on"]["workflow_dispatch"]
+            ):
+                return workflow_data["on"]["workflow_dispatch"]
+            else:
+                return {}
+        except TypeError:
+            print(workflow_data["on"])
 
     def __get_envs(self, workflow_data: dict):
         if "env" in workflow_data:
