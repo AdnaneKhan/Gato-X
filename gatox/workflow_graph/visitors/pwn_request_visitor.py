@@ -1,34 +1,29 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 
 
 class PwnRequestVisitor:
-    """ """
-
-    @staticmethod
-    def check_mutable_ref(ref):
-
-        if "github.event.pull_request.head.sha" in ref:
-            return False
-        elif "github.event.workflow_run.head.sha" in ref:
-            return False
-        elif "github.sha" in ref:
-            return False
-        # This points to the base branch, so it is not going to be
-        # exploitable.
-        elif "github.ref" in ref and "||" not in ref:
-            return False
-
-        return True
+    """Visits the graph to find potential Pwn Requests."""
 
     @staticmethod
     def _finalize_result():
         """Takes a known reachable checkout and attempts to find an associated sink."""
 
     @staticmethod
+    def _add_results(path, results: dict):
+        """ """
+        repo_name = path[0].repo_name
+        if repo_name not in results:
+            results[repo_name] = []
+
+        results[repo_name].append(path)
+
+    @staticmethod
     def find_pwn_requests(graph: TaggedGraph, api: Api):
+        """ """
 
         # Now we have all reponodes
         nodes = graph.get_nodes_for_tags(
@@ -47,7 +42,7 @@ class PwnRequestVisitor:
             if paths:
                 all_paths.append(paths)
 
-        results = []
+        results = {}
         rule_cache = {}
 
         for path_set in all_paths:
@@ -92,7 +87,6 @@ class PwnRequestVisitor:
                                         if key in val:
                                             flexible_lookup[o_key] = env_lookup[key]
                     elif "StepNode" in tags:
-
                         if node.is_checkout:
                             # Terminal
                             checkout_ref = node.metadata
@@ -108,7 +102,6 @@ class PwnRequestVisitor:
                                     else:
                                         processed_var = node.metadata
                                 else:
-
                                     processed_var = node.metadata
 
                                 if processed_var in env_lookup:
@@ -125,9 +118,9 @@ class PwnRequestVisitor:
 
                             if (
                                 approval_gate
-                                and PwnRequestVisitor.check_mutable_ref(checkout_ref)
+                                and VisitorUtils.check_mutable_ref(checkout_ref)
                             ) or not approval_gate:
-                                results.append(path)
+                                VisitorUtils._add_results(path, results)
                                 # sinks = graph.dfs_to_tag(node, "sink", api)
 
                         if node.outputs:
@@ -165,6 +158,6 @@ class PwnRequestVisitor:
                         if "uninitialized" in tags:
                             WorkflowGraphBuilder()._initialize_action_node(node, api)
                             graph.remove_tags_from_node(node, ["uninitialized"])
-        for path in results:
-            print("Potential pwn request:")
-            print(path)
+
+        print("PWN:")
+        VisitorUtils.ascii_render(results)

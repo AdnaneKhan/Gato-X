@@ -1,6 +1,8 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.workflow_parser.utility import getTokens, filter_tokens
+from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 
 from gatox.github.api import Api
 
@@ -35,8 +37,7 @@ class InjectionVisitor:
         )
 
         all_paths = []
-        results = []
-
+        results = {}
         rule_cache = {}
 
         for cn in nodes:
@@ -57,7 +58,6 @@ class InjectionVisitor:
 
                     if "JobNode" in tags:
                         # Check deployment environment rules
-
                         if node.deployments:
                             if node.repo_name in rule_cache:
                                 rules = rule_cache[node.repo_name]
@@ -135,7 +135,7 @@ class InjectionVisitor:
                                     if val:
                                         val = val[0]
                                 if val:
-                                    results.append(path)
+                                    VisitorUtils._add_results(path, results)
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():
                             # Caller job node
@@ -153,14 +153,18 @@ class InjectionVisitor:
                                 if type(val) is str:
                                     if "github." in val:
                                         env_lookup[key] = val
+                    elif "ActionNode" in tags:
+                        tags = node.get_tags()
+                        if "uninitialized" in tags:
+                            WorkflowGraphBuilder()._initialize_action_node(node, api)
+                            graph.remove_tags_from_node(node, ["uninitialized"])
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps
                 # or get passed through workflow calls
                 # we also want to make sure to track inside of
                 # composite actions.
-        for path in results:
-            print("Potential injection:")
-            print(path)
+        print("INJECT:")
+        VisitorUtils.ascii_render(results)
 
         # Now we have all reponodes

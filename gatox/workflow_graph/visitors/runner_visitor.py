@@ -11,5 +11,9 @@ class RunnerVisitor:
         """
         nodes = graph.get_nodes_for_tags(["self-hosted"])
 
+        workflows = {}
         for node in nodes:
-            print(node)
+            repo = node.repo_name
+            workflows.setdefault(repo, []).append(node.get_workflow_path())
+
+        return workflows

@@ -15,6 +15,8 @@ from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
+from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
+
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +155,15 @@ class Enumerator:
                     "Ensure the repository exists and the user has access."
                 )
 
+    def __finalize_caches(self, repos: list):
+        """Finalizes the caches for the repositories enumerated.
+
+        Args:
+            repos (list): List of Repository objects.
+        """
+        for repo in repos:
+            self.__retrieve_missing_ymls(repo.name)
+
     def validate_only(self):
         """Validates the PAT access and exits."""
         if not self.__setup_user_info():
@@ -278,6 +289,7 @@ class Enumerator:
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
         self.__query_graphql_workflows(wf_queries)
+        self.__finalize_caches(enum_list)
 
         try:
             for repo in enum_list:
@@ -285,10 +297,6 @@ class Enumerator:
                     continue
                 if self.skip_log and repo.is_fork():
                     continue
-                Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
-
-                if not CacheManager().is_repo_cached(repo.name):
-                    self.__retrieve_missing_ymls(repo.name)
 
                 cached_repo = CacheManager().get_repository(repo.name)
                 if cached_repo:
@@ -296,14 +304,8 @@ class Enumerator:
 
                 self.repo_e.enumerate_repository(repo)
                 self.repo_e.enumerate_repository_secrets(repo)
-
                 organization.set_repository(repo)
 
-                Recommender.print_repo_secrets(self.user_perms["scopes"], repo.secrets)
-                Recommender.print_repo_runner_info(repo)
-                Recommender.print_repo_attack_recommendations(
-                    self.user_perms["scopes"], repo
-                )
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
@@ -318,8 +320,23 @@ class Enumerator:
         Output.info("Traversing graph!")
 
         PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph, self.api)
-        RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
         InjectionVisitor.find_injections(WorkflowGraphBuilder().graph, self.api)
+        DispatchTOCTOUVisitor.find_dispatch_misconfigurations(
+            WorkflowGraphBuilder().graph, self.api
+        )
+
+        results = RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
+
+        if results:
+            Output.info(
+                f"Identified potential self-hosted runner usage in {len(results.keys())} repositories!"
+            )
+            Output.info(f"Analyizing run logs...")
+            for repo, workflows in results.items():
+                repo = CacheManager().get_repository(repo)
+                if repo and workflows:
+                    Output.tabbed(f"Checking run-logs for: {Output.bright(repo.name)}!")
+                    self.repo_e.perform_runlog_enumeration(repo, workflows)
 
     def enumerate_repo_only(self, repo_name: str):
         """Enumerate only a single repository. No checks for org-level

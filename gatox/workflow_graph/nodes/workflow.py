@@ -16,7 +16,9 @@ class WorkflowNode(Node):
         # processed yet.
         self.uninitialized = True
         self.triggers = []
+        self.repo_name = repo_name
         self.env_vars = {}
+        self.inputs = {}
 
     def __hash__(self):
         return hash((self.name, self.__class__.__name__))
@@ -62,6 +64,16 @@ class WorkflowNode(Node):
 
         return extracted_triggers
 
+    def __get_inputs(self, workflow_data: dict):
+        if (
+            "workflow_dispatch" in self.triggers
+            and isinstance(workflow_data["on"]["workflow_dispatch"], dict)
+            and "inputs" in workflow_data["on"]["workflow_dispatch"]
+        ):
+            return workflow_data["on"]["workflow_dispatch"]
+        else:
+            return {}
+
     def __get_envs(self, workflow_data: dict):
         if "env" in workflow_data:
             return workflow_data["env"]
@@ -73,6 +85,8 @@ class WorkflowNode(Node):
         self.triggers = self.__get_triggers(workflow.parsed_yml)
 
         self.env_vars = self.__get_envs(workflow.parsed_yml)
+
+        self.inputs = self.__get_inputs(workflow.parsed_yml)
         self.uninitialized = False
 
     def get_tags(self):

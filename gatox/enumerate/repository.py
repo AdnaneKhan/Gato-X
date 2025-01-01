@@ -27,7 +27,7 @@ class RepositoryEnum:
         self.output_yaml = output_yaml
         self.temp_wf_cache = {}
 
-    def __perform_runlog_enumeration(self, repository: Repository, workflows: list):
+    def perform_runlog_enumeration(self, repository: Repository, workflows: list):
         """Enumerate for the presence of a self-hosted runner based on
         downloading historical runlogs.
 
@@ -119,7 +119,6 @@ class RepositoryEnum:
             API and retrieving a repository.
         """
         runner_detected = False
-
         repository.update_time()
 
         if not repository.can_pull():

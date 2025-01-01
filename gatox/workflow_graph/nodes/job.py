@@ -24,6 +24,8 @@ class JobNode(Node):
         """
         # Create a unique ID for this step.
         self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}"
+        self.ref = ref
+        self.workflow_path = workflow_path
         self.params = {}
         self.repo_name = repo_name
         self.if_condition = None
@@ -53,6 +55,15 @@ class JobNode(Node):
         # Process standard label
         else:
             return process_runner(job_def["runs-on"])
+
+    def get_workflow_path(self):
+        """
+        Get the path to the workflow file associated with the JobNode instance.
+
+        Returns:
+            str: The path to the workflow file.
+        """
+        return self.workflow_path
 
     def populate(self, job_def):
         if "if" in job_def:

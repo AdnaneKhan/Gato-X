@@ -116,12 +116,14 @@ class StepNode(Node):
         if "/checkout" in uses and "ref" in self.params:
             ref_param = self.params["ref"]
             if isinstance(ref_param, str):
+                ref_param = ref_param.lower()
                 if "${{" in ref_param and "base" not in ref_param:
                     if (
                         "github.event.pull_request.head.ref" in ref_param
                         or "github.head_ref" in ref_param
-                        and "repo" not in self.params
-                    ):
+                        or "tag" in ref_param
+                        or "branch" in ref_param
+                    ) and "repo" not in self.params:
                         self.is_checkout = False
                     else:
                         self.metadata = ref_param
