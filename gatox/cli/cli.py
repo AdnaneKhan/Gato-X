@@ -303,6 +303,7 @@ def enumerate(args, parser):
         skip_log=args.skip_runners,
         github_url=args.api_url,
         ignore_workflow_run=args.ignore_workflow_run,
+        deep_dive=args.deep_dive,
     )
 
     exec_wrapper = Execution()

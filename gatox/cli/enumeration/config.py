@@ -101,3 +101,13 @@ def configure_parser_enumerate(parser):
         metavar="JSON_FILE",
         type=StringType(256),
     )
+
+    parser.add_argument(
+        "--deep-dive",
+        "-dd",
+        help=(
+            "Perform deep dive static analysis, which includes analyzing non-default branches for Pwn Request vulnerabilities.\n"
+            "Git is required on the PATH for this feature."
+        ),
+        action="store_true",
+    )

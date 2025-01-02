@@ -6,6 +6,8 @@ import hashlib
 import yaml
 from yaml import CSafeLoader
 
+from gatox.models.workflow import Workflow
+
 logger = logging.getLogger(__name__)
 
 
@@ -201,7 +203,13 @@ class Git:
                                     vals = parsed_yaml["on"]["pull_request_target"]
                                     if not vals or "branches" not in vals:
                                         values.append(
-                                            (branch, file, content, last_commit_date)
+                                            Workflow(
+                                                self.repo_name,
+                                                content,
+                                                file,
+                                                default_branch=def_branch,
+                                                non_default=branch,
+                                            )
                                         )
                                     elif vals and "branches" in vals:
                                         branch_matchers = vals["branches"]
@@ -210,14 +218,17 @@ class Git:
                                                 br.replace("*", "", 2)
                                                 in branch.split("/")[-1]
                                             ):
+
                                                 values.append(
-                                                    (
-                                                        branch,
-                                                        file,
+                                                    Workflow(
+                                                        self.repo_name,
                                                         content,
-                                                        last_commit_date,
+                                                        file,
+                                                        default_branch=def_branch,
+                                                        non_default=branch,
                                                     )
                                                 )
+
                             except Exception as e:
                                 print(e)
                                 print("Error!")

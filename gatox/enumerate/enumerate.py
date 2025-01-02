@@ -17,6 +17,7 @@ from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
 from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
 from gatox.enumerate.reports.runners import RunnersReport
+from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class Enumerator:
         github_url: str = None,
         output_json: str = None,
         ignore_workflow_run: bool = False,
+        deep_dive: bool = False,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -67,6 +69,7 @@ class Enumerator:
         self.user_perms = None
         self.github_url = github_url
         self.output_json = output_json
+        self.deep_dive = deep_dive
         self.ignore_workflow_run = ignore_workflow_run
 
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
@@ -114,9 +117,20 @@ class Enumerator:
         return True
 
     def __query_graphql_workflows(self, queries):
-        """Wrapper for querying workflows using the github graphql API.
+        """
+        Query workflows using the GitHub GraphQL API.
 
-        Since this is an IO heavy operation, we use a threadpool with 3 workers.
+        This method performs an IO-heavy operation by querying workflows in batches.
+        It utilizes a thread pool with a maximum of 3 workers to execute the queries concurrently.
+
+        Args:
+            queries (List[Any]): A list of GraphQL query objects to be executed.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Propagates any exceptions raised during the query execution.
         """
         with ThreadPoolExecutor(max_workers=3) as executor:
             Output.info(f"Querying repositories in {len(queries)} batches!")
@@ -133,11 +147,7 @@ class Enumerator:
                 DataIngestor.construct_workflow_cache(future.result())
 
     def __retrieve_missing_ymls(self, repo_name: str):
-        """Retrieve all workflow yaml files for a given repository.
-
-        Args:
-            repo_name (str): Repository name in {Org/Owner}/Repo format.
-        """
+        """ """
         repo = CacheManager().is_repo_cached(repo_name)
         if not repo:
             repo_data = self.api.get_repository(repo_name)
@@ -338,6 +348,10 @@ class Enumerator:
         self.__query_graphql_workflows(wf_queries)
         self.__finalize_caches(enum_list)
 
+        if self.deep_dive:
+            Output.inform(
+                "Deep dive workflow ingestion enabled, this will be a very slow process!"
+            )
         try:
             for repo in enum_list:
                 if repo.is_archived():
@@ -348,6 +362,9 @@ class Enumerator:
                 cached_repo = CacheManager().get_repository(repo.name)
                 if cached_repo:
                     repo = cached_repo
+
+                if self.deep_dive:
+                    IngestNonDefault.ingest(repo, self.api)
 
                 self.repo_e.enumerate_repository(repo)
                 self.repo_e.enumerate_repository_secrets(repo)
@@ -415,6 +432,15 @@ class Enumerator:
         for repo in repo_names:
             self.__retrieve_missing_ymls(repo)
 
+        if self.deep_dive:
+            Output.inform(
+                "Performing deep dive workflow ingestion, this will be a very slow process!"
+            )
+            for repo in repo_names:
+                repo_obj = CacheManager().get_repository(repo)
+                Output.info(f"Ingesting non-default workfows from {repo_obj.name}")
+                IngestNonDefault.ingest(repo_obj, self.api)
+
         try:
             for repo in repo_names:
                 repo_obj = self.__enumerate_repo_only(repo)
@@ -424,8 +450,5 @@ class Enumerator:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
         self.enumerate_new()
-
-        # for repo in repo_wrappers:
-        #     RunnersReport.report_runners(repo)
 
         return repo_wrappers
