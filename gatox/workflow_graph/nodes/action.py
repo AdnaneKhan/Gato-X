@@ -38,10 +38,11 @@ class ActionNode(Node):
         [
             "sushichop/action-repository-permission",
             "actions-cool/check-user-permission",
-            "dependabot/fetch-metadata",
             "shopify/snapit",
         ]
     )
+
+    KNOWN_HARD_GATES = set(["dependabot/fetch-metadata"])
 
     def __init__(
         self, action_name: str, ref: str, action_path: str, repo_name: str, params: dict
@@ -62,6 +63,7 @@ class ActionNode(Node):
         self.is_checkout = False
         self.if_condition = ""
         self.is_gate = False
+        self.hard_gate = False
         self.metadata = False
         self.initialized = False
         self.caller_ref = ref
@@ -86,6 +88,9 @@ class ActionNode(Node):
 
             if initial_path in self.KNOWN_GATES:
                 self.is_gate = True
+            if initial_path in self.KNOWN_HARD_GATES:
+                self.is_gate = True
+                self.hard_gate = True
         elif self.action_info["docker"]:
             # We don't resolve docker actions
             self.initialized = True

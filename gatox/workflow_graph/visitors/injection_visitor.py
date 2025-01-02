@@ -21,22 +21,24 @@ class InjectionVisitor:
         pass
 
     @staticmethod
-    def find_injections(graph: TaggedGraph, api: Api):
+    def find_injections(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
         """ """
 
-        nodes = graph.get_nodes_for_tags(
-            [
-                "issue_comment",
-                "pull_request_target",
-                "workflow_run",
-                "fork",
-                "issues",
-                "discussion",
-                "discussion_comment",
-                "pull_request_review_comment",
-                "pull_request_review",
-            ]
-        )
+        query_taglist = [
+            "issue_comment",
+            "pull_request_target",
+            "fork",
+            "issues",
+            "discussion",
+            "discussion_comment",
+            "pull_request_review_comment",
+            "pull_request_review",
+        ]
+
+        if not ignore_workflow_run:
+            query_taglist.append("workflow_run")
+
+        nodes = graph.get_nodes_for_tags(query_taglist)
 
         all_paths = []
         results = {}
@@ -69,6 +71,10 @@ class InjectionVisitor:
                                 )
                                 rule_cache[node.repo_name] = rules
                             for deployment in node.deployments:
+                                deployment = VisitorUtils.process_context_var(
+                                    deployment
+                                )
+
                                 if deployment in rules:
                                     approval_gate = True
 

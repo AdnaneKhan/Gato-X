@@ -302,6 +302,7 @@ def enumerate(args, parser):
         output_yaml=args.output_yaml,
         skip_log=args.skip_runners,
         github_url=args.api_url,
+        ignore_workflow_run=args.ignore_workflow_run,
     )
 
     exec_wrapper = Execution()

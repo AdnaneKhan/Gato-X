@@ -1,4 +1,5 @@
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+from gatox.workflow_parser.utility import CONTEXT_REGEX
 
 
 class VisitorUtils:
@@ -21,13 +22,18 @@ class VisitorUtils:
             graph.remove_tags_from_node(node, ["uninitialized"])
 
     @staticmethod
-    def check_mutable_ref(ref):
-
+    def check_mutable_ref(ref, start_tags=set()):
         if "github.event.pull_request.head.sha" in ref:
             return False
         elif "github.event.workflow_run.head.sha" in ref:
             return False
         elif "github.sha" in ref:
+            return False
+        # If the trigger is pull_request_target and we
+        # have a sha in the reference, then this is very likely
+        # to be from the original trigger in some form and not
+        # a mutable reference, so if it is gated we can suppress.
+        elif "sha" in ref and "pull_request_target" in start_tags:
             return False
         # This points to the base branch, so it is not going to be
         # exploitable.
@@ -35,6 +41,22 @@ class VisitorUtils:
             return False
 
         return True
+
+    @staticmethod
+    def process_context_var(value):
+
+        processed_var = value
+        if "${{" in value:
+            processed_var = CONTEXT_REGEX.findall(value)
+            if processed_var:
+                processed_var = processed_var[0]
+                if "inputs." in processed_var:
+                    processed_var = processed_var.replace("inputs.", "")
+            else:
+                processed_var = value
+        else:
+            processed_var = value
+        return processed_var
 
     @staticmethod
     def append_path(head, tail):

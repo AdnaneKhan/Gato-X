@@ -116,7 +116,7 @@ class StepNode(Node):
         uses = step_data["uses"]
         self.params = step_data.get("with", {})
 
-        if "/checkout" in uses and "ref" in self.params:
+        if "/checkout" in uses and self.params and "ref" in self.params:
             ref_param = self.params["ref"]
             if isinstance(ref_param, str):
                 ref_param = ref_param.lower()
@@ -150,6 +150,8 @@ class StepNode(Node):
             self.is_sink = self.params.get("bundler-cache", False)
         elif "actions/setup-node" in uses:
             self.is_sink = self.params.get("cache", False)
+        elif "dependabot/fetch-metadata" in uses:
+            self.hard_gate = True
 
     def __hash__(self):
         """

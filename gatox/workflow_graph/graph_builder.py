@@ -43,6 +43,8 @@ class WorkflowGraphBuilder:
             callee, workflow_wrapper.branch, workflow_wrapper.repo_name
         )
 
+        callee_node.add_caller_reference(job_node)
+
         if not callee_node in self.graph.nodes:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
@@ -180,7 +182,7 @@ class WorkflowGraphBuilder:
                 workflow_wrapper.repo_name,
                 workflow_wrapper.getPath(),
             )
-            job_node.populate(job_def)
+            job_node.populate(job_def, wf_node)
             self.graph.add_node(job_node, **job_node.get_attrs())
 
             # Handle called workflows
@@ -199,7 +201,7 @@ class WorkflowGraphBuilder:
                     workflow_wrapper.branch,
                     workflow_wrapper.repo_name,
                     workflow_wrapper.getPath(),
-                    needs
+                    needs,
                 )
                 job_node.add_needs(need_node)
                 self.graph.add_node(need_node, **need_node.get_attrs())

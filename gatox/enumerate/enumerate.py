@@ -16,6 +16,7 @@ from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
 from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
+from gatox.enumerate.reports.runners import RunnersReport
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class Enumerator:
         skip_log: bool = False,
         github_url: str = None,
         output_json: str = None,
+        ignore_workflow_run: bool = False,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -65,6 +67,7 @@ class Enumerator:
         self.user_perms = None
         self.github_url = github_url
         self.output_json = output_json
+        self.ignore_workflow_run = ignore_workflow_run
 
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
         self.org_e = OrganizationEnum(self.api)
@@ -155,6 +158,51 @@ class Enumerator:
                     "Ensure the repository exists and the user has access."
                 )
 
+    def __enumerate_repo_only(self, repo_name: str):
+        """Enumerate only a single repository. No checks for org-level
+        self-hosted runners will be performed in this case.
+
+        Args:
+            repo_name (str): Repository name in {Org/Owner}/Repo format.
+            large_enum (bool, optional): Whether to only download
+            run logs when workflow analysis detects runners. Defaults to False.
+        """
+        if not self.__setup_user_info():
+            return False
+
+        repo = CacheManager().get_repository(repo_name)
+
+        if not repo:
+            repo_data = self.api.get_repository(repo_name)
+            if repo_data:
+                repo = Repository(repo_data)
+
+        if repo:
+            if repo.is_archived():
+                Output.tabbed(
+                    f"Skipping archived repository: {Output.bright(repo.name)}!"
+                )
+                return False
+
+            Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
+
+            self.repo_e.enumerate_repository(repo)
+            self.repo_e.enumerate_repository_secrets(repo)
+            Recommender.print_repo_secrets(
+                self.user_perms["scopes"], repo.secrets + repo.org_secrets
+            )
+            Recommender.print_repo_runner_info(repo)
+            Recommender.print_repo_attack_recommendations(
+                self.user_perms["scopes"], repo
+            )
+
+            return repo
+        else:
+            Output.warn(
+                f"Unable to enumerate {Output.bright(repo_name)}! It may not "
+                "exist or the user does not have access."
+            )
+
     def __finalize_caches(self, repos: list):
         """Finalizes the caches for the repositories enumerated.
 
@@ -195,7 +243,6 @@ class Enumerator:
             bool: False if the PAT is not valid for enumeration.
             (list, list): Tuple containing list of orgs and list of repos.
         """
-
         self.__setup_user_info()
 
         if not self.user_perms:
@@ -319,8 +366,12 @@ class Enumerator:
         """
         Output.info("Traversing graph!")
 
-        PwnRequestVisitor.find_pwn_requests(WorkflowGraphBuilder().graph, self.api)
-        InjectionVisitor.find_injections(WorkflowGraphBuilder().graph, self.api)
+        PwnRequestVisitor.find_pwn_requests(
+            WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
+        )
+        InjectionVisitor.find_injections(
+            WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
+        )
         DispatchTOCTOUVisitor.find_dispatch_misconfigurations(
             WorkflowGraphBuilder().graph, self.api
         )
@@ -339,51 +390,6 @@ class Enumerator:
                             f"Checking run-logs for: {Output.bright(repo.name)}!"
                         )
                         self.repo_e.perform_runlog_enumeration(repo, workflows)
-
-    def enumerate_repo_only(self, repo_name: str):
-        """Enumerate only a single repository. No checks for org-level
-        self-hosted runners will be performed in this case.
-
-        Args:
-            repo_name (str): Repository name in {Org/Owner}/Repo format.
-            large_enum (bool, optional): Whether to only download
-            run logs when workflow analysis detects runners. Defaults to False.
-        """
-        if not self.__setup_user_info():
-            return False
-
-        repo = CacheManager().get_repository(repo_name)
-
-        if not repo:
-            repo_data = self.api.get_repository(repo_name)
-            if repo_data:
-                repo = Repository(repo_data)
-
-        if repo:
-            if repo.is_archived():
-                Output.tabbed(
-                    f"Skipping archived repository: {Output.bright(repo.name)}!"
-                )
-                return False
-
-            Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
-
-            self.repo_e.enumerate_repository(repo)
-            self.repo_e.enumerate_repository_secrets(repo)
-            Recommender.print_repo_secrets(
-                self.user_perms["scopes"], repo.secrets + repo.org_secrets
-            )
-            Recommender.print_repo_runner_info(repo)
-            Recommender.print_repo_attack_recommendations(
-                self.user_perms["scopes"], repo
-            )
-
-            return repo
-        else:
-            Output.warn(
-                f"Unable to enumerate {Output.bright(repo_name)}! It may not "
-                "exist or the user does not have access."
-            )
 
     def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
@@ -411,12 +417,15 @@ class Enumerator:
 
         try:
             for repo in repo_names:
-                repo_obj = self.enumerate_repo_only(repo)
+                repo_obj = self.__enumerate_repo_only(repo)
                 if repo_obj:
                     repo_wrappers.append(repo_obj)
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
         self.enumerate_new()
+
+        # for repo in repo_wrappers:
+        #     RunnersReport.report_runners(repo)
 
         return repo_wrappers

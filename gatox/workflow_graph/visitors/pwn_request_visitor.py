@@ -13,18 +13,20 @@ class PwnRequestVisitor:
         """Takes a known reachable checkout and attempts to find an associated sink."""
 
     @staticmethod
-    def find_pwn_requests(graph: TaggedGraph, api: Api):
+    def find_pwn_requests(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
         """ """
 
+        query_taglist = [
+            "issue_comment",
+            "pull_request_target",
+            "pull_request_target:labeled",
+        ]
+
+        if not ignore_workflow_run:
+            query_taglist.append("workflow_run")
+
         # Now we have all reponodes
-        nodes = graph.get_nodes_for_tags(
-            [
-                "issue_comment",
-                "pull_request_target",
-                "workflow_run",
-                "pull_request_target:labeled",
-            ]
-        )
+        nodes = graph.get_nodes_for_tags(query_taglist)
 
         all_paths = []
 
@@ -59,6 +61,15 @@ class PwnRequestVisitor:
                                 )
                                 rule_cache[node.repo_name] = rules
                             for deployment in node.deployments:
+                                deployment = VisitorUtils.process_context_var(
+                                    deployment
+                                )
+
+                                if deployment in input_lookup:
+                                    deployment = input_lookup[deployment]
+                                elif deployment in env_lookup:
+                                    deployment = env_lookup[deployment]
+
                                 if deployment in rules:
                                     approval_gate = True
                                     continue
@@ -82,19 +93,9 @@ class PwnRequestVisitor:
                             # Terminal
                             checkout_ref = node.metadata
                             if "inputs." in node.metadata:
-                                if "${{" in node.metadata:
-                                    processed_var = CONTEXT_REGEX.findall(node.metadata)
-                                    if processed_var:
-                                        processed_var = processed_var[0]
-                                        if "inputs." in processed_var:
-                                            processed_var = processed_var.replace(
-                                                "inputs.", ""
-                                            )
-                                    else:
-                                        processed_var = node.metadata
-                                else:
-                                    processed_var = node.metadata
-
+                                processed_var = VisitorUtils.process_context_var(
+                                    node.metadata
+                                )
                                 if processed_var in env_lookup:
                                     original_val = env_lookup[processed_var]
                                     checkout_ref = original_val
@@ -109,7 +110,9 @@ class PwnRequestVisitor:
 
                             if (
                                 approval_gate
-                                and VisitorUtils.check_mutable_ref(checkout_ref)
+                                and VisitorUtils.check_mutable_ref(
+                                    checkout_ref, path[0].get_tags()
+                                )
                             ) or not approval_gate:
                                 sinks = graph.dfs_to_tag(node, "sink", api)
                                 if sinks:

@@ -85,6 +85,16 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
+        "--ignore-workflow-run",
+        help=(
+            "Ignore the `workflow_run` trigger when enumerating repositories.\n"
+            "This is useful if you know the organization requires approval for all\n"
+            "fork pull requests."
+        ),
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--output-json",
         "-oJ",
         help=("Save enumeration output to JSON file."),

@@ -25,10 +25,11 @@ class JobNode(Node):
         # Create a unique ID for this step.
         self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}"
         self.ref = ref
-        self.workflow_path = workflow_path
+        self.__workflow_path = workflow_path
         self.params = {}
         self.repo_name = repo_name
         self.if_condition = None
+        self.wf_reference = None
         self.needs = []
         self.deployments = []
         self.env_vars = {}
@@ -57,16 +58,21 @@ class JobNode(Node):
         else:
             return process_runner(job_def["runs-on"])
 
-    def get_workflow_path(self):
+    def get_workflow_name(self):
         """
-        Get the path to the workflow file associated with the JobNode instance.
+        Get name of the workflow file associated with the JobNode instance.
 
         Returns:
             str: The path to the workflow file.
         """
-        return self.workflow_path
+        return self.__workflow_path.replace(".github/workflows/", "")
 
-    def populate(self, job_def):
+    def get_workflow(self):
+        return self.wf_reference
+
+    def populate(self, job_def, wf_node):
+
+        self.wf_reference = wf_node
 
         if job_def and "if" in job_def:
             self.if_condition = job_def["if"].replace("\n", "")
@@ -110,10 +116,9 @@ class JobNode(Node):
         self.params = params
 
     def get_needs(self):
-        """
-        """
+        """ """
         return self.needs
-    
+
     def add_needs(self, need_node):
         """
         Add a need to the JobNode instance.

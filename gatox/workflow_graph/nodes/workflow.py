@@ -1,4 +1,5 @@
 from gatox.workflow_graph.nodes.node import Node
+from gatox.workflow_graph.nodes.job import JobNode
 from gatox.models.workflow import Workflow
 
 
@@ -15,7 +16,9 @@ class WorkflowNode(Node):
         # graph if a workflow references another workflow that has not been
         # processed yet.
         self.uninitialized = True
+        self.__workflow_path = workflow_path
         self.triggers = []
+        self.__callers = []
         self.repo_name = repo_name
         self.env_vars = {}
         self.inputs = {}
@@ -34,6 +37,15 @@ class WorkflowNode(Node):
         repo, ref, path = self.name.split(":")
 
         return repo, ref, path
+
+    def get_workflow_name(self):
+        """
+        Get name of the workflow file associated with the JobNode instance.
+
+        Returns:
+            str: The path to the workflow file.
+        """
+        return self.__workflow_path.replace(".github/workflows/", "")
 
     def __get_triggers(self, workflow_data: dict):
         """Retrieve the triggers associated with the Workflow node."""
@@ -83,6 +95,21 @@ class WorkflowNode(Node):
             return workflow_data["env"]
         else:
             return {}
+
+    def add_caller_reference(self, caller: JobNode):
+        """Add a reference to a JobNode that calls this Workflow node,
+        if it is not already marked (as we can reach it multiple times
+        for nested relationships).
+        """
+        if caller not in self.__callers:
+            self.__callers.append(caller)
+
+    def get_caller_workflows(self):
+        """Retrieve a set of the workflows that call this Workflow node."""
+        if not self.__callers:
+            return set()
+        else:
+            return set([caller.get_workflow() for caller in self.__callers])
 
     def initialize(self, workflow: Workflow):
         """Initialize the Workflow node with the parsed workflow data."""

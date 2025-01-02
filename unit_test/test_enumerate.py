@@ -121,7 +121,7 @@ def test_enumerate_repo_admin(mock_api, capsys):
 
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner.enumerate_repo_only(repo_data["full_name"])
+    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
 
     captured = capsys.readouterr()
 
@@ -156,7 +156,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
 
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner.enumerate_repo_only(repo_data["full_name"])
+    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
 
     captured = capsys.readouterr()
 
@@ -191,7 +191,7 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
 
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner.enumerate_repo_only(repo_data["full_name"])
+    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
 
     captured = capsys.readouterr()
 
@@ -229,7 +229,7 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
 
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner.enumerate_repo_only(repo_data["full_name"])
+    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
     captured = capsys.readouterr()
 
     print_output = captured.out
@@ -260,7 +260,7 @@ def test_enumerate_repo_only(mock_api, capsys):
     mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner.enumerate_repo_only(repo_data["full_name"])
+    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
 
     captured = capsys.readouterr()
 
@@ -320,7 +320,7 @@ def test_enum_repo(mock_api, mock_time, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_repo_only("octocat/Hello-World")
+    gh_enumeration_runner._Enumerator__enumerate_repo_only("octocat/Hello-World")
     out, err = capfd.readouterr()
     assert "Enumerating: octocat/Hello-World" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_called_once_with("octocat/Hello-World")
@@ -454,7 +454,7 @@ def test_enum_repo_runner(mock_api, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_repo_only("octocat/Hello-World")
+    gh_enumeration_runner._Enumerator__enumerate_repo_only("octocat/Hello-World")
     out, err = capfd.readouterr()
 
     escaped_output = escape_ansi(out)

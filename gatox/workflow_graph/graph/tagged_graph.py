@@ -26,7 +26,7 @@ class TaggedGraph(nx.DiGraph):
     def _dfs(self, current_node, target_tag, path, all_paths, visited, api):
         if not all(req in path for req in current_node.get_needs()):
             return
-        
+
         path.append(current_node)
         visited.add(current_node)
 
