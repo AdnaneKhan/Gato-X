@@ -37,6 +37,16 @@ class VisitorUtils:
         return True
 
     @staticmethod
+    def append_path(head, tail):
+        """Appends the tail to the head ONLY if the tail
+        starts with the last element of the head. This is
+        to faciliate merging paths to a sink into a result path.
+        """
+        if head and tail and head[-1] == tail[0]:
+            head.extend(tail[1:])
+        return head
+
+    @staticmethod
     def ascii_render(data: dict):
         """
         Render the nested structure of workflows -> jobs -> steps in ASCII format.
@@ -53,6 +63,8 @@ class VisitorUtils:
                     elif "JobNode" in str(node):
                         print(f"      Job -> {node}")
                     elif "StepNode" in str(node):
+                        print(f"        Step -> {node}")
+                    elif "ActionNode" in str(node):
                         print(f"        Step -> {node}")
                     else:
                         print(f"    Unknown -> {node}")

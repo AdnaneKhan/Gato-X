@@ -1721,15 +1721,16 @@ class Api:
 
     def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
         """Retrieves a GitHub action yaml file from a public repository."""
-
         if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             paths = [file_path]
         else:
+            if not file_path.endswith("/"):
+                file_path += "/"
             paths = [f"{file_path}action.yml", f"{file_path}action.yaml"]
 
         for path in paths:
-
             res = self.__get_raw_file(repo, path, ref)
+
             if res:
                 return res
 

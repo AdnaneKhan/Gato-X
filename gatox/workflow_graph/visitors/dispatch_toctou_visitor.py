@@ -1,3 +1,5 @@
+import re
+
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
@@ -77,7 +79,7 @@ class DispatchTOCTOUVisitor:
                             for key, val in node.inputs.items():
                                 if "sha" in key.lower():
                                     break
-                                elif "pr" in key or "pull_request" in key:
+                                elif re.search(r"\b(pr|pull).*", key, re.IGNORECASE):
                                     pr_num_found = True
                                     break
 
@@ -115,10 +117,12 @@ class DispatchTOCTOUVisitor:
                                     checkout_ref = input_lookup[processed_var]
 
                             if VisitorUtils.check_mutable_ref(checkout_ref):
-                                VisitorUtils._add_results(path, results)
                                 sinks = graph.dfs_to_tag(node, "sink", api)
                                 if sinks:
-                                    print("We found sinks!")
+                                    VisitorUtils.append_path(path, sinks[0])
+
+                                VisitorUtils._add_results(path, results)
+
                     elif "ActionNode" in tags:
                         VisitorUtils.initialize_action_node(graph, api, node)
 

@@ -70,6 +70,11 @@ class JobNode(Node):
         if job_def and "if" in job_def:
             self.if_condition = job_def["if"].replace("\n", "")
 
+        if not isinstance(job_def, dict):
+            raise ValueError(
+                "Job definition is not a dictionary, the workflow yaml is likely invalid."
+            )
+
         self.outputs = job_def.get("outputs", {})
 
         params = job_def.get("with", {})

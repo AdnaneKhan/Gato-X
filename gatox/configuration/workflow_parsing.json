@@ -89,10 +89,11 @@
             "outputs.name"
         ],
         "SINKS": [
+            "scripts/",
+            "script/",
             "make",
             "gradlew",
             "terraform",
-            "./",
             "yarn",
             "npm install",
             "npm run",
@@ -106,6 +107,7 @@
             "rake",
             "mypy",
             "tflint",
+            "tfinit",
             "gradle",
             "go generate",
             "eslint",
@@ -118,6 +120,11 @@
             "pylint",
             "rake",
             "mdformat"
+        ],
+        "SINKS_START": [
+            "./",
+            ".\\",
+            "&.\\"
         ]
     }
 }

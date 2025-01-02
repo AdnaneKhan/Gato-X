@@ -111,10 +111,11 @@ class PwnRequestVisitor:
                                 approval_gate
                                 and VisitorUtils.check_mutable_ref(checkout_ref)
                             ) or not approval_gate:
-                                VisitorUtils._add_results(path, results)
                                 sinks = graph.dfs_to_tag(node, "sink", api)
                                 if sinks:
-                                    print("We found sinks!")
+                                    VisitorUtils.append_path(path, sinks[0])
+
+                                VisitorUtils._add_results(path, results)
 
                         if node.outputs:
                             for key, val in node.outputs.items():

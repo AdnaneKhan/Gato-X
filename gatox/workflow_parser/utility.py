@@ -120,6 +120,8 @@ def parse_script(contents: str):
         return_dict["hard_gate"] = True
     if "github.rest.repos.checkCollaborator" in contents:
         return_dict["soft_gate"] = True
+    if "getCollaboratorPermissionLevel" in contents:
+        return_dict["soft_gate"] = True
 
     if check_sinks(contents):
         return_dict["is_sink"] = True
@@ -130,10 +132,18 @@ def parse_script(contents: str):
 def check_sinks(script):
     """Check if the script contain a sink."""
     sinks = ConfigurationManager().WORKFLOW_PARSING["SINKS"]
+    sinks_start = ConfigurationManager().WORKFLOW_PARSING["SINKS_START"]
 
     for sink in sinks:
         if sink in script:
             return True
+
+    lines = script.splitlines()
+    for line in lines:
+        for sink in sinks_start:
+            if line.strip().startswith(sink):
+                return True
+    return False
 
 
 @staticmethod

@@ -86,10 +86,8 @@ class WorkflowGraphBuilder:
             return False
 
         parsed_action = Composite(contents)
-
         if parsed_action.composite:
             steps = parsed_action.parsed_yml["runs"].get("steps", [])
-
             prev_step_node = None
             for iter, step in enumerate(steps):
                 calling_name = parsed_action.parsed_yml.get("name", f"EMPTY")
@@ -141,20 +139,24 @@ class WorkflowGraphBuilder:
         if added:
             self.graph.add_node(repo, **repo.get_attrs())
 
-        wf_node = NodeFactory.create_workflow_node(
-            workflow_wrapper,
-            workflow_wrapper.branch,
-            workflow_wrapper.repo_name,
-            workflow_wrapper.getPath(),
-        )
+        try:
+            wf_node = NodeFactory.create_workflow_node(
+                workflow_wrapper,
+                workflow_wrapper.branch,
+                workflow_wrapper.repo_name,
+                workflow_wrapper.getPath(),
+            )
 
-        if not "uninitialized" in wf_node.get_tags():
-            self.graph.remove_tags_from_node(wf_node, "uninitialized")
+            if not "uninitialized" in wf_node.get_tags():
+                self.graph.remove_tags_from_node(wf_node, "uninitialized")
 
-        self.graph.add_node(wf_node, **wf_node.get_attrs())
-        self.graph.add_edge(repo, wf_node, relation="contains")
+            self.graph.add_node(wf_node, **wf_node.get_attrs())
+            self.graph.add_edge(repo, wf_node, relation="contains")
 
-        self.build_workflow_jobs(workflow_wrapper, wf_node)
+            self.build_workflow_jobs(workflow_wrapper, wf_node)
+        except ValueError as e:
+            # Likely encountered a syntax error in the workflow
+            return
 
     def build_workflow_jobs(self, workflow_wrapper: Workflow, wf_node: WorkflowNode):
 
