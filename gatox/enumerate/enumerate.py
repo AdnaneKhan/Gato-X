@@ -325,18 +325,20 @@ class Enumerator:
             WorkflowGraphBuilder().graph, self.api
         )
 
-        results = RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
-
-        if results:
-            Output.info(
-                f"Identified potential self-hosted runner usage in {len(results.keys())} repositories!"
-            )
-            Output.info(f"Analyizing run logs...")
-            for repo, workflows in results.items():
-                repo = CacheManager().get_repository(repo)
-                if repo and workflows:
-                    Output.tabbed(f"Checking run-logs for: {Output.bright(repo.name)}!")
-                    self.repo_e.perform_runlog_enumeration(repo, workflows)
+        if not self.skip_log:
+            results = RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
+            if results:
+                Output.info(
+                    f"Identified potential self-hosted runner usage in {len(results.keys())} repositories!"
+                )
+                Output.info(f"Analyizing run logs...")
+                for repo, workflows in results.items():
+                    repo = CacheManager().get_repository(repo)
+                    if repo and workflows:
+                        Output.tabbed(
+                            f"Checking run-logs for: {Output.bright(repo.name)}!"
+                        )
+                        self.repo_e.perform_runlog_enumeration(repo, workflows)
 
     def enumerate_repo_only(self, repo_name: str):
         """Enumerate only a single repository. No checks for org-level

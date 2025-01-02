@@ -3,6 +3,8 @@ from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.workflow_parser.utility import getTokens, filter_tokens
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+from gatox.caching.cache_manager import CacheManager
+
 
 from gatox.github.api import Api
 
@@ -143,6 +145,10 @@ class InjectionVisitor:
                             # Set lookup for input params
                             input_lookup.update(node_params)
                         if index == 0:
+                            repo = CacheManager().get_repository(node.repo_name)
+                            if repo.is_fork():
+                                break
+
                             if "pull_request_target:labeled" in tags:
                                 approval_gate = True
 
@@ -154,10 +160,7 @@ class InjectionVisitor:
                                     if "github." in val:
                                         env_lookup[key] = val
                     elif "ActionNode" in tags:
-                        tags = node.get_tags()
-                        if "uninitialized" in tags:
-                            WorkflowGraphBuilder()._initialize_action_node(node, api)
-                            graph.remove_tags_from_node(node, ["uninitialized"])
+                        VisitorUtils.initialize_action_node(graph, api, node)
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps

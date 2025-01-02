@@ -1,3 +1,6 @@
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+
+
 class VisitorUtils:
     """Class to track contextual information during a a single visit."""
 
@@ -9,6 +12,13 @@ class VisitorUtils:
             results[repo_name] = []
 
         results[repo_name].append(path)
+
+    @staticmethod
+    def initialize_action_node(graph, api, node):
+        tags = node.get_tags()
+        if "uninitialized" in tags:
+            WorkflowGraphBuilder()._initialize_action_node(node, api)
+            graph.remove_tags_from_node(node, ["uninitialized"])
 
     @staticmethod
     def check_mutable_ref(ref):

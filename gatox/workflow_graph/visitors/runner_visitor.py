@@ -3,6 +3,9 @@ from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 
 
 class RunnerVisitor:
+    """Simple visitor that extracts nodes that are tagged to potentially
+    run on self-hosted runners.
+    """
 
     @staticmethod
     def find_runner_workflows(graph: TaggedGraph):

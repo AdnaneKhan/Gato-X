@@ -1,8 +1,8 @@
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
-from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
+from gatox.caching.cache_manager import CacheManager
 
 
 class PwnRequestVisitor:
@@ -11,15 +11,6 @@ class PwnRequestVisitor:
     @staticmethod
     def _finalize_result():
         """Takes a known reachable checkout and attempts to find an associated sink."""
-
-    @staticmethod
-    def _add_results(path, results: dict):
-        """ """
-        repo_name = path[0].repo_name
-        if repo_name not in results:
-            results[repo_name] = []
-
-        results[repo_name].append(path)
 
     @staticmethod
     def find_pwn_requests(graph: TaggedGraph, api: Api):
@@ -121,7 +112,9 @@ class PwnRequestVisitor:
                                 and VisitorUtils.check_mutable_ref(checkout_ref)
                             ) or not approval_gate:
                                 VisitorUtils._add_results(path, results)
-                                # sinks = graph.dfs_to_tag(node, "sink", api)
+                                sinks = graph.dfs_to_tag(node, "sink", api)
+                                if sinks:
+                                    print("We found sinks!")
 
                         if node.outputs:
                             for key, val in node.outputs.items():
@@ -141,6 +134,10 @@ class PwnRequestVisitor:
                             # Set lookup for input params
                             input_lookup.update(node_params)
                         if index == 0:
+                            repo = CacheManager().get_repository(node.repo_name)
+                            if repo.is_fork():
+                                break
+
                             if "pull_request_target:labeled" in tags:
                                 approval_gate = True
 
@@ -151,13 +148,8 @@ class PwnRequestVisitor:
                                 if type(val) is str:
                                     if "github." in val:
                                         env_lookup[key] = val
-
                     elif "ActionNode" in tags:
-                        tags = node.get_tags()
-
-                        if "uninitialized" in tags:
-                            WorkflowGraphBuilder()._initialize_action_node(node, api)
-                            graph.remove_tags_from_node(node, ["uninitialized"])
+                        VisitorUtils.initialize_action_node(graph, api, node)
 
         print("PWN:")
         VisitorUtils.ascii_render(results)

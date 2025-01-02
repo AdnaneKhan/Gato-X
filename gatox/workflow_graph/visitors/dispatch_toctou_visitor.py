@@ -3,6 +3,7 @@ from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
+from gatox.caching.cache_manager import CacheManager
 
 
 class DispatchTOCTOUVisitor:
@@ -12,7 +13,9 @@ class DispatchTOCTOUVisitor:
 
     @staticmethod
     def find_dispatch_misconfigurations(graph: TaggedGraph, api: Api):
-        """ """
+        """Identifies TOCTOU vulnerabilties in workflows that run
+        on workflow dispatch but take the PR number without an accompanying sha.
+        """
 
         # Now we have all reponodes
         nodes = graph.get_nodes_for_tags(
@@ -56,6 +59,9 @@ class DispatchTOCTOUVisitor:
                             # Set lookup for input params
                             input_lookup.update(node_params)
                         if index == 0:
+                            repo = CacheManager().get_repository(node.repo_name)
+                            if repo.is_fork():
+                                break
                             # If the workflow dispatch node does not have
                             # any inputs, we can skip the rest of the path.
 
@@ -67,6 +73,7 @@ class DispatchTOCTOUVisitor:
                             # this is a heuristic, but the key goal here
                             # is to identify workflows that are taking a PR number
                             # or mutable reference.
+
                             for key, val in node.inputs.items():
                                 if "sha" in key.lower():
                                     break
@@ -109,6 +116,11 @@ class DispatchTOCTOUVisitor:
 
                             if VisitorUtils.check_mutable_ref(checkout_ref):
                                 VisitorUtils._add_results(path, results)
+                                sinks = graph.dfs_to_tag(node, "sink", api)
+                                if sinks:
+                                    print("We found sinks!")
+                    elif "ActionNode" in tags:
+                        VisitorUtils.initialize_action_node(graph, api, node)
 
         print("DISPATCH:")
         VisitorUtils.ascii_render(results)

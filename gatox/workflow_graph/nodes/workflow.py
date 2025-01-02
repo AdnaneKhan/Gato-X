@@ -72,7 +72,7 @@ class WorkflowNode(Node):
                 and isinstance(workflow_data["on"]["workflow_dispatch"], dict)
                 and "inputs" in workflow_data["on"]["workflow_dispatch"]
             ):
-                return workflow_data["on"]["workflow_dispatch"]
+                return workflow_data["on"]["workflow_dispatch"]["inputs"]
             else:
                 return {}
         except TypeError:
