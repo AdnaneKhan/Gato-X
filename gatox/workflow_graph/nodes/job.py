@@ -29,6 +29,7 @@ class JobNode(Node):
         self.params = {}
         self.repo_name = repo_name
         self.if_condition = None
+        self.needs = []
         self.deployments = []
         self.env_vars = {}
         self.self_hosted = False
@@ -107,6 +108,17 @@ class JobNode(Node):
 
     def set_params(self, params):
         self.params = params
+
+    def get_needs(self):
+        """
+        """
+        return self.needs
+    
+    def add_needs(self, need_node):
+        """
+        Add a need to the JobNode instance.
+        """
+        self.needs.append(need_node)
 
     def get_tags(self):
         """

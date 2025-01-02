@@ -24,13 +24,16 @@ class TaggedGraph(nx.DiGraph):
         return all_paths
 
     def _dfs(self, current_node, target_tag, path, all_paths, visited, api):
+        if not all(req in path for req in current_node.get_needs()):
+            return
+        
         path.append(current_node)
         visited.add(current_node)
 
         if "uninitialized" in current_node.get_tags():
             self.builder.initialize_node(current_node, api)
 
-        if target_tag in current_node.get_tags():
+        elif target_tag in current_node.get_tags():
             all_paths.append(list(path))
         else:
             for neighbor in self.neighbors(current_node):

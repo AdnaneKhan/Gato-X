@@ -192,15 +192,23 @@ class WorkflowGraphBuilder:
             # If single entry then set as array
             if type(needs) == str:
                 needs = [needs]
-            for need in needs:
+            prev_node = None
+            for i, need in enumerate(needs):
                 need_node = NodeFactory.create_job_node(
                     need,
                     workflow_wrapper.branch,
                     workflow_wrapper.repo_name,
                     workflow_wrapper.getPath(),
+                    needs
                 )
+                job_node.add_needs(need_node)
                 self.graph.add_node(need_node, **need_node.get_attrs())
+
+                # Add an extra dependency so subsequent needs depend on the previous one
+                if i > 0:
+                    self.graph.add_edge(prev_node, need_node, relation="extra_depends")
                 self.graph.add_edge(need_node, job_node, relation="depends")
+                prev_node = need_node
 
             if not needs:
                 self.graph.add_edge(wf_node, job_node, relation="contains")

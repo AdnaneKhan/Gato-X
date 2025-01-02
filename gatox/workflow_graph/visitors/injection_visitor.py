@@ -138,6 +138,7 @@ class InjectionVisitor:
                                         val = val[0]
                                 if val:
                                     VisitorUtils._add_results(path, results)
+                                    break
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():
                             # Caller job node

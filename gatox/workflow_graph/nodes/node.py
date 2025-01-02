@@ -45,6 +45,15 @@ class Node:
         """
         return isinstance(other, self.__class__) and self.name == other.name
 
+    def get_needs(self):
+        """
+        Get the needs associated with the Node instance.
+
+        Returns:
+            list: An empty list.
+        """
+        return []
+
     def get_tags(self):
         """
         Get the tags associated with the Node instance.

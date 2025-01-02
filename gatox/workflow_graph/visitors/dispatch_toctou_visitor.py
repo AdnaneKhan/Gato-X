@@ -79,7 +79,7 @@ class DispatchTOCTOUVisitor:
                             for key, val in node.inputs.items():
                                 if "sha" in key.lower():
                                     break
-                                elif re.search(r"\b(pr|pull).*", key, re.IGNORECASE):
+                                elif re.search(r"\b(pr|pull|pull_request)\b", key, re.IGNORECASE):
                                     pr_num_found = True
                                     break
 

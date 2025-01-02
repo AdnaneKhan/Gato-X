@@ -35,7 +35,7 @@ class NodeFactory:
             return repo_node, True
 
     @staticmethod
-    def create_job_node(job_name, ref, repo_name, workflow_path):
+    def create_job_node(job_name, ref, repo_name, workflow_path, needs: list= []):
         """
         Create a JobNode and cache it.
 
@@ -49,7 +49,6 @@ class NodeFactory:
             JobNode: The created JobNode instance.
         """
         job_node = JobNode(job_name, ref, repo_name, workflow_path)
-
         if job_node.name in NodeFactory.NODE_CACHE:
             return NodeFactory.NODE_CACHE[job_node.name]
         else:
