@@ -1,12 +1,7 @@
-import time
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed, wait, ALL_COMPLETED
+from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 
-from gatox.caching.cache_manager import CacheManager
-from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
-from gatox.cli.output import Output
 from gatox.git.git import Git
 
 

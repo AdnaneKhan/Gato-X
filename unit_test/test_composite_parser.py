@@ -19,4 +19,3 @@ runs:
       run: |
         echo "${{ github.event.pull_request.title }}"
 """
-
