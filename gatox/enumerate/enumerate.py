@@ -350,7 +350,7 @@ class Enumerator:
 
         if self.deep_dive:
             Output.inform(
-                "Deep dive workflow ingestion enabled, this will be a very slow process!"
+                "Deep dive workflow ingestion enabled, this will slow down enumeration!"
             )
         try:
             for repo in enum_list:
@@ -363,7 +363,7 @@ class Enumerator:
                 if cached_repo:
                     repo = cached_repo
 
-                if self.deep_dive:
+                if self.deep_dive and not repo.is_fork():
                     IngestNonDefault.ingest(repo, self.api)
 
                 self.repo_e.enumerate_repository(repo)
@@ -373,6 +373,8 @@ class Enumerator:
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
+        if self.deep_dive:
+            IngestNonDefault.pool_empty()
         self.enumerate_new()
 
         return organization
