@@ -375,6 +375,7 @@ class Enumerator:
 
         if self.deep_dive:
             IngestNonDefault.pool_empty()
+            Output.info("Deep dive ingestion complete!")
         self.enumerate_new()
 
         return organization
@@ -383,7 +384,7 @@ class Enumerator:
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
-        Output.info("Traversing graph!")
+        Output.info("Performing graph analysis!")
 
         PwnRequestVisitor.find_pwn_requests(
             WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
@@ -440,9 +441,7 @@ class Enumerator:
             )
             for repo in repo_names:
                 repo_obj = CacheManager().get_repository(repo)
-                Output.info(f"Ingesting non-default workfows from {repo_obj.name}")
                 IngestNonDefault.ingest(repo_obj, self.api)
-
         try:
             for repo in repo_names:
                 repo_obj = self.__enumerate_repo_only(repo)
@@ -451,6 +450,7 @@ class Enumerator:
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
+        IngestNonDefault.pool_empty()
         self.enumerate_new()
 
         return repo_wrappers
