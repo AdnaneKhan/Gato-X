@@ -1,190 +1,77 @@
-import re
-
-from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
-from gatox.workflow_parser.utility import CONTEXT_REGEX
-from gatox.workflow_parser.utility import getTokens, getToken, checkUnsafe
-from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
-from gatox.caching.cache_manager import CacheManager
-from gatox.github.api import Api
-
-
-class InjectionVisitor:
+class PwnRequestVisitor:
     """
-    This class implements a graph visitor tasked with identifying
-    injection issues within GitHub workflows.
+    Visitor class responsible for identifying and processing potential security issues
+    related to Pwn (Power and Privilege Escalation) requests within workflow graphs.
     """
 
     @staticmethod
-    def find_injections(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
+    def _process_single_path(path, graph, api, rule_cache, results):
         """
-        Identify potential injection vulnerabilities within GitHub workflows.
+        Process a single path for potential security issues.
 
-        This method analyzes the workflow graph to detect injection issues by
-        examining paths from nodes tagged with relevant injection-related tags
-        (e.g., "issue_comment", "pull_request_target") and checking for vulnerabilities
-        based on environment variables and input parameters.
+        This method analyzes a given path within the workflow graph to identify and flag
+        potential security vulnerabilities. It inspects each node for specific tags,
+        checks deployment environment rules, and determines if approval gates are required.
 
-        The analysis involves:
-        1. Retrieving all nodes tagged with specific injection-related tags from the workflow graph.
-        2. For each of these nodes, performing a Depth-First Search (DFS) to find paths
-           that lead to nodes tagged with "injectable".
-        3. Iterating through each path and analyzing nodes to determine potential injection
-           vulnerabilities based on variable handling and environment rules.
-        4. Aggregating the results and rendering them in an ASCII format for easy visualization.
+        The processing involves:
+        1. Initializing lookup dictionaries and an approval gate flag.
+        2. Iterating through each node in the provided path.
+        3. For nodes tagged as "JobNode":
+            a. Checks deployment environment rules by retrieving or caching
+               environment protection rules from the API.
+            b. Processes each deployment to determine if it requires an approval gate.
+            c. Updates the `approval_gate` flag based on the evaluation of deployment rules.
+        4. Continues processing subsequent nodes based on the updated state.
 
         Args:
-            graph (TaggedGraph): The workflow graph containing all nodes and their relationships.
-            api (Api): An instance of the API wrapper to interact with GitHub APIs.
-            ignore_workflow_run (bool, optional): Flag to determine whether to ignore "workflow_run" tags. Defaults to False.
+            path (List[Node]):
+                The sequence of nodes representing a potential security path to process.
+
+            graph (TaggedGraph):
+                The workflow graph containing all nodes and their relationships.
+
+            api (Api):
+                An instance of the API wrapper to interact with external services.
+
+            rule_cache (dict):
+                A cache storing environment protection rules for repositories to avoid redundant API calls.
+
+            results (dict):
+                A dictionary aggregating the detected security issues, organized by repository.
 
         Returns:
             None
 
         Raises:
-            Exception: Logs any exceptions that occur during the processing of individual paths,
-                       allowing the analysis to continue without interruption.
+            None
         """
-        query_taglist = [
-            "issue_comment",
-            "pull_request_target",
-            "fork",
-            "issues",
-            "discussion",
-            "discussion_comment",
-            "pull_request_review_comment",
-            "pull_request_review",
-        ]
+        input_lookup = {}
+        env_lookup = {}
+        flexible_lookup = {}
+        approval_gate = False
 
-        if not ignore_workflow_run:
-            query_taglist.append("workflow_run")
+        for index, node in enumerate(path):
+            tags = node.get_tags()
 
-        nodes = graph.get_nodes_for_tags(query_taglist)
+            if "JobNode" in tags:
 
-        all_paths = []
-        results = {}
-        rule_cache = {}
+                # Check deployment environment rules
+                if node.deployments:
+                    if node.repo_name in rule_cache:
+                        rules = rule_cache[node.repo_name]
+                    else:
+                        rules = api.get_all_environment_protection_rules(node.repo_name)
+                        rule_cache[node.repo_name] = rules
+                    for deployment in node.deployments:
+                        if isinstance(deployment, dict):
+                            deployment = deployment["name"]
+                        deployment = VisitorUtils.process_context_var(deployment)
 
-        for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "injectable", api)
-            if paths:
-                all_paths.append(paths)
+                        if deployment in input_lookup:
+                            deployment = input_lookup[deployment]
+                        elif deployment in env_lookup:
+                            deployment = env_lookup[deployment]
 
-        for path_set in all_paths:
-            for path in path_set:
-                input_lookup = {}
-                env_lookup = {}
-                flexible_lookup = {}
-
-                approval_gate = False
-
-                for index, node in enumerate(path):
-                    tags = node.get_tags()
-
-                    if "JobNode" in tags:
-                        # Check deployment environment rules
-                        if node.deployments:
-                            if node.repo_name in rule_cache:
-                                rules = rule_cache[node.repo_name]
-                            else:
-                                rules = api.get_all_environment_protection_rules(
-                                    node.repo_name
-                                )
-                                rule_cache[node.repo_name] = rules
-                            for deployment in node.deployments:
-                                if isinstance(deployment, dict):
-                                    deployment = deployment["name"]
-                                deployment = VisitorUtils.process_context_var(
-                                    deployment
-                                )
-
-                                if deployment in rules:
-                                    approval_gate = True
-
-                        paths = graph.dfs_to_tag(node, "permission_check", api)
-                        if paths:
+                        if deployment in rules:
                             approval_gate = True
-
-                        paths = graph.dfs_to_tag(node, "permission_blocker", api)
-                        if paths:
-                            break
-
-                        env_vars = node.get_env_vars()
-                        for key, val in env_vars.items():
-                            if isinstance(val, str) and "github." in val:
-                                env_lookup[key] = val
-
-                        if node.outputs:
-                            for o_key, val in node.outputs.items():
-                                if "env." in val and val not in env_lookup:
-                                    for key in env_lookup.keys():
-                                        if key in val:
-                                            flexible_lookup[o_key] = env_lookup[key]
-
-                    elif "StepNode" in tags:
-                        if "injectable" in tags and not approval_gate:
-                            filtered_contexts = []
-
-                            for variable in node.contexts:
-                                if "inputs." in variable:
-                                    if "${{" in variable:
-                                        processed_var = CONTEXT_REGEX.findall(variable)
-                                        if processed_var:
-                                            processed_var = processed_var[0].replace(
-                                                "inputs.", ""
-                                            )
-                                    else:
-                                        processed_var = variable
-
-                                    if processed_var in env_lookup:
-                                        original_val = env_lookup[processed_var]
-                                        variable = original_val
-
-                                    variable = getToken(variable)
-                                    filtered_contexts.append(variable)
-
-                                elif "env." in variable:
-                                    for key, val in env_lookup.items():
-                                        if key in variable:
-                                            variable = val
-                                            variable = getToken(variable)
-                                            filtered_contexts.append(variable)
-                                            break
-                                else:
-                                    filtered_contexts.append(variable)
-
-                            for val in filtered_contexts:
-                                if "${{" in val:
-                                    val = getTokens(val)
-                                    if val:
-                                        val = val[0]
-                                elif "github." in val and not checkUnsafe(val):
-                                    continue
-                                else:
-                                    VisitorUtils._add_results(path, results)
-                                    break
-
-                    elif "WorkflowNode" in tags:
-                        if index != 0 and "JobNode" in path[index - 1].get_tags():
-                            # Caller job node
-                            node_params = path[index - 1].params
-                            # Set lookup for input params
-                            input_lookup.update(node_params)
-                        if index == 0:
-                            repo = CacheManager().get_repository(node.repo_name)
-                            if repo.is_fork():
-                                break
-
-                            if "pull_request_target:labeled" in tags:
-                                approval_gate = True
-
-                            # Check workflow environment variables.
-                            env_vars = node.get_env_vars()
-                            for key, val in env_vars.items():
-                                if isinstance(val, str) and "github." in val:
-                                    env_lookup[key] = val
-
-                    elif "ActionNode" in tags:
-                        VisitorUtils.initialize_action_node(graph, api, node)
-
-        print("INJECT:")
-        VisitorUtils.ascii_render(results)
+                            continue
