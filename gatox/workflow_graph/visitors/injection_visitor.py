@@ -71,6 +71,8 @@ class InjectionVisitor:
                                 )
                                 rule_cache[node.repo_name] = rules
                             for deployment in node.deployments:
+                                if isinstance(deployment, dict):
+                                    deployment = deployment["name"]
                                 deployment = VisitorUtils.process_context_var(
                                     deployment
                                 )

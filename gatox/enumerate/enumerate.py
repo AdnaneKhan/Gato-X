@@ -194,8 +194,6 @@ class Enumerator:
                 )
                 return False
 
-            Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
-
             self.repo_e.enumerate_repository(repo)
             self.repo_e.enumerate_repository_secrets(repo)
             Recommender.print_repo_secrets(

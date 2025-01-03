@@ -32,39 +32,45 @@ def parse_script(script):
 @staticmethod
 def process_matrix(job_def, runs_on):
     """Process case where runner is specified via matrix."""
-    matrix_match = MATRIX_KEY_EXTRACTION_REGEX.search(runs_on)
+    try:
 
-    if matrix_match:
-        matrix_key = matrix_match.group(1)
-    else:
-        return False
-    # Check if strategy exists in the yaml file
-    if "strategy" in job_def and "matrix" in job_def["strategy"]:
-        matrix = job_def["strategy"]["matrix"]
+        matrix_match = MATRIX_KEY_EXTRACTION_REGEX.search(runs_on)
 
-        # Use previously acquired key to retrieve list of OSes
-        if matrix_key in matrix:
-            os_list = matrix[matrix_key]
-        elif "include" in matrix:
-            inclusions = matrix["include"]
-            os_list = []
-            for inclusion in inclusions:
-                if matrix_key in inclusion:
-                    os_list.append(inclusion[matrix_key])
+        if matrix_match:
+            matrix_key = matrix_match.group(1)
         else:
             return False
+        # Check if strategy exists in the yaml file
+        if "strategy" in job_def and "matrix" in job_def["strategy"]:
+            matrix = job_def["strategy"]["matrix"]
 
-        # We only need ONE to be self hosted, others can be
-        # GitHub hosted
-        for key in os_list:
-            if type(key) is str:
-                if key not in ConfigurationManager().WORKFLOW_PARSING[
-                    "GITHUB_HOSTED_LABELS"
-                ] and not LARGER_RUNNER_REGEX_LIST.match(key):
+            # Use previously acquired key to retrieve list of OSes
+            if matrix_key in matrix:
+                os_list = matrix[matrix_key]
+            elif "include" in matrix:
+                inclusions = matrix["include"]
+                os_list = []
+                for inclusion in inclusions:
+                    if matrix_key in inclusion:
+                        os_list.append(inclusion[matrix_key])
+            else:
+                return False
+
+            # We only need ONE to be self hosted, others can be
+            # GitHub hosted
+            for key in os_list:
+                if type(key) is str:
+                    if key not in ConfigurationManager().WORKFLOW_PARSING[
+                        "GITHUB_HOSTED_LABELS"
+                    ] and not LARGER_RUNNER_REGEX_LIST.match(key):
+                        return True
+                # list of labels
+                elif type(key) is list:
                     return True
-            # list of labels
-            elif type(key) is list:
-                return True
+    except TypeError as e:
+        print("Error processing matrix job")
+        print(job_def)
+        return False
 
 
 @staticmethod
