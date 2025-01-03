@@ -61,11 +61,13 @@ class StepNode(Node):
         self.soft_gate = False
         self.params = {}
         self.contexts = []
+        self.__step_data = None
         self.metadata = False
         self.outputs = step_data.get("outputs", {})
 
         if self.type == "script":
             self.__process_script(step_data["run"])
+            self.__step_data = step_data["run"]
         elif self.type == "action":
             self.__process_action(step_data)
 
@@ -134,6 +136,7 @@ class StepNode(Node):
             contents = self.params["script"]
             self.contexts = filter_tokens(getTokens(contents))
 
+            self.__step_data = contents
             insights = parse_script(contents)
 
             self.is_checkout = insights["is_checkout"]
@@ -173,6 +176,15 @@ class StepNode(Node):
             bool: True if the instances are equal, False otherwise.
         """
         return isinstance(other, self.__class__) and self.name == other.name
+
+    def get_step_data(self):
+        """
+        Get the data associated with the step if it is a script, None otherwise.
+
+        Returns:
+            str: The data associated with the step.
+        """
+        return self.__step_data
 
     def get_tags(self):
         """

@@ -68,10 +68,8 @@
         "SAFE_ISH_CONTEXTS": [
             "label",
             "flag",
-            "number",
             "numbers",
             "_url",
-            "version",
             "sha",
             "hash",
             "id",
@@ -79,12 +77,10 @@
             "checksum",
             "login",
             "count",
-            "key",
             "url",
             "link",
             "regression",
             "steps.generate_token.outputs.token",
-            "issue",
             "outputs.status",
             "outputs.name"
         ],

@@ -1,29 +1,49 @@
+import re
+
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_parser.utility import CONTEXT_REGEX
-from gatox.workflow_parser.utility import getTokens, filter_tokens
+from gatox.workflow_parser.utility import getTokens, getToken, checkUnsafe
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
-from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.caching.cache_manager import CacheManager
-
-
 from gatox.github.api import Api
 
 
 class InjectionVisitor:
-    """This class implements a graph visitor tasked with identifying
-    injection issues from workflows.
+    """
+    This class implements a graph visitor tasked with identifying
+    injection issues within GitHub workflows.
     """
 
     @staticmethod
-    def check_gating():
-        # For injection, gating is more firm because
-        # injection issues are very unlikely to be exploited.
-        pass
-
-    @staticmethod
     def find_injections(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
-        """ """
+        """
+        Identify potential injection vulnerabilities within GitHub workflows.
 
+        This method analyzes the workflow graph to detect injection issues by
+        examining paths from nodes tagged with relevant injection-related tags
+        (e.g., "issue_comment", "pull_request_target") and checking for vulnerabilities
+        based on environment variables and input parameters.
+
+        The analysis involves:
+        1. Retrieving all nodes tagged with specific injection-related tags from the workflow graph.
+        2. For each of these nodes, performing a Depth-First Search (DFS) to find paths
+           that lead to nodes tagged with "injectable".
+        3. Iterating through each path and analyzing nodes to determine potential injection
+           vulnerabilities based on variable handling and environment rules.
+        4. Aggregating the results and rendering them in an ASCII format for easy visualization.
+
+        Args:
+            graph (TaggedGraph): The workflow graph containing all nodes and their relationships.
+            api (Api): An instance of the API wrapper to interact with GitHub APIs.
+            ignore_workflow_run (bool, optional): Flag to determine whether to ignore "workflow_run" tags. Defaults to False.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Logs any exceptions that occur during the processing of individual paths,
+                       allowing the analysis to continue without interruption.
+        """
         query_taglist = [
             "issue_comment",
             "pull_request_target",
@@ -34,6 +54,10 @@ class InjectionVisitor:
             "pull_request_review_comment",
             "pull_request_review",
         ]
+
+        # note - pull_request_review_comment and pull_request_review
+        # are only exploitable if the PR is from a feature branch,
+        # and then only the comment body is the injection point.
 
         if not ignore_workflow_run:
             query_taglist.append("workflow_run")
@@ -88,9 +112,9 @@ class InjectionVisitor:
                         if paths:
                             break
 
-                        env_vars = node.env_vars
+                        env_vars = node.get_env_vars()
                         for key, val in env_vars.items():
-                            if type(val) is str:
+                            if isinstance(val, str):
                                 if "github." in val:
                                     env_lookup[key] = val
 
@@ -102,8 +126,8 @@ class InjectionVisitor:
                                             flexible_lookup[o_key] = env_lookup[key]
                     elif "StepNode" in tags:
                         if "injectable" in tags:
-                            # We need to figure out what variables referenced.
-                            # also, need to consider the multi tag DFS option
+                            # We need to figure out what variables are referenced.
+                            # Also, need to consider the multi-tag DFS option
                             # because the true injection might be later.
 
                             if approval_gate is True:
@@ -111,7 +135,9 @@ class InjectionVisitor:
 
                             filtered_contexts = []
 
+                            # Now we go and try to resolve variables.
                             for variable in node.contexts:
+
                                 if "inputs." in variable:
                                     if "${{" in variable:
                                         processed_var = CONTEXT_REGEX.findall(variable)
@@ -128,12 +154,14 @@ class InjectionVisitor:
                                         original_val = env_lookup[processed_var]
                                         variable = original_val
 
+                                    variable = getToken(variable)
                                     filtered_contexts.append(variable)
 
                                 elif "env." in variable:
                                     for key, val in env_lookup.items():
                                         if key in variable:
                                             variable = val
+                                            variable = getToken(variable)
                                             filtered_contexts.append(variable)
                                             break
                                 else:
@@ -144,7 +172,9 @@ class InjectionVisitor:
                                     val = getTokens(val)
                                     if val:
                                         val = val[0]
-                                if val:
+                                elif "github." in val and not checkUnsafe(val):
+                                    continue
+                                else:
                                     VisitorUtils._add_results(path, results)
                                     break
                     elif "WorkflowNode" in tags:
@@ -162,10 +192,10 @@ class InjectionVisitor:
                                 approval_gate = True
 
                             # Check workflow environment variables.
-                            # for env vars that are github.event.*
-                            env_vars = node.env_vars
+                            # For env vars that are github.event.*
+                            env_vars = node.get_env_vars()
                             for key, val in env_vars.items():
-                                if type(val) is str:
+                                if isinstance(val, str):
                                     if "github." in val:
                                         env_lookup[key] = val
                     elif "ActionNode" in tags:
@@ -173,8 +203,8 @@ class InjectionVisitor:
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps
-                # or get passed through workflow calls
-                # we also want to make sure to track inside of
+                # or get passed through workflow calls.
+                # We also want to ensure tracking inside of
                 # composite actions.
         print("INJECT:")
         VisitorUtils.ascii_render(results)

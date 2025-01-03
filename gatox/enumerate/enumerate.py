@@ -382,7 +382,9 @@ class Enumerator:
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
-        Output.info("Performing graph analysis!")
+        Output.info(
+            f"Performing graph analysis on {WorkflowGraphBuilder().graph.number_of_nodes()} nodes!"
+        )
 
         PwnRequestVisitor.find_pwn_requests(
             WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
@@ -407,7 +409,8 @@ class Enumerator:
                         Output.tabbed(
                             f"Checking run-logs for: {Output.bright(repo.name)}!"
                         )
-                        self.repo_e.perform_runlog_enumeration(repo, workflows)
+                        if self.repo_e.perform_runlog_enumeration(repo, workflows):
+                            RunnersReport.report_runners(repo)
 
     def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name

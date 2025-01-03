@@ -1,6 +1,10 @@
 from gatox.workflow_graph.nodes.node import Node
 
-from gatox.workflow_parser.utility import process_matrix, process_runner
+from gatox.workflow_parser.utility import (
+    process_matrix,
+    process_runner,
+    validate_if_check,
+)
 
 
 class JobNode(Node):
@@ -32,7 +36,7 @@ class JobNode(Node):
         self.wf_reference = None
         self.needs = []
         self.deployments = []
-        self.env_vars = {}
+        self.__env_vars = {}
         self.self_hosted = False
         self.outputs = {}
 
@@ -70,12 +74,18 @@ class JobNode(Node):
     def get_workflow(self):
         return self.wf_reference
 
+    def get_env_vars(self):
+        """Returns environemnt variables used by the job in dictionary format."""
+        return self.__env_vars
+
+    def evaluate_if(self):
+        if self.if_condition:
+            return validate_if_check(self.if_condition, self.__env_vars)
+        return True
+
     def populate(self, job_def, wf_node):
 
         self.wf_reference = wf_node
-
-        if job_def and "if" in job_def:
-            self.if_condition = job_def["if"].replace("\n", "")
 
         if not isinstance(job_def, dict):
             raise ValueError(
@@ -97,8 +107,11 @@ class JobNode(Node):
             else:
                 self.deployments.append(job_def["environment"])
 
-        if "env" in job_def:
-            self.env_vars = job_def["env"]
+        if "env" in job_def and type(job_def["env"]) == dict:
+            self.__env_vars = job_def["env"]
+
+        if job_def and "if" in job_def:
+            self.if_evaluation = validate_if_check(self.if_condition, {})
 
     def __eq__(self, other):
         """

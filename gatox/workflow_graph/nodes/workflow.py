@@ -17,10 +17,10 @@ class WorkflowNode(Node):
         # processed yet.
         self.uninitialized = True
         self.__workflow_path = workflow_path
-        self.triggers = []
+        self.__triggers = []
         self.__callers = []
         self.repo_name = repo_name
-        self.env_vars = {}
+        self.__env_vars = {}
         self.inputs = {}
 
     def __hash__(self):
@@ -47,7 +47,7 @@ class WorkflowNode(Node):
         """
         return self.__workflow_path.replace(".github/workflows/", "")
 
-    def __get_triggers(self, workflow_data: dict):
+    def __process_triggers(self, workflow_data: dict):
         """Retrieve the triggers associated with the Workflow node."""
         triggers = workflow_data.get("on", [])
         extracted_triggers = []
@@ -76,10 +76,10 @@ class WorkflowNode(Node):
 
         return extracted_triggers
 
-    def __get_inputs(self, workflow_data: dict):
+    def __process_inputs(self, workflow_data: dict):
         try:
             if (
-                "workflow_dispatch" in self.triggers
+                "workflow_dispatch" in self.__triggers
                 and isinstance(workflow_data["on"], dict)
                 and isinstance(workflow_data["on"]["workflow_dispatch"], dict)
                 and "inputs" in workflow_data["on"]["workflow_dispatch"]
@@ -90,11 +90,15 @@ class WorkflowNode(Node):
         except TypeError:
             print(workflow_data["on"])
 
-    def __get_envs(self, workflow_data: dict):
+    def __process_envs(self, workflow_data: dict):
         if "env" in workflow_data:
             return workflow_data["env"]
         else:
             return {}
+
+    def get_env_vars(self):
+        """Returns environment variables for the workflow."""
+        return self.__env_vars
 
     def add_caller_reference(self, caller: JobNode):
         """Add a reference to a JobNode that calls this Workflow node,
@@ -113,12 +117,16 @@ class WorkflowNode(Node):
 
     def initialize(self, workflow: Workflow):
         """Initialize the Workflow node with the parsed workflow data."""
-        self.triggers = self.__get_triggers(workflow.parsed_yml)
+        self.__triggers = self.__process_triggers(workflow.parsed_yml)
 
-        self.env_vars = self.__get_envs(workflow.parsed_yml)
+        self.__env_vars = self.__process_envs(workflow.parsed_yml)
 
-        self.inputs = self.__get_inputs(workflow.parsed_yml)
+        self.inputs = self.__process_inputs(workflow.parsed_yml)
         self.uninitialized = False
+
+    def get_triggers(self):
+        """Retrieve the triggers associated with the Workflow node."""
+        return self.__triggers
 
     def get_tags(self):
         """ """
@@ -129,7 +137,7 @@ class WorkflowNode(Node):
         else:
             tags.add("initialized")
 
-        for trigger in self.triggers:
+        for trigger in self.__triggers:
             tags.add(trigger)
 
         return tags

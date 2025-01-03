@@ -900,10 +900,19 @@ class Api:
         # the machine_name:runner_name.
         run_logs = {}
         names = set()
+        total_attempts = 0
 
         if runs:
             logger.debug(f"Enumerating runs within {repo_name}")
         for run in runs:
+            # We only look at 10 workflow logs.
+            # If we haven't found a non-ephemeral runner it is unlikely we will.
+            # Larger repos with complex matrix builds and reusable workflows
+            # can have massive log sizes and we end up wasting a lot of time.
+            if total_attempts > 10:
+
+                break
+
             # We are only interested in runs that actually executed.
             if run["conclusion"] != "success" and run["conclusion"] != "failure":
                 continue
@@ -913,7 +922,6 @@ class Api:
             if workflow_key in names:
                 continue
             names.add(workflow_key)
-
             run_log = self.call_get(
                 f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                 f'attempts/{run["run_attempt"]}/logs'
@@ -941,6 +949,8 @@ class Api:
                     f"{run['id']} attempt {run['run_attempt']} returned "
                     f"{run_log.status_code}!"
                 )
+
+            total_attempts += 1
 
         return run_logs.values()
 

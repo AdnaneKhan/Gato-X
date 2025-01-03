@@ -17,19 +17,6 @@ MATRIX_KEY_EXTRACTION_REGEX = re.compile(r"{{\s*matrix\.([\w-]+)\s*}}")
 
 
 @staticmethod
-def parse_script(script):
-    """
-    Parse a script and return a list of tokens.
-
-    Args:
-        script (str): The script to parse.
-
-    Returns:
-        list: A list of tokens.
-    """
-
-
-@staticmethod
 def process_matrix(job_def, runs_on):
     """Process case where runner is specified via matrix."""
     try:
@@ -251,6 +238,21 @@ def filter_tokens(tokens, strict=False):
 
 
 @staticmethod
+def getToken(contents):
+    """Get the context token from the step."""
+    match = CONTEXT_REGEX.search(contents)
+    if match:
+        return match.group(1).replace(" ", "")
+    return contents
+
+
+@staticmethod
+def checkUnsafe(variable):
+    """Check if the variable is unsafe."""
+    return variable in ConfigurationManager().WORKFLOW_PARSING["UNSAFE_CONTEXTS"]
+
+
+@staticmethod
 def getTokens(contents):
     """Get the context tokens from the step."""
     if contents:
@@ -288,17 +290,23 @@ def validate_if_check(if_check, variables):
     or pwn request scenario then we return True, because we would rather
     not miss a potential vulnerability.
     """
+    result = False
     if not if_check:
         return True
 
     if check_always_true(if_check):
         return True
 
-    parser = ExpressionParser(if_check)
-    ast_root = parser.get_node()
+    try:
+        parser = ExpressionParser(if_check)
+        ast_root = parser.get_node()
 
-    evaluator = ExpressionEvaluator(variables)
-    result = evaluator.evaluate(ast_root)
+        evaluator = ExpressionEvaluator(variables)
+        result = evaluator.evaluate(ast_root)
+    except Exception as e:
+        # Fail open so we don't miss things.
+        result = True
+        pass
 
     return result
 

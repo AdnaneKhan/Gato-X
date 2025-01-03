@@ -16,14 +16,20 @@ class RunnerVisitor:
 
         workflows = {}
         for node in nodes:
-            repo = node.repo_name
+            try:
+                repo = node.repo_name
 
-            if "workflow_call" in node.get_workflow().get_tags():
-                # We need to find the parent workflow.
-                callers = node.get_workflow().get_caller_workflows()
-                for caller in callers:
-                    workflows.setdefault(repo, set()).add(caller.get_workflow_name())
+                if "workflow_call" in node.get_workflow().get_tags():
+                    # We need to find the parent workflow.
+                    callers = node.get_workflow().get_caller_workflows()
+                    for caller in callers:
+                        workflows.setdefault(repo, set()).add(
+                            caller.get_workflow_name()
+                        )
 
-            workflows.setdefault(repo, set()).add(node.get_workflow_name())
+                workflows.setdefault(repo, set()).add(node.get_workflow_name())
+            except Exception as e:
+                print(f"Error processing node: {node.name}")
+                print(e)
 
         return workflows

@@ -9,17 +9,42 @@ from gatox.caching.cache_manager import CacheManager
 
 
 class DispatchTOCTOUVisitor:
-    """This class implements a graph visitor tasked with identifying
-    injection issues from workflows.
+    """
+    A visitor class designed to identify Time-Of-Check to Time-Of-Use (TOCTOU) vulnerabilities
+    in GitHub workflows that are triggered via workflow dispatch and handle pull request numbers
+    without accompanying SHA references.
+
+    TOCTOU vulnerabilities can occur when there is a window of opportunity between the time a
+    condition is checked and the time an action is taken based on that condition. This class
+    specifically targets workflows that may be susceptible to such vulnerabilities by analyzing
+    the paths within the workflow graph.
     """
 
     @staticmethod
     def find_dispatch_misconfigurations(graph: TaggedGraph, api: Api):
-        """Identifies TOCTOU vulnerabilties in workflows that run
-        on workflow dispatch but take the PR number without an accompanying sha.
         """
+        Identifies TOCTOU vulnerabilities in workflows that are triggered by workflow dispatch
+        events and handle pull request (PR) numbers without accompanying SHA references.
 
-        # Now we have all reponodes
+        This method performs the following operations:
+        1. Retrieves all nodes tagged with "workflow_dispatch" from the workflow graph.
+        2. For each of these nodes, it performs a Depth-First Search (DFS) to find paths
+           that lead to nodes tagged with "checkout".
+        3. Processes each identified path to determine if it contains potential TOCTOU
+           vulnerabilities.
+        4. Aggregates and renders the results in an ASCII format for easy visualization.
+
+        Args:
+            graph (TaggedGraph): The workflow graph containing all nodes and their relationships.
+            api (Api): An instance of the API wrapper to interact with GitHub APIs.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Catches and logs any exceptions that occur during path processing.
+        """
+        # Retrieve all nodes tagged with "workflow_dispatch"
         nodes = graph.get_nodes_for_tags(
             [
                 "workflow_dispatch",
@@ -29,106 +54,136 @@ class DispatchTOCTOUVisitor:
         all_paths = []
         results = {}
 
+        # Perform DFS from each "workflow_dispatch" node to find paths to "checkout" nodes
         for cn in nodes:
             paths = graph.dfs_to_tag(cn, "checkout", api)
             if paths:
                 all_paths.append(paths)
 
+        # Process each discovered path to identify TOCTOU vulnerabilities
         for path_set in all_paths:
             for path in path_set:
-                input_lookup = {}
+                try:
+                    DispatchTOCTOUVisitor.__process_path(path, graph, api, results)
+                except Exception as e:
+                    print(f"Error processing path: {e}")
 
-                # Workflow dispatch jobs inherently
-                # have an approval gate, so only
-                # TOCTOU issues can be exploited.
-                approval_gate = True
-                env_lookup = {}
-                flexible_lookup = {}
-
-                for index, node in enumerate(path):
-                    tags = node.get_tags()
-                    if "JobNode" in tags:
-                        if node.outputs:
-                            for o_key, val in node.outputs.items():
-                                if "env." in val and val not in env_lookup:
-                                    for key in env_lookup.keys():
-                                        if key in val:
-                                            flexible_lookup[o_key] = env_lookup[key]
-                    elif "WorkflowNode" in tags:
-                        if index != 0 and "JobNode" in path[index - 1].get_tags():
-                            # Caller job node
-                            node_params = path[index - 1].params
-                            # Set lookup for input params
-                            input_lookup.update(node_params)
-                        if index == 0:
-                            repo = CacheManager().get_repository(node.repo_name)
-                            if repo.is_fork():
-                                break
-                            # If the workflow dispatch node does not have
-                            # any inputs, we can skip the rest of the path.
-
-                            if not node.inputs:
-                                break
-
-                            pr_num_found = False
-                            # Prrocess inputs to determine if any contain a PR number.
-                            # this is a heuristic, but the key goal here
-                            # is to identify workflows that are taking a PR number
-                            # or mutable reference.
-
-                            for key, val in node.inputs.items():
-                                if "sha" in key.lower():
-                                    break
-                                elif re.search(
-                                    r"\b(pr|pull|pull_request|pr_number)\b",
-                                    key,
-                                    re.IGNORECASE,
-                                ):
-                                    pr_num_found = True
-                                    break
-
-                            if not pr_num_found:
-                                break
-
-                            # Check workflow environment variables.
-                            # for env vars that are github.event.*
-                            env_vars = node.env_vars
-                            for key, val in env_vars.items():
-                                if type(val) is str:
-                                    if "github." in val:
-                                        env_lookup[key] = val
-                    elif "StepNode" in tags:
-                        if node.is_checkout:
-                            checkout_ref = node.metadata
-                            if "inputs." in node.metadata:
-                                if "${{" in node.metadata:
-                                    processed_var = CONTEXT_REGEX.findall(node.metadata)
-                                    if processed_var:
-                                        processed_var = processed_var[0]
-                                        if "inputs." in processed_var:
-                                            processed_var = processed_var.replace(
-                                                "inputs.", ""
-                                            )
-                                    else:
-                                        processed_var = node.metadata
-                                else:
-                                    processed_var = node.metadata
-
-                                if processed_var in env_lookup:
-                                    original_val = env_lookup[processed_var]
-                                    checkout_ref = original_val
-                                elif processed_var in input_lookup:
-                                    checkout_ref = input_lookup[processed_var]
-
-                            if VisitorUtils.check_mutable_ref(checkout_ref):
-                                sinks = graph.dfs_to_tag(node, "sink", api)
-                                if sinks:
-                                    VisitorUtils.append_path(path, sinks[0])
-
-                                VisitorUtils._add_results(path, results)
-
-                    elif "ActionNode" in tags:
-                        VisitorUtils.initialize_action_node(graph, api, node)
-
+        # Render the aggregated results
         print("DISPATCH:")
         VisitorUtils.ascii_render(results)
+
+    @staticmethod
+    def __process_path(path, graph: TaggedGraph, api: Api, results: dict):
+        """
+        Processes a single path within the workflow graph to identify potential TOCTOU
+        vulnerabilities.
+
+        The processing involves:
+        - Analyzing each node in the path to extract relevant information.
+        - Maintaining lookups for input and environment variables.
+        - Checking for mutable references that could lead to vulnerabilities.
+        - Aggregating the findings into the results dictionary.
+
+        Args:
+            path (list): A list of nodes representing a single path in the workflow graph.
+            graph (TaggedGraph): The workflow graph containing all nodes and their relationships.
+            api (Api): An instance of the API wrapper to interact with GitHub APIs.
+            results (dict): A dictionary to store the findings of the analysis.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Propagates any exceptions that occur during the processing of the path.
+        """
+        input_lookup = {}
+
+        # Workflow dispatch jobs inherently have an approval gate,
+        # so only TOCTOU issues can be exploited.
+        approval_gate = True
+        env_lookup = {}
+        flexible_lookup = {}
+
+        for index, node in enumerate(path):
+            tags = node.get_tags()
+
+            if "JobNode" in tags:
+                if node.outputs:
+                    for o_key, val in node.outputs.items():
+                        if "env." in val and val not in env_lookup:
+                            for key in env_lookup.keys():
+                                if key in val:
+                                    flexible_lookup[o_key] = env_lookup[key]
+
+            elif "WorkflowNode" in tags:
+                if index != 0 and "JobNode" in path[index - 1].get_tags():
+                    # Caller job node
+                    node_params = path[index - 1].params
+                    # Set lookup for input params
+                    input_lookup.update(node_params)
+
+                if index == 0:
+                    repo = CacheManager().get_repository(node.repo_name)
+                    if repo.is_fork():
+                        break
+
+                    # If the workflow dispatch node does not have any inputs,
+                    # skip the rest of the path.
+                    if not node.inputs:
+                        break
+
+                    pr_num_found = False
+                    # Process inputs to determine if any contain a PR number.
+                    # This is a heuristic to identify workflows that are taking a PR number
+                    # or mutable reference.
+                    for key, val in node.inputs.items():
+                        if "sha" in key.lower():
+                            break
+                        elif re.search(
+                            r"\b(pr|pull|pull_request|pr_number)\b",
+                            key,
+                            re.IGNORECASE,
+                        ):
+                            pr_num_found = True
+                            break
+
+                    if not pr_num_found:
+                        break
+
+                    # Check workflow environment variables for GitHub event references
+                    env_vars = node.get_env_vars()
+                    for key, val in env_vars.items():
+                        if isinstance(val, str):
+                            if "github." in val:
+                                env_lookup[key] = val
+
+            elif "StepNode" in tags:
+                if node.is_checkout:
+                    checkout_ref = node.metadata
+                    if "inputs." in node.metadata:
+                        if "${{" in node.metadata:
+                            processed_var = CONTEXT_REGEX.findall(node.metadata)
+                            if processed_var:
+                                processed_var = processed_var[0]
+                                if "inputs." in processed_var:
+                                    processed_var = processed_var.replace("inputs.", "")
+                            else:
+                                processed_var = node.metadata
+                        else:
+                            processed_var = node.metadata
+
+                        if processed_var in env_lookup:
+                            original_val = env_lookup[processed_var]
+                            checkout_ref = original_val
+                        elif processed_var in input_lookup:
+                            checkout_ref = input_lookup[processed_var]
+
+                    if VisitorUtils.check_mutable_ref(checkout_ref):
+                        sinks = graph.dfs_to_tag(node, "sink", api)
+                        if sinks:
+                            VisitorUtils.append_path(path, sinks[0])
+
+                        VisitorUtils._add_results(path, results)
+
+            elif "ActionNode" in tags:
+                VisitorUtils.initialize_action_node(graph, api, node)
