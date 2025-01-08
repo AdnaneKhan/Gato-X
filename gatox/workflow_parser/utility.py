@@ -14,7 +14,7 @@ LARGER_RUNNER_REGEX_LIST = re.compile(
     r"(windows|ubuntu)-(24.04|22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb"
 )
 MATRIX_KEY_EXTRACTION_REGEX = re.compile(r"{{\s*matrix\.([\w-]+)\s*}}")
-
+STATIC_IF = re.compile(r'^(\$\{\{)?[A-Za-z0-9. ]+(\}\})?$')
 
 @staticmethod
 def process_matrix(job_def, runs_on):
@@ -283,15 +283,17 @@ def check_always_true(if_check):
 
 
 @staticmethod
-def validate_if_check(if_check, variables):
+def validate_if_check(if_check, variables={}):
     """Function used to validate each if check.
     The strategy here is to "fail open". If we cannot
     determine with certainty the check would fail in an injection
     or pwn request scenario then we return True, because we would rather
     not miss a potential vulnerability.
     """
-    result = False
     if not if_check:
+        return True
+    
+    if STATIC_IF.match(if_check):
         return True
 
     if check_always_true(if_check):
@@ -299,15 +301,19 @@ def validate_if_check(if_check, variables):
 
     try:
         parser = ExpressionParser(if_check)
-        ast_root = parser.get_node()
+    except Exception:
+        # Fail open
+        return True
+    ast_root = parser.get_node()
 
+    try:
         evaluator = ExpressionEvaluator(variables)
         result = evaluator.evaluate(ast_root)
-    except Exception as e:
-        # Fail open so we don't miss things.
-        result = True
-        pass
-
+    except NotImplementedError:
+        return True
+    except Exception:
+        return True
+    
     return result
 
 

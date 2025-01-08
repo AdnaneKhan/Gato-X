@@ -47,7 +47,7 @@ class ExpressionParser:
             ("EQUALS", r"=="),
             ("NOT_EQUALS", r"!="),
             ("NEGATION", r"!"),  # Unary negation
-            ("IDENTIFIER", r"[a-zA-Z_.][a-zA-Z0-9_.*]*"),
+            ("IDENTIFIER", r"[a-zA-Z_.][a-zA-Z0-9-_.*]*"),
             ("STRING", r"'[^']*'"),
             ("WHITESPACE", r"\s+"),
         ]
@@ -86,11 +86,15 @@ class ExpressionParser:
 
     @staticmethod
     def parse_logical_and(tokens):
+        # Start with first comparison
         node = ExpressionParser.parse_comparison(tokens)
+        # Keep chaining AND operations as long as we see &&
         while tokens and tokens[0][0] == "AND":
             op = tokens.pop(0)
             rhs = ExpressionParser.parse_comparison(tokens)
+            # Create new AND node with previous node as left child
             node = Node("logical_and", op[1], [node, rhs])
+            
         return node
 
     @staticmethod
@@ -144,6 +148,11 @@ class ExpressionParser:
                 return Node("identifier", tokens.pop(0)[1])
         elif tokens[0][0] == "STRING":
             return Node("string", tokens.pop(0)[1])
+        
+        elif tokens[0][0] == "AND" or tokens[0][0] == "OR":
+            tokens.pop(0)
+            node = ExpressionParser.parse_expression(tokens)
+            return node
         else:
             raise SyntaxError(f"Unexpected token: {tokens[0][1]}")
 
