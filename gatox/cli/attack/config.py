@@ -195,7 +195,7 @@ def configure_parser_attack(parser):
 
     parser.add_argument(
         "--payload-only",
-        help="Generaate payloads with the specified C2 repository or creates a new one. Used for manually deploying runner on runner.",
+        help="Generate payloads with the specified C2 repository or creates a new one. Used for manually deploying runner on runner.",
         default=False,
         action="store_true",
     )
