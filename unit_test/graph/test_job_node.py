@@ -8,7 +8,7 @@ def test_job_node_init():
 
     assert job.name == "org/repo:main:.github/workflows/test.yml:test_job"
     assert job.ref == "main"
-    assert job.repo_name == "org/repo"
+    assert job.repo_name() == "org/repo"
     assert job.params == {}
     assert job.if_condition is None
     assert job.wf_reference is None

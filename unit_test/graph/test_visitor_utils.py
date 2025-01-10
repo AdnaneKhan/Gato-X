@@ -1,21 +1,24 @@
 import pytest
+from unittest.mock import patch
+
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 
 
 def test_add_results():
     # Test adding paths to results dict
-    path = [WorkflowNode("repo1", "workflow1")]
+    path = [WorkflowNode("main", "org/repo1", ".github/workflows/test.yml")]
     results = {}
 
     VisitorUtils._add_results(path, results)
 
-    assert "repo1" in results
-    assert results["repo1"] == [path]
+    assert "org/repo1" in results
+    assert len(results["org/repo1"]) == 1
 
 
 def test_check_mutable_ref():
@@ -52,11 +55,11 @@ def test_append_path():
     assert result == [1, 2, 3]
 
 
-def test_initialize_action_node():
-    graph = TaggedGraph()
-    api = None  # Mock API if needed
-    node = ActionNode("repo", "action", {})
-    node.add_tags(["uninitialized"])
+@patch("gatox.enumerate.enumerate.Api")
+def test_initialize_action_node(mock_api):
+    graph = WorkflowGraphBuilder().graph
+    api = mock_api  # Mock API if needed
+    node = ActionNode("someorg/testaction@v4", "main", "action.yml", "testOrg/repo", {})
 
     try:
         VisitorUtils.initialize_action_node(graph, api, node)

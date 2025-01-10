@@ -39,6 +39,7 @@ from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
 # ( github.event.action == 'opened' && steps.is-team-member.outputs.MESSAGE == 'false' )
 # always() && (needs.tests-summarize.result == 'failure')
 
+
 def test_parse1():
     if_check1 = "(((github.event.action == 'labeled' && (github.event.label.name == 'approved' || github.event.label.name == 'lgtm' || github.event.label.name == 'ok-to-test')) || (github.event.action != 'labeled' && (contains(github.event.pull_request.labels.*.name, 'ok-to-test') || contains(github.event.pull_request.labels.*.name, 'approved') || contains(github.event.pull_request.labels.*.name, 'lgtm')))) && github.repository == 'feast-dev/feast')"
 
@@ -65,15 +66,18 @@ def test_parse2():
 
     assert result is False
 
+
 def test_parse3():
     if_check = "${{ endsWith(inputs.repository-name, '-enterprise') }}"
     expr = ExpressionParser(if_check)
     expr.print_ast()
 
+
 def test_parse4():
     if_check = "always() && (needs.get-go-version.result == 'failure' || needs.acceptance-test.result == 'failure')"
     expr = ExpressionParser(if_check)
     expr.print_ast()
+
 
 def test_parse5():
     if_check = "github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'preview' && github.event.sender.id == 35613825 && github.event.repository.name == 'dev-portal'"

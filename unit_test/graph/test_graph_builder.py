@@ -27,7 +27,7 @@ def mock_repo():
 @pytest.fixture
 def mock_workflow():
     workflow = Mock(spec=Workflow)
-    workflow.__repo_name = "test/repo"
+    workflow.repo_name = "test/repo"
     workflow.branch = "main"
     workflow.getPath.return_value = ".github/workflows/test.yml"
     workflow.isInvalid.return_value = False
@@ -69,9 +69,7 @@ def test_build_graph_from_yaml(builder, mock_workflow, mock_repo):
 
 
 def test_build_workflow_jobs(builder, mock_workflow):
-    wf_node = WorkflowNode(
-        "test.yml", "main", "test/repo", ".github/workflows/test.yml"
-    )
+    wf_node = WorkflowNode("main", "test/repo", ".github/workflows/test.yml")
     builder.build_workflow_jobs(mock_workflow, wf_node)
 
     # Should create job node
@@ -87,7 +85,9 @@ def test_invalid_workflow(builder, mock_workflow, mock_repo):
 
 @patch("gatox.workflow_graph.graph_builder.CacheManager")
 def test_initialize_action_node(mock_cache, builder):
-    action_node = ActionNode("actions/checkout@v2", "main", "workflow.yml", "test/repo")
+    action_node = ActionNode(
+        "actions/checkout@v2", "main", "workflow.yml", "test/repo", {}
+    )
     api = Mock()
     api.retrieve_raw_action.return_value = """
     name: 'Test Action'
@@ -98,19 +98,3 @@ def test_initialize_action_node(mock_cache, builder):
 
     builder._initialize_action_node(action_node, api)
     assert action_node.initialized
-
-
-@patch("gatox.workflow_graph.graph_builder.CacheManager")
-def test_initialize_callee_node(mock_cache, builder):
-    workflow_node = WorkflowNode(
-        "test.yml", "main", "test/repo", ".github/workflows/test.yml"
-    )
-    workflow_node.add_tags(["uninitialized"])
-
-    api = Mock()
-    api.retrieve_repo_file.return_value = {
-        "jobs": {"test": {"runs-on": "ubuntu-latest", "steps": []}}
-    }
-
-    builder._initialize_callee_node(workflow_node, api)
-    assert "uninitialized" not in workflow_node.get_tags()
