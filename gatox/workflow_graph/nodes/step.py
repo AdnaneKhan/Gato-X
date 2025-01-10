@@ -41,6 +41,9 @@ class StepNode(Node):
             job_name (str): The name of the job.
             step_number (int): The step number within the job.
         """
+        if type(step_data) is not dict:
+            raise ValueError(f"Step data must be a dictionary: {str(step_data)}.")
+
         # Create a unique ID for this step.
         if "name" in step_data:
             self.name = f"{repo_name}:{ref}:{workflow_path}:{job_name}:{step_data['name']}_{step_number}"
