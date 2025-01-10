@@ -42,6 +42,25 @@ def mock_workflow():
     return workflow
 
 
+@pytest.fixture
+def mock_workflow2():
+    workflow = Mock(spec=Workflow)
+    workflow.repo_name = "test/repo"
+    workflow.branch = "main"
+    workflow.getPath.return_value = ".github/workflows/test.yml"
+    workflow.isInvalid.return_value = False
+    workflow.parsed_yml = {
+        "jobs": [
+            {
+                "name": "build",
+                "runs-on": "ubuntu-latest",
+                "steps": [{"uses": "actions/checkout@v2"}],
+            }
+        ]
+    }
+    return workflow
+
+
 def test_singleton():
     builder1 = WorkflowGraphBuilder()
     builder2 = WorkflowGraphBuilder()
@@ -66,6 +85,39 @@ def test_build_graph_from_yaml(builder, mock_workflow, mock_repo):
     # Should have workflow node
     wf_nodes = [n for n in builder.graph.nodes if "WorkflowNode" in n.get_tags()]
     assert len(wf_nodes) == 1
+
+
+def test_build_graph_from_yaml2(builder, mock_workflow2, mock_repo):
+    builder.build_graph_from_yaml(mock_workflow2, mock_repo)
+    assert len(builder.graph.nodes) > 0
+
+    # Should have repo node
+    repo_nodes = [n for n in builder.graph.nodes if "RepoNode" in n.get_tags()]
+    assert len(repo_nodes) == 1
+
+    # Should have workflow node
+    wf_nodes = [n for n in builder.graph.nodes if "WorkflowNode" in n.get_tags()]
+    assert len(wf_nodes) == 1
+
+
+def test_build_graph_from_yaml_invalid(builder, mock_repo):
+
+    workflow = Mock(spec=Workflow)
+    workflow.repo_name = "test/repo"
+    workflow.branch = "main"
+    workflow.getPath.return_value = ".github/workflows/test.yml"
+    workflow.isInvalid.return_value = False
+    workflow.parsed_yml = {
+        "jobs": [
+            {
+                "name_none": "build",
+                "runs-on": "ubuntu-latest",
+                "steps": [{"uses": "actions/checkout@v2"}],
+            }
+        ]
+    }
+
+    assert builder.build_graph_from_yaml(workflow, mock_repo) == False
 
 
 def test_build_workflow_jobs(builder, mock_workflow):

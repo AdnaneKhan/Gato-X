@@ -14,7 +14,8 @@ LARGER_RUNNER_REGEX_LIST = re.compile(
     r"(windows|ubuntu)-(24.04|22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb"
 )
 MATRIX_KEY_EXTRACTION_REGEX = re.compile(r"{{\s*matrix\.([\w-]+)\s*}}")
-STATIC_IF = re.compile(r'^(\$\{\{)?[A-Za-z0-9. ]+(\}\})?$')
+STATIC_IF = re.compile(r"^(\$\{\{)?[A-Za-z0-9. ]+(\}\})?$")
+
 
 @staticmethod
 def starts_with_any(value: str, prefixes: list[str]) -> bool:
@@ -87,6 +88,7 @@ def process_runner(runs_on):
         return True
 
     return False
+
 
 @staticmethod
 def parse_script(contents: str):
@@ -299,7 +301,7 @@ def validate_if_check(if_check, variables={}):
     """
     if not if_check:
         return True
-    
+
     if STATIC_IF.match(if_check):
         return True
 
@@ -320,7 +322,7 @@ def validate_if_check(if_check, variables={}):
         return True
     except Exception:
         return True
-    
+
     return result
 
 

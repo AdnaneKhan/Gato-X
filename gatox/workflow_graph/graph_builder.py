@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 from gatox.models.composite import Composite
@@ -90,6 +94,9 @@ class WorkflowGraphBuilder:
         parsed_action = Composite(contents)
         if parsed_action.composite:
             steps = parsed_action.parsed_yml["runs"].get("steps", [])
+            if type(steps) != list:
+                raise ValueError("Steps must be a list")
+
             prev_step_node = None
             for iter, step in enumerate(steps):
                 calling_name = parsed_action.parsed_yml.get("name", f"EMPTY")
@@ -128,6 +135,20 @@ class WorkflowGraphBuilder:
 
             self.build_workflow_jobs(callee_wf, workflow)
 
+    def __transform_list_job(self, jobs: list):
+        """Transforms a list job into a dictionary job."""
+        jobs_dict = {}
+        for job in jobs:
+            if not type(job) == dict:
+                raise ValueError("Job must be a dictionary")
+            if "name" not in job:
+                raise ValueError("Job in list format must have a name field")
+            name = job.pop("name")  # Remove name field and use as key
+            jobs_dict[name] = job
+        jobs = jobs_dict
+
+        return jobs
+
     def build_graph_from_yaml(
         self, workflow_wrapper: Workflow, repo_wrapper: Repository
     ):
@@ -135,7 +156,7 @@ class WorkflowGraphBuilder:
         Build a graph from a workflow yaml file.
         """
         if workflow_wrapper.isInvalid() or not repo_wrapper:
-            return
+            return False
 
         repo, added = NodeFactory.create_repo_node(repo_wrapper)
         if added:
@@ -156,17 +177,23 @@ class WorkflowGraphBuilder:
             self.graph.add_edge(repo, wf_node, relation="contains")
 
             self.build_workflow_jobs(workflow_wrapper, wf_node)
+
+            return True
         except ValueError as e:
+            logger.warning(f"Error building graph from workflow: {e}")
             # Likely encountered a syntax error in the workflow
-            return
+            return False
 
     def build_workflow_jobs(self, workflow_wrapper: Workflow, wf_node: WorkflowNode):
-
+        """Build workflow jobs from the parsed yaml file."""
         workflow = workflow_wrapper.parsed_yml
         jobs = workflow.get("jobs", {})
 
         if not jobs:
-            return
+            raise ValueError("No jobs found in workflow")
+
+        if isinstance(jobs, list):
+            jobs = self.__transform_list_job(jobs)
 
         for job_name, job_def in jobs.items():
 
@@ -174,7 +201,7 @@ class WorkflowGraphBuilder:
                 # This means there is a syntax error
                 # in the workflow. Gato-X cannot process
                 # malformed workflows.
-                return
+                raise ValueError("Job definition is empty")
 
             job_node = NodeFactory.create_job_node(
                 job_name,
@@ -253,6 +280,16 @@ class WorkflowGraphBuilder:
         tags = node.get_tags()
         if "uninitialized" in tags:
             if "ActionNode" in tags:
-                self._initialize_action_node(node, api)
+                try:
+                    self._initialize_action_node(node, api)
+                except ValueError as e:
+                    logger.warning(f"Error initializing action node: {e}")
+                    # Likely encountered a syntax error in the workflow
+                    return
             elif "WorkflowNode" in tags:
-                self._initialize_callee_node(node, api)
+                try:
+                    self._initialize_callee_node(node, api)
+                except ValueError as e:
+                    logger.warning(f"Error initializing callee node: {e}")
+                    # Likely encountered a syntax error in the workflow
+                    return
