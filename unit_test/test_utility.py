@@ -8,6 +8,9 @@ from gatox.workflow_parser.utility import (
     starts_with_any,
     process_matrix,
     getTokens,
+    check_sus,
+    checkUnsafe,
+    process_runner,
 )
 
 
@@ -253,3 +256,50 @@ def test_parse_github_path_with_empty_path():
     path = ""
     expected_result = ("", "", "main")
     assert parse_github_path(path) == expected_result
+
+
+def test_check_sus():
+    item = "needs.get_ref.outputs.head-ref"
+
+    assert check_sus(item) == True
+
+
+def test_check_sus_false():
+    item = "needs.get_permission.allowed"
+
+    assert check_sus(item) == False
+
+
+def test_unsafe():
+    item = "github.event.pull_request.title"
+    assert checkUnsafe(item) == True
+
+
+def test_safe():
+    item = "github.event.pull_request.url"
+    assert checkUnsafe(item) == False
+
+
+def test_process_runner():
+    runner = "custom-mac-m1"
+    assert process_runner(runner) == True
+
+
+def test_rocess_runner_gh_large():
+    runner = ["macos-13-xl"]
+    assert process_runner(runner) == False
+
+
+def test_rocess_runner_gh_large1():
+    runner = ["ubuntu-24.04"]
+    assert process_runner(runner) == False
+
+
+def test_process_runner_list():
+    runner = ["custom-mac-m1", "x64"]
+    assert process_runner(runner) == True
+
+
+def test_process_runner_gh():
+    runner = "ubuntu-latest"
+    assert process_runner(runner) == False

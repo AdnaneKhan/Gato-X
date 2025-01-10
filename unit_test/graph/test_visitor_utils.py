@@ -71,12 +71,27 @@ def test_initialize_action_node(mock_api):
 
 
 def test_ascii_render(capsys):
+
+    step_data = {
+        "name": "test_step",
+        "run": "test",
+    }
+
     data = {
         "test_repo": [
             [
-                WorkflowNode("test_repo", "workflow1"),
-                JobNode("test_repo", "job1"),
-                StepNode("test_repo", "step1", {"run": "test"}),
+                WorkflowNode("main", "testOrg/test_repo", "workflow1"),
+                JobNode(
+                    "Test1", "main", "testOrg/test_repo", ".github/workflows/test.yml"
+                ),
+                StepNode(
+                    step_data,
+                    "main",
+                    "testOrg/test_repo",
+                    ".github/workflows/",
+                    "tests.yml",
+                    1,
+                ),
             ]
         ]
     }

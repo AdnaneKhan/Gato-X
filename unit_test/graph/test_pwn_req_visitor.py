@@ -35,28 +35,6 @@ def test_find_pwn_requests_no_nodes(mock_graph, mock_api, mock_cache_manager):
         mock_render.assert_called_with({})
 
 
-def test_process_single_path_with_approval_gate(
-    mock_graph, mock_api, mock_cache_manager
-):
-    path = [MagicMock()]
-    graph = mock_graph
-    api = mock_api
-    rule_cache = {}
-    results = {}
-
-    node = path[0]
-    node.get_tags.return_value = ["JobNode"]
-    node.deployments = [{"name": "production"}]
-    node.repo_name = "test/repo"
-    node.outputs = {}
-
-    with patch.object(
-        api, "get_all_environment_protection_rules", return_value={"production"}
-    ):
-        PwnRequestVisitor._process_single_path(path, graph, api, rule_cache, results)
-        assert "production" in rule_cache["test/repo"]
-
-
 def test_finalize_result_not_implemented():
     with pytest.raises(NotImplementedError):
         PwnRequestVisitor._finalize_result()

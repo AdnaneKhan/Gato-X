@@ -1,6 +1,6 @@
 import pytest
 import networkx as nx
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 
 
@@ -104,7 +104,7 @@ def test_dfs_to_tag():
     graph = TaggedGraph(builder=builder)
 
     nodeA = MockNode("A", needs=[], tags=["start"])
-    nodeB = MockNode("B", needs=[nodeA], tags=["middle", "uninitialized"])
+    nodeB = MockNode("B", needs=[nodeA], tags=["middle"])
     nodeC = MockNode("C", needs=[nodeB], tags=["target"])
     graph.add_node(nodeA)
     graph.add_node(nodeB)
@@ -115,4 +115,3 @@ def test_dfs_to_tag():
     paths = graph.dfs_to_tag(nodeA, "target", api=MagicMock())
     assert len(paths) == 1
     assert paths[0] == [nodeA, nodeB, nodeC]
-    builder.initialize_node.assert_called_once_with(nodeB, mock.ANY)

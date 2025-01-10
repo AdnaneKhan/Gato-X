@@ -98,7 +98,9 @@
             "regression",
             "steps.generate_token.outputs.token",
             "outputs.status",
-            "outputs.name"
+            "outputs.name",
+            "allowed",
+            "permitted"
         ],
         "SINKS": [
             "scripts/",

@@ -86,6 +86,7 @@ def process_runner(runs_on):
             return False
         return True
 
+    return False
 
 @staticmethod
 def parse_script(contents: str):

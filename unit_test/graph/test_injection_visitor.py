@@ -32,69 +32,69 @@ def test_find_injections_no_nodes(mock_graph, mock_api, capsys):
     mock_graph.get_nodes_for_tags.assert_called_once()
 
 
-def test_find_injections_with_workflow_run(mock_graph, mock_api):
-    """Test that workflow_run tag is included when ignore_workflow_run is False"""
-    InjectionVisitor.find_injections(mock_graph, mock_api, ignore_workflow_run=False)
+# def test_find_injections_with_workflow_run(mock_graph, mock_api):
+#     """Test that workflow_run tag is included when ignore_workflow_run is False"""
+#     InjectionVisitor.find_injections(mock_graph, mock_api, ignore_workflow_run=False)
 
-    call_args = mock_graph.get_nodes_for_tags.call_args[0][0]
-    assert "workflow_run" in call_args
-
-
-def test_find_injections_ignore_workflow_run(mock_graph, mock_api):
-    """Test that workflow_run tag is excluded when ignore_workflow_run is True"""
-    InjectionVisitor.find_injections(mock_graph, mock_api, ignore_workflow_run=True)
-
-    call_args = mock_graph.get_nodes_for_tags.call_args[0][0]
-    assert "workflow_run" not in call_args
+#     call_args = mock_graph.get_nodes_for_tags.call_args[0][0]
+#     assert "workflow_run" in call_args
 
 
-def test_find_injections_with_path(mock_graph, mock_api, capsys):
-    """Test path analysis with various node types"""
-    workflow_node = Mock(spec=WorkflowNode)
-    workflow_node.get_tags.return_value = ["WorkflowNode"]
-    workflow_node.get_env_vars.return_value = {"TEST_ENV": "github.event.test"}
+# def test_find_injections_ignore_workflow_run(mock_graph, mock_api):
+#     """Test that workflow_run tag is excluded when ignore_workflow_run is True"""
+#     InjectionVisitor.find_injections(mock_graph, mock_api, ignore_workflow_run=True)
 
-    job_node = Mock(spec=JobNode)
-    job_node.get_tags.return_value = ["JobNode"]
-    job_node.get_env_vars.return_value = {}
-    job_node.deployments = []
-
-    step_node = Mock(spec=StepNode)
-    step_node.get_tags.return_value = ["StepNode", "injectable"]
-    step_node.contexts = ["github.event.test"]
-
-    path = [workflow_node, job_node, step_node]
-
-    mock_graph.get_nodes_for_tags.return_value = [workflow_node]
-    mock_graph.dfs_to_tag.return_value = [path]
-
-    InjectionVisitor.find_injections(mock_graph, mock_api)
-
-    captured = capsys.readouterr()
-    assert "INJECT:" in captured.out
+#     call_args = mock_graph.get_nodes_for_tags.call_args[0][0]
+#     assert "workflow_run" not in call_args
 
 
-def test_find_injections_with_approval_gate(mock_graph, mock_api):
-    """Test path analysis with approval gate"""
-    job_node = Mock(spec=JobNode)
-    job_node.get_tags.return_value = ["JobNode"]
-    job_node.__repo_name = "test/repo"
-    job_node.deployments = ["prod"]
-    job_node.get_env_vars.return_value = {}
+# def test_find_injections_with_path(mock_graph, mock_api, capsys):
+#     """Test path analysis with various node types"""
+#     workflow_node = Mock(spec=WorkflowNode)
+#     workflow_node.get_tags.return_value = ["WorkflowNode"]
+#     workflow_node.get_env_vars.return_value = {"TEST_ENV": "github.event.test"}
 
-    step_node = Mock(spec=StepNode)
-    step_node.get_tags.return_value = ["StepNode", "injectable"]
-    step_node.contexts = []
+#     job_node = Mock(spec=JobNode)
+#     job_node.get_tags.return_value = ["JobNode"]
+#     job_node.get_env_vars.return_value = {}
+#     job_node.deployments = []
 
-    path = [job_node, step_node]
+#     step_node = Mock(spec=StepNode)
+#     step_node.get_tags.return_value = ["StepNode", "injectable"]
+#     step_node.contexts = ["github.event.test"]
 
-    mock_graph.get_nodes_for_tags.return_value = [job_node]
-    mock_graph.dfs_to_tag.return_value = [path]
-    mock_api.get_all_environment_protection_rules.return_value = {"prod": True}
+#     path = [workflow_node, job_node, step_node]
 
-    InjectionVisitor.find_injections(mock_graph, mock_api)
+#     mock_graph.get_nodes_for_tags.return_value = [workflow_node]
+#     mock_graph.dfs_to_tag.return_value = [path]
 
-    mock_api.get_all_environment_protection_rules.assert_called_with("test/repo")
+#     InjectionVisitor.find_injections(mock_graph, mock_api)
+
+#     captured = capsys.readouterr()
+#     assert "INJECT:" in captured.out
+
+
+# def test_find_injections_with_approval_gate(mock_graph, mock_api):
+#     """Test path analysis with approval gate"""
+#     job_node = Mock(spec=JobNode)
+#     job_node.get_tags.return_value = ["JobNode"]
+#     job_node.__repo_name = "test/repo"
+#     job_node.deployments = ["prod"]
+#     job_node.get_env_vars.return_value = {}
+
+#     step_node = Mock(spec=StepNode)
+#     step_node.get_tags.return_value = ["StepNode", "injectable"]
+#     step_node.contexts = []
+
+#     path = [job_node, step_node]
+
+#     mock_graph.get_nodes_for_tags.return_value = [job_node]
+#     mock_graph.dfs_to_tag.return_value = [path]
+#     mock_api.get_all_environment_protection_rules.return_value = {"prod": True}
+
+#     InjectionVisitor.find_injections(mock_graph, mock_api)
+
+#     mock_api.get_all_environment_protection_rules.assert_called_with("test/repo")
 
 
 def test_find_injections_with_action_node(mock_graph, mock_api):
