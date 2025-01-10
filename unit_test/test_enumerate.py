@@ -2,7 +2,7 @@ import os
 import pathlib
 import pytest
 import json
-import re
+import requests
 
 from unittest.mock import patch
 
@@ -29,6 +29,19 @@ BASE_MOCK_RUNNER = [
         "requested_labels": ["self-hosted", "Linux", "X64"],
     }
 ]
+
+
+@pytest.fixture(autouse=True)
+def block_network_calls(monkeypatch):
+    """
+    Fixture to block real network calls during tests,
+    raising an error if any attempt to send a request is made.
+    """
+
+    def mock_request(*args, **kwargs):
+        raise RuntimeError("Blocked a real network call during tests.")
+
+    monkeypatch.setattr(requests.sessions.Session, "request", mock_request)
 
 
 @pytest.fixture(scope="session", autouse=True)
