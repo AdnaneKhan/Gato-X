@@ -88,7 +88,7 @@ class InjectionVisitor:
                         # Check deployment environment rules
                         if node.deployments:
                             if node.repo_name() in rule_cache:
-                                rules = rule_cache[node.repo_name]
+                                rules = rule_cache[node.repo_name()]
                             else:
                                 rules = api.get_all_environment_protection_rules(
                                     node.repo_name()
