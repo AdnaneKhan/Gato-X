@@ -19,7 +19,8 @@ class WorkflowNode(Node):
         self.__workflow_path = workflow_path
         self.__triggers = []
         self.__callers = []
-        self.repo_name = repo_name
+        self.__excluded = False
+        self.__repo_name = repo_name
         self.__env_vars = {}
         self.inputs = {}
 
@@ -30,13 +31,18 @@ class WorkflowNode(Node):
         return isinstance(other, self.__class__) and self.name == other.name
 
     def set_params(self, params):
+        """ """
         self.params = params
 
     def get_parts(self):
-
+        """ """
         repo, ref, path = self.name.split(":")
 
         return repo, ref, path
+
+    def repo_name(self):
+        """ """
+        return self.__repo_name
 
     def get_workflow_name(self):
         """
@@ -71,6 +77,11 @@ class WorkflowNode(Node):
                             extracted_triggers.append(trigger)
                     else:
                         extracted_triggers.append(trigger)
+                elif trigger == "workflow_run":
+                    if "branches" in trigger_conditions:
+                        # If the branches filter is present, then
+                        # forks cannot trigger the workflow.
+                        self.__excluded = True
                 else:
                     extracted_triggers.append(trigger)
 
@@ -95,6 +106,11 @@ class WorkflowNode(Node):
             return workflow_data["env"]
         else:
             return {}
+
+    def excluded(self):
+        """Returns whether the workflow is excluded as it cannot be
+        triggered from a fork."""
+        return self.__excluded
 
     def get_env_vars(self):
         """Returns environment variables for the workflow."""

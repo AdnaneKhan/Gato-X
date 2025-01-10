@@ -27,7 +27,7 @@ def mock_repo():
 @pytest.fixture
 def mock_workflow():
     workflow = Mock(spec=Workflow)
-    workflow.repo_name = "test/repo"
+    workflow.__repo_name = "test/repo"
     workflow.branch = "main"
     workflow.getPath.return_value = ".github/workflows/test.yml"
     workflow.isInvalid.return_value = False

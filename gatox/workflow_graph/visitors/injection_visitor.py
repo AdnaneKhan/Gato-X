@@ -87,13 +87,13 @@ class InjectionVisitor:
                     if "JobNode" in tags:
                         # Check deployment environment rules
                         if node.deployments:
-                            if node.repo_name in rule_cache:
+                            if node.repo_name() in rule_cache:
                                 rules = rule_cache[node.repo_name]
                             else:
                                 rules = api.get_all_environment_protection_rules(
-                                    node.repo_name
+                                    node.repo_name()
                                 )
-                                rule_cache[node.repo_name] = rules
+                                rule_cache[node.repo_name()] = rules
                             for deployment in node.deployments:
                                 if isinstance(deployment, dict):
                                     deployment = deployment["name"]
@@ -184,7 +184,7 @@ class InjectionVisitor:
                             # Set lookup for input params
                             input_lookup.update(node_params)
                         if index == 0:
-                            repo = CacheManager().get_repository(node.repo_name)
+                            repo = CacheManager().get_repository(node.repo_name())
                             if repo.is_fork():
                                 break
 

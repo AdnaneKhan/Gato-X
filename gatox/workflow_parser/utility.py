@@ -17,6 +17,12 @@ MATRIX_KEY_EXTRACTION_REGEX = re.compile(r"{{\s*matrix\.([\w-]+)\s*}}")
 STATIC_IF = re.compile(r'^(\$\{\{)?[A-Za-z0-9. ]+(\}\})?$')
 
 @staticmethod
+def starts_with_any(value: str, prefixes: list[str]) -> bool:
+    """Returns True if 'value' starts with any of the provided prefixes."""
+    return any(value.startswith(prefix) for prefix in prefixes)
+
+
+@staticmethod
 def process_matrix(job_def, runs_on):
     """Process case where runner is specified via matrix."""
     try:

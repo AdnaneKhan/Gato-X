@@ -22,7 +22,7 @@ class VisitorUtils:
         Raises:
             None
         """
-        repo_name = path[0].repo_name
+        repo_name = path[0].repo_name()
         if repo_name not in results:
             results[repo_name] = []
 
