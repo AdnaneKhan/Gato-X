@@ -190,7 +190,7 @@ class WorkflowGraphBuilder:
         jobs = workflow.get("jobs", {})
 
         if not jobs:
-            raise ValueError("No jobs found in workflow")
+            raise ValueError(f"No jobs found in workflow: {workflow_wrapper.workflow_contents}")
 
         if isinstance(jobs, list):
             jobs = self.__transform_list_job(jobs)
