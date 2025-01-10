@@ -238,6 +238,9 @@ class DataIngestor:
                                 owner, contents, yml_name, default_branch=default_branch
                             )
 
+                            if wf_wrapper.isInvalid():
+                                continue
+
                             cache.set_workflow(owner, yml_name, wf_wrapper)
                             WorkflowGraphBuilder().build_graph_from_yaml(
                                 wf_wrapper, repo_wrapper

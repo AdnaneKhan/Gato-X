@@ -264,15 +264,21 @@ jobs:
 
 """
 
+DEPENDABOT_FALSE_WF = """
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+"""
 
-# def test_parse_workflow():
 
-#     workflow = Workflow("unit_test", TEST_WF, "main.yml")
-#     parser = WorkflowParser(workflow)
+def test_parse_workflow_db():
 
-#     sh_list = parser.self_hosted()
+    workflow = Workflow("unit_test", DEPENDABOT_FALSE_WF, "main.yml")
 
-#     assert len(sh_list) > 0
+    assert workflow.isInvalid() == False
 
 
 # def test_workflow_write():

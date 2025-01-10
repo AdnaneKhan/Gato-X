@@ -45,6 +45,12 @@ class Workflow:
                 workflow_contents.replace("\t", "  "), Loader=CSafeLoader
             )
 
+            if (
+                "dependabot" in workflow_name
+                and "- package-ecosystem:" in workflow_contents
+            ):
+                self.invalid = True
+
             if not self.parsed_yml or type(self.parsed_yml) != dict:
                 self.invalid = True
 
