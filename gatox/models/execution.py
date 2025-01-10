@@ -57,9 +57,9 @@ class Execution:
                         if isinstance(organization, Organization)
                     ],
                     "repositories": [
-                        organization.toJSON()
-                        for organization in self.organizations
-                        if isinstance(organization, Repository)
+                        repository.toJSON()
+                        for repository in self.repositories
+                        if isinstance(repository, Repository)
                     ],
                 },
             }
