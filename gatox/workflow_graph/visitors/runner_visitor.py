@@ -17,7 +17,7 @@ class RunnerVisitor:
         workflows = {}
         for node in nodes:
             try:
-                repo = node.repo_name
+                repo = node.repo_name()
 
                 if "workflow_call" in node.get_workflow().get_tags():
                     # We need to find the parent workflow.

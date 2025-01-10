@@ -31,7 +31,7 @@ class JobNode(Node):
         self.ref = ref
         self.__workflow_path = workflow_path
         self.params = {}
-        self.repo_name = repo_name
+        self.__repo_name = repo_name
         self.if_condition = None
         self.wf_reference = None
         self.needs = []
@@ -78,7 +78,12 @@ class JobNode(Node):
         """Returns environemnt variables used by the job in dictionary format."""
         return self.__env_vars
 
+    def repo_name(self):
+        """Return the repository name."""
+        return self.__repo_name
+
     def evaluate_if(self):
+        """ """
         if self.if_condition:
             return validate_if_check(self.if_condition, self.__env_vars)
         return True

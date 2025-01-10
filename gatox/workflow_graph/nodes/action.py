@@ -1,6 +1,6 @@
 from gatox.workflow_graph.nodes.node import Node
 
-from gatox.workflow_parser.utility import decompose_action_ref
+from gatox.workflow_parser.utility import decompose_action_ref, starts_with_any
 
 
 class ActionNode(Node):
@@ -34,11 +34,37 @@ class ActionNode(Node):
         ]
     )
 
+    KNOWN_SINKS = set(
+        [
+            "sonarsource/sonarcloud-github-action",
+            "actions/jekyll-build-pages",
+            "bridgecrewio/checkov-action",
+            "pre-commit/action",
+            "oxsecurity/megalinter",
+        ]
+    )
+
+    ARTIFACT_RETRIEVERS = set(
+        [
+            "actions/download-artifact",
+        ]
+    )
+
     KNOWN_GATES = set(
         [
             "sushichop/action-repository-permission",
             "actions-cool/check-user-permission",
             "shopify/snapit",
+            "peter-evans/slash-command-dispatch",
+        ]
+    )
+
+    GOOD_PREFIXES = set(
+        [
+            "actions/",
+            "docker/",
+            "octokit/",
+            "github/",
         ]
     )
 
@@ -72,20 +98,22 @@ class ActionNode(Node):
         self.action_info = decompose_action_ref(action_name, repo_name)
 
         if not self.action_info["local"]:
-
             if "@" in self.action_info["key"]:
                 initial_path = self.action_info["key"].split("@")[0]
             else:
                 initial_path = self.action_info["key"]
-            # By default, we only check actions if they belong to another
-            # repo in the same org.
+            # We only check actions if they belong to another
+            # repo in the same org. This is because most 3P actions
+            # will use node. We are interested in organizations that
+            # use a centralized repo with reusable composite actions to prevent
+            # duplication.
             if not self.action_info["key"].startswith(repo_name.split("/")[0]):
                 self.initialized = True
-            if self.action_info["key"].startswith("actions/"):
+            # We don't need to download official GitHub Actions.
+            if starts_with_any(self.action_info["key"], self.GOOD_PREFIXES):
                 self.initialized = True
             if initial_path in self.KNOWN_GOOD:
                 self.initialized = True
-
             if initial_path in self.KNOWN_GATES:
                 self.is_gate = True
             if initial_path in self.KNOWN_HARD_GATES:
