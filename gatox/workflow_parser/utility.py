@@ -1,5 +1,7 @@
 import re
 
+from datetime import datetime, timedelta
+
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
@@ -66,6 +68,41 @@ def process_matrix(job_def, runs_on):
         print("Error processing matrix job")
         print(job_def)
         return False
+
+
+@staticmethod
+def is_within_last_day(timestamp_str, format="%Y-%m-%dT%H:%M:%SZ"):
+    # Convert the timestamp string to a datetime object
+    date = datetime.strptime(timestamp_str, format)
+
+    # Get the current date and time
+    now = datetime.now()
+    # Calculate the date 1 days ago
+    one_day_ago = now - timedelta(days=1)
+
+    # Return True if the date is within the last day, False otherwise
+    return one_day_ago <= date <= now
+
+
+@staticmethod
+def return_recent(time1, time2, format="%Y-%m-%dT%H:%M:%SZ"):
+    """
+    Takes two timestamp strings and returns the most recent one.
+
+    Args:
+        time1 (str): The first timestamp string.
+        time2 (str): The second timestamp string.
+        format (str): The format of the timestamp strings. Default is '%Y-%m-%dT%H:%M:%SZ'.
+
+    Returns:
+        str: The most recent timestamp string.
+    """
+    # Convert the timestamp strings to datetime objects
+    date1 = datetime.strptime(time1, format)
+    date2 = datetime.strptime(time2, format)
+
+    # Return the most recent timestamp string
+    return time1 if date1 > date2 else time2
 
 
 @staticmethod
@@ -337,6 +374,20 @@ def validate_if_check(if_check, variables={}):
         return True
 
     return result
+
+
+@staticmethod
+def __is_within_last_day(timestamp_str, format="%Y-%m-%dT%H:%M:%SZ"):
+    # Convert the timestamp string to a datetime object
+    date = datetime.strptime(timestamp_str, format)
+
+    # Get the current date and time
+    now = datetime.now()
+    # Calculate the date 1 days ago
+    one_day_ago = now - timedelta(days=1)
+
+    # Return True if the date is within the last day, False otherwise
+    return one_day_ago <= date <= now
 
 
 @staticmethod

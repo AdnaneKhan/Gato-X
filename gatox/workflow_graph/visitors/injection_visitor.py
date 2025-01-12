@@ -223,4 +223,4 @@ class InjectionVisitor:
                 # or get passed through workflow calls.
                 # We also want to ensure tracking inside of
                 # composite actions.
-        VisitorUtils.ascii_render(results)
+        VisitorUtils.ascii_render(results, api)

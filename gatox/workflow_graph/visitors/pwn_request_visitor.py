@@ -75,7 +75,7 @@ class PwnRequestVisitor:
                             approval_gate = True
                             continue
 
-                if not node.if_evaluaton:
+                if not node.if_evaluation:
                     approval_gate = True
 
                 paths = graph.dfs_to_tag(node, "permission_blocker", api)
@@ -228,4 +228,4 @@ class PwnRequestVisitor:
                 # TODO: Make this more granular once all edge cases are handled.
                 except Exception as e:
                     logger.error(f"Error processing path: {e}")
-        VisitorUtils.ascii_render(results)
+        VisitorUtils.ascii_render(results, api)

@@ -72,7 +72,7 @@ class DispatchTOCTOUVisitor:
                     print(f"Error processing path: {e}")
 
         # Render the aggregated results
-        VisitorUtils.ascii_render(results)
+        VisitorUtils.ascii_render(results, api)
 
     @staticmethod
     def __process_path(path, graph: TaggedGraph, api: Api, results: dict):

@@ -1,11 +1,18 @@
 import json
 
+from gatox.caching.cache_manager import CacheManager
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.issue_type import IssueType
 from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.result_factory import ResultFactory
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
-from gatox.workflow_parser.utility import CONTEXT_REGEX
+from gatox.github.api import Api
+from gatox.workflow_parser.utility import (
+    CONTEXT_REGEX,
+    is_within_last_day,
+    return_recent,
+)
+from gatox.notifications.send_webhook import send_slack_webhook
 
 
 class VisitorUtils:
@@ -141,7 +148,7 @@ class VisitorUtils:
         return head
 
     @staticmethod
-    def ascii_render(data: dict):
+    def ascii_render(data: dict, api: Api):
         """
         Render the structure of workflows, jobs, and steps in ASCII format.
 
@@ -160,4 +167,21 @@ class VisitorUtils:
 
         for _, flows in data.items():
             for flow in flows:
-                print(json.dumps(flow.to_machine(), indent=4))
+                value = flow.to_machine()
+
+                repo = CacheManager().get_repository(flow.repo_name())
+                if repo and is_within_last_day(repo.repo_data["pushed_at"]):
+                    commit_date, author, sha = api.get_file_last_updated(
+                        flow.repo_name(),
+                        ".github/workflows/" + value.get("initial_workflow"),
+                    )
+
+                    merge_date = api.get_commit_merge_date(flow.repo_name(), sha)
+                    if merge_date:
+                        # If there is a PR merged, get the most recent.
+                        commit_date = return_recent(commit_date, merge_date)
+
+                    if is_within_last_day(commit_date) and "[bot]" not in author:
+                        send_slack_webhook(value)
+
+                print(json.dumps(value, indent=4))

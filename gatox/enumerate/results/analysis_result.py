@@ -29,10 +29,14 @@ class AnalysisResult:
 
     def collect_steps(self, path: list):
         for node in path:
-            yield {
+            value = {
                 "node": str(node),
-                "if": node.get_if(),
             }
+
+            if node.get_if():
+                value["if"] = node.get_if()
+
+            yield value
 
     def repo_name(self):
         """
