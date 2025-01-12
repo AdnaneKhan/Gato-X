@@ -1,5 +1,9 @@
+import logging
+
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+
+logger = logging.getLogger(__name__)
 
 
 class RunnerVisitor:
@@ -29,7 +33,7 @@ class RunnerVisitor:
 
                 workflows.setdefault(repo, set()).add(node.get_workflow_name())
             except Exception as e:
-                print(f"Error processing node: {node.name}")
-                print(e)
+                logger.warning(f"Error processing node: {node.name}")
+                logger.warning(e)
 
         return workflows

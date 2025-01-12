@@ -1,4 +1,6 @@
 import re
+import logging
+
 
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
@@ -9,6 +11,9 @@ from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.caching.cache_manager import CacheManager
+
+
+logger = logging.getLogger(__name__)
 
 
 class DispatchTOCTOUVisitor:
@@ -69,7 +74,8 @@ class DispatchTOCTOUVisitor:
                 try:
                     DispatchTOCTOUVisitor.__process_path(path, graph, api, results)
                 except Exception as e:
-                    print(f"Error processing path: {e}")
+                    logger.warning(f"Error processing path: {e}")
+                    logger.warning(f"Path: {path}")
 
         # Render the aggregated results
         VisitorUtils.ascii_render(results, api)

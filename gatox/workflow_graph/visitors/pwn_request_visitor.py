@@ -227,5 +227,6 @@ class PwnRequestVisitor:
                     )
                 # TODO: Make this more granular once all edge cases are handled.
                 except Exception as e:
-                    logger.error(f"Error processing path: {e}")
+                    logger.warning(f"Error processing path: {e}")
+                    logger.warning(f"Path: {path}")
         VisitorUtils.ascii_render(results, api)
