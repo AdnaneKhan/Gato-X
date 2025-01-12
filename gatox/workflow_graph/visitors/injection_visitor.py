@@ -123,6 +123,9 @@ class InjectionVisitor:
 
                         if node.outputs:
                             for o_key, val in node.outputs.items():
+                                if not isinstance(val, str):
+                                    continue    
+
                                 if "env." in val and val not in env_lookup:
                                     for key in env_lookup.keys():
                                         if key in val:

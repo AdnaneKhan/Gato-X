@@ -75,8 +75,8 @@ class PwnRequestVisitor:
                             approval_gate = True
                             continue
 
-                if not node.if_evaluation:
-                    approval_gate = True
+                # if not node.if_evaluation:
+                #     approval_gate = True
 
                 paths = graph.dfs_to_tag(node, "permission_blocker", api)
                 if paths:
@@ -88,6 +88,9 @@ class PwnRequestVisitor:
 
                 if node.outputs:
                     for o_key, val in node.outputs.items():
+                        if not isinstance(val, str):
+                            continue
+
                         if "env." in val and val not in env_lookup:
                             for key in env_lookup.keys():
                                 if key in val:

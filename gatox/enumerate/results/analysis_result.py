@@ -35,6 +35,8 @@ class AnalysisResult:
 
             if node.get_if():
                 value["if"] = node.get_if()
+                if node.if_evaluation is not None:
+                    value["if_eval"] = node.if_evaluation
 
             yield value
 
