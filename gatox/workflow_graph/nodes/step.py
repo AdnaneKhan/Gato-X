@@ -91,6 +91,9 @@ class StepNode(Node):
         else:
             return "unknown"
 
+    def get_if(self):
+        return self.if_condition
+
     def get_metadata(self):
         return self.metadata
 
@@ -159,6 +162,7 @@ class StepNode(Node):
             if "require('." in contents:
                 self.is_sink = True
         elif uses.startswith("./"):
+            self.__step_data = uses
             self.is_sink = True
         elif "ruby/setup-ruby" in uses:
             self.is_sink = self.params.get("bundler-cache", False)

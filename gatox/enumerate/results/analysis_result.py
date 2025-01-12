@@ -27,21 +27,12 @@ class AnalysisResult:
         self.__issue_type = issue_type
         self.__attack_complexity = attack_complexity
 
-    def to_json(self):
-        """
-        Converts the analysis result to a JSON string.
-
-        Returns:
-            str: The JSON representation of the analysis result.
-        """
-        return json.dumps(
-            {
-                "repository_name": self.__repository_name,
-                "issue_type": self.__issue_type,
-                "confidence": self.__confidence_score,
-                "attack_complexity": self.__attack_complexity,
+    def collect_steps(self, path: list):
+        for node in path:
+            yield {
+                "node": str(node),
+                "if": node.get_if(),
             }
-        )
 
     def repo_name(self):
         """

@@ -3,6 +3,7 @@ import re
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
+from gatox.caching.cache_manager import CacheManager
 
 
 pattern = re.compile(

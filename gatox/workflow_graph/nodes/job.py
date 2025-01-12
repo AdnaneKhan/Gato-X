@@ -138,6 +138,9 @@ class JobNode(Node):
         """
         return isinstance(other, self.__class__) and self.name == other.name
 
+    def get_if(self):
+        return self.if_condition
+
     def set_params(self, params):
         self.params = params
 

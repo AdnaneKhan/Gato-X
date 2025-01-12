@@ -40,7 +40,7 @@ class DispatchTOCTOUResult(AnalysisResult):
             "initial_workflow": self.__attack_path[0].get_workflow_name(),
             "confidence": self.confidence_score(),
             "attack_complexity": self.attack_complexity(),
-            "path": [str(node) for node in self.__attack_path],
+            "path": [node for node in self.collect_steps(self.__attack_path)],
             "sink": (
                 self.__attack_path[-1].get_step_data()
                 if self.confidence_score() == Confidence.HIGH
@@ -49,28 +49,3 @@ class DispatchTOCTOUResult(AnalysisResult):
         }
 
         return result
-
-    def print_human(self):
-        """
-        Converts the analysis result to a JSON string.
-
-        Returns:
-            str: The JSON representation of the analysis result.
-        """
-
-        first_node = self.__attack_path[0]
-        last_node = self.__attack_path[-1]
-
-        for j, node in enumerate(self.__attack_path, start=1):
-            if "WorkflowNode" in str(node):
-                print(f"    Workflow -> {node}")
-            elif "JobNode" in str(node):
-                print(f"      Job -> {node}")
-            elif "StepNode" in str(node):
-                print(f"        Step -> {node}")
-                if j == len(self.__attack_path):
-                    print(f"       Contents: \n{node.get_step_data()}")
-            elif "ActionNode" in str(node):
-                print(f"        Step -> {node}")
-            else:
-                print(f"    Unknown -> {node}")

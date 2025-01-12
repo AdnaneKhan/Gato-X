@@ -45,6 +45,9 @@ class Node:
         """
         return isinstance(other, self.__class__) and self.name == other.name
 
+    def get_if(self):
+        return ""
+
     def get_needs(self):
         """
         Get the needs associated with the Node instance.

@@ -45,25 +45,3 @@ class InjectionResult(AnalysisResult):
         }
 
         return result
-
-    def print_human(self):
-        """
-        Converts the analysis result to a JSON string.
-
-        Returns:
-            str: The JSON representation of the analysis result.
-        """
-
-        for j, node in enumerate(self.__attack_path, start=1):
-            if "WorkflowNode" in str(node):
-                print(f"    Workflow -> {node}")
-            elif "JobNode" in str(node):
-                print(f"      Job -> {node}")
-            elif "StepNode" in str(node):
-                print(f"        Step -> {node}")
-                if j == len(self.__attack_path):
-                    print(f"       Contents: \n{node.get_step_data()}")
-            elif "ActionNode" in str(node):
-                print(f"        Step -> {node}")
-            else:
-                print(f"    Unknown -> {node}")
