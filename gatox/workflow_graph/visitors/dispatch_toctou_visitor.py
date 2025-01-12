@@ -184,9 +184,21 @@ class DispatchTOCTOUVisitor:
                         sinks = graph.dfs_to_tag(node, "sink", api)
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
-                            VisitorUtils._add_results(path, results, IssueType.DISPATCH_TOCTOU, confidence=Confidence.HIGH, complexity=Complexity.TOCTOU)
+                            VisitorUtils._add_results(
+                                path,
+                                results,
+                                IssueType.DISPATCH_TOCTOU,
+                                confidence=Confidence.HIGH,
+                                complexity=Complexity.TOCTOU,
+                            )
                         else:
-                            VisitorUtils._add_results(path, results, IssueType.DISPATCH_TOCTOU, confidence=Confidence.UNKNOWN, complexity=Complexity.TOCTOU)
+                            VisitorUtils._add_results(
+                                path,
+                                results,
+                                IssueType.DISPATCH_TOCTOU,
+                                confidence=Confidence.UNKNOWN,
+                                complexity=Complexity.TOCTOU,
+                            )
 
             elif "ActionNode" in tags:
                 VisitorUtils.initialize_action_node(graph, api, node)

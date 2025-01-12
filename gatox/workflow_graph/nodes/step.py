@@ -90,7 +90,7 @@ class StepNode(Node):
             return "script"
         else:
             return "unknown"
-        
+
     def get_metadata(self):
         return self.metadata
 
@@ -135,8 +135,10 @@ class StepNode(Node):
                         or "tag" in ref_param
                     ) and "repository" not in self.params:
                         self.is_checkout = False
-                    
-                    elif "repository" in self.params and self.params["repository"].startswith(self.__repo_name.split('/')[0]):
+
+                    elif "repository" in self.params and self.params[
+                        "repository"
+                    ].startswith(self.__repo_name.split("/")[0]):
                         self.is_checkout = False
                     else:
                         self.metadata = ref_param

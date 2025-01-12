@@ -3,6 +3,7 @@ import json
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
 
+
 class AnalysisResult:
     """
     Holds the results from graph traversals defined in the workflow_graph/visitors module.
@@ -14,7 +15,13 @@ class AnalysisResult:
         attack_complexity (str): The attack complexity score (LOW, MEDIUM, HIGH).
     """
 
-    def __init__(self, repository_name, issue_type, confidence_score: Confidence, attack_complexity: Complexity):
+    def __init__(
+        self,
+        repository_name,
+        issue_type,
+        confidence_score: Confidence,
+        attack_complexity: Complexity,
+    ):
         self.__repository_name = repository_name
         self.__confidence_score = confidence_score
         self.__issue_type = issue_type
@@ -27,12 +34,14 @@ class AnalysisResult:
         Returns:
             str: The JSON representation of the analysis result.
         """
-        return json.dumps({
-            'repository_name': self.__repository_name,
-            'issue_type': self.__issue_type,
-            'confidence': self.__confidence_score,
-            'attack_complexity': self.__attack_complexity
-        })
+        return json.dumps(
+            {
+                "repository_name": self.__repository_name,
+                "issue_type": self.__issue_type,
+                "confidence": self.__confidence_score,
+                "attack_complexity": self.__attack_complexity,
+            }
+        )
 
     def repo_name(self):
         """

@@ -12,7 +12,13 @@ class VisitorUtils:
     """Class to track contextual information during a single visit."""
 
     @staticmethod
-    def _add_results(path, results: dict, issue_type, confidence: Confidence = Confidence.UNKNOWN, complexity: Complexity = Complexity.ZERO_CLICK):
+    def _add_results(
+        path,
+        results: dict,
+        issue_type,
+        confidence: Confidence = Confidence.UNKNOWN,
+        complexity: Complexity = Complexity.ZERO_CLICK,
+    ):
         repo_name = path[0].repo_name()
         if repo_name not in results:
             results[repo_name] = []
@@ -21,7 +27,6 @@ class VisitorUtils:
             "path": path,
             "confidence": confidence,
             "complexity": complexity,
-
         }
 
         if issue_type == IssueType.ACTIONS_INJECTION:

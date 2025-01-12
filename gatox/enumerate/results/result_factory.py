@@ -6,7 +6,8 @@ from gatox.enumerate.results.pwn_request_result import PwnRequestResult
 from gatox.enumerate.results.injection_result import InjectionResult
 from gatox.enumerate.results.dispatch_toctou_result import DispatchTOCTOUResult
 
-class ResultFactory():
+
+class ResultFactory:
 
     @staticmethod
     def create_pwn_result(path: list, confidence_score, attack_complexity):
@@ -25,5 +26,3 @@ class ResultFactory():
         # Add logic for additional processing, augmentation.
 
         return DispatchTOCTOUResult(path, confidence_score, attack_complexity)
-
-    

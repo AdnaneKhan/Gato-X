@@ -107,6 +107,9 @@ class InjectionVisitor:
                                 if deployment in rules:
                                     approval_gate = True
 
+                        if node.if_evaluation is False:
+                            break
+
                         paths = graph.dfs_to_tag(node, "permission_check", api)
                         if paths:
                             approval_gate = True
@@ -136,7 +139,7 @@ class InjectionVisitor:
                             if approval_gate is True:
                                 continue
 
-                            filtered_contexts = []
+                            filtered_contexts = set()
 
                             # Now we go and try to resolve variables.
                             for variable in node.contexts:
@@ -158,17 +161,17 @@ class InjectionVisitor:
                                         variable = original_val
 
                                     variable = getToken(variable)
-                                    filtered_contexts.append(variable)
+                                    filtered_contexts.add(variable)
 
                                 elif "env." in variable:
                                     for key, val in env_lookup.items():
                                         if key in variable:
                                             variable = val
                                             variable = getToken(variable)
-                                            filtered_contexts.append(variable)
+                                            filtered_contexts.add(variable)
                                             break
                                 else:
-                                    filtered_contexts.append(variable)
+                                    filtered_contexts.add(variable)
 
                             for val in filtered_contexts:
                                 if "${{" in val:
@@ -178,7 +181,18 @@ class InjectionVisitor:
                                 elif "github." in val and not checkUnsafe(val):
                                     continue
                                 else:
-                                    VisitorUtils._add_results(path, results, IssueType.ACTIONS_INJECTION)
+                                    conf = (
+                                        Confidence.HIGH
+                                        if checkUnsafe(val)
+                                        else Confidence.UNKNOWN
+                                    )
+
+                                    VisitorUtils._add_results(
+                                        path,
+                                        results,
+                                        IssueType.ACTIONS_INJECTION,
+                                        confidence=conf,
+                                    )
                                     break
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():

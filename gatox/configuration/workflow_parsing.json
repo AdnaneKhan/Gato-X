@@ -104,7 +104,8 @@
             "result",
             "ok",
             "outputs.approved",
-            "outputs.users"
+            "outputs.users",
+            "outputs.token"
         ],
         "SINKS": [
             "scripts/",

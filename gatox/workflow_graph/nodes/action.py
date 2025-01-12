@@ -59,7 +59,7 @@ class ActionNode(Node):
             "TheModdingInquisition/actions-team-membership",
             "prince-chrismc/check-actor-permissions-action",
             "lannonbr/repo-permission-check-action",
-            "skjnldsv/check-actor-permission"
+            "skjnldsv/check-actor-permission",
         ]
     )
 

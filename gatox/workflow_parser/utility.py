@@ -295,6 +295,15 @@ def check_always_true(if_check):
 
 
 @staticmethod
+def check_false_if(if_check):
+    checks = ConfigurationManager().WORKFLOW_PARSING["SAFE_IF_CHECKS"]
+
+    for check in checks:
+        if check in if_check:
+            return True
+
+
+@staticmethod
 def validate_if_check(if_check, variables={}):
     """Function used to validate each if check.
     The strategy here is to "fail open". If we cannot
@@ -305,8 +314,8 @@ def validate_if_check(if_check, variables={}):
     if not if_check:
         return True
 
-    if STATIC_IF.match(if_check):
-        return True
+    if check_false_if(if_check):
+        return False
 
     if check_always_true(if_check):
         return True

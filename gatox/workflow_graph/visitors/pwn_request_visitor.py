@@ -75,6 +75,9 @@ class PwnRequestVisitor:
                             approval_gate = True
                             continue
 
+                if not node.if_evaluaton:
+                    approval_gate = True
+
                 paths = graph.dfs_to_tag(node, "permission_blocker", api)
                 if paths:
                     break
@@ -115,13 +118,23 @@ class PwnRequestVisitor:
                         )
                     ) or not approval_gate:
                         sinks = graph.dfs_to_tag(node, "sink", api)
-                        complexity = Complexity.TOCTOU if approval_gate else Complexity.ZERO_CLICK
+                        complexity = (
+                            Complexity.TOCTOU
+                            if approval_gate
+                            else Complexity.ZERO_CLICK
+                        )
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
                             confidence = Confidence.HIGH
                         else:
                             confidence = Confidence.UNKNOWN
-                        VisitorUtils._add_results(path, results, IssueType.PWN_REQUEST, complexity=complexity, confidence=confidence)
+                        VisitorUtils._add_results(
+                            path,
+                            results,
+                            IssueType.PWN_REQUEST,
+                            complexity=complexity,
+                            confidence=confidence,
+                        )
 
                 if node.outputs:
                     for key, val in node.outputs.items():
@@ -159,7 +172,6 @@ class PwnRequestVisitor:
 
             elif "ActionNode" in tags:
                 VisitorUtils.initialize_action_node(graph, api, node)
-
 
     @staticmethod
     def find_pwn_requests(graph: TaggedGraph, api: Api, ignore_workflow_run=False):

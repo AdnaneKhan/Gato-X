@@ -1,19 +1,20 @@
 from enum import StrEnum
 import json
 
+
 class Confidence(StrEnum):
     """
     Represents the confidence level in a finding or result.
-    
+
     Values:
         HIGH: Strong evidence and high certainty
         MEDIUM: Moderate evidence with some uncertainty
         LOW: Limited evidence with significant uncertainty
         UNKNOWN: Not enough information to determine confidence
     """
-    
+
     HIGH: str = "High"
-    MEDIUM: str = "Medium" 
+    MEDIUM: str = "Medium"
     LOW: str = "Low"
     UNKNOWN: str = "Unknown"
 

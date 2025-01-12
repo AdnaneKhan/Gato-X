@@ -121,7 +121,10 @@ class JobNode(Node):
             self.__env_vars = job_def["env"]
 
         if job_def and "if" in job_def:
+            self.if_condition = job_def["if"]
             self.if_evaluation = validate_if_check(self.if_condition, {})
+        else:
+            self.if_evaluation = True
 
     def __eq__(self, other):
         """
