@@ -107,9 +107,6 @@ class InjectionVisitor:
                                 if deployment in rules:
                                     approval_gate = True
 
-                        if node.if_evaluation is False:
-                            break
-
                         paths = graph.dfs_to_tag(node, "permission_check", api)
                         if paths:
                             approval_gate = True
