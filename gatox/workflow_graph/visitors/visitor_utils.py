@@ -1,3 +1,9 @@
+import json
+
+from gatox.enumerate.results.confidence import Confidence
+from gatox.enumerate.results.issue_type import IssueType
+from gatox.enumerate.results.complexity import Complexity
+from gatox.enumerate.results.result_factory import ResultFactory
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 
@@ -6,27 +12,28 @@ class VisitorUtils:
     """Class to track contextual information during a single visit."""
 
     @staticmethod
-    def _add_results(path, results: dict):
-        """
-        Add a path to the results dictionary under the corresponding repository.
-
-        Args:
-            path (List[Node]):
-                The sequence of nodes representing a potential security path.
-            results (dict):
-                A dictionary aggregating results, keyed by repository name.
-
-        Returns:
-            None
-
-        Raises:
-            None
-        """
+    def _add_results(path, results: dict, issue_type, confidence: Confidence = Confidence.UNKNOWN, complexity: Complexity = Complexity.ZERO_CLICK):
         repo_name = path[0].repo_name()
         if repo_name not in results:
             results[repo_name] = []
 
-        results[repo_name].append(path)
+        result_package = {
+            "path": path,
+            "confidence": confidence,
+            "complexity": complexity,
+
+        }
+
+        if issue_type == IssueType.ACTIONS_INJECTION:
+            result = ResultFactory.create_injection_result(path, confidence, complexity)
+        elif issue_type == IssueType.PWN_REQUEST:
+            result = ResultFactory.create_pwn_result(path, confidence, complexity)
+        elif issue_type == IssueType.DISPATCH_TOCTOU:
+            result = ResultFactory.create_toctou_result(path, confidence, complexity)
+        else:
+            raise ValueError(f"Unknown issue type: {issue_type}")
+
+        results[repo_name].append(result)
 
     @staticmethod
     def initialize_action_node(graph, api, node):
@@ -145,34 +152,7 @@ class VisitorUtils:
         Raises:
             None
         """
-        seen_flows = set()
 
-        for repo, flows in data.items():
-            print(f"Repository: {repo}")
-            for i, flow in enumerate(flows, start=1):
-
-                # Get the first and last nodes
-                first_node = flow[0]
-                last_node = flow[-1]
-
-                # Create a hashable identifier for the flow
-                flow_identifier = (str(first_node), str(last_node))
-
-                # Check if this flow has already been printed
-                if flow_identifier in seen_flows:
-                    continue  # Skip duplicate flow
-
-                print(f"  Flow #{i}:")
-                for j, node in enumerate(flow, start=1):
-                    if "WorkflowNode" in str(node):
-                        print(f"    Workflow -> {node}")
-                    elif "JobNode" in str(node):
-                        print(f"      Job -> {node}")
-                    elif "StepNode" in str(node):
-                        print(f"        Step -> {node}")
-                        if j == len(flow):
-                            print(f"       Contents: \n{node.get_step_data()}")
-                    elif "ActionNode" in str(node):
-                        print(f"        Step -> {node}")
-                    else:
-                        print(f"    Unknown -> {node}")
+        for _, flows in data.items():
+            for flow in flows:
+                print(json.dumps(flow.to_machine(), indent=4))

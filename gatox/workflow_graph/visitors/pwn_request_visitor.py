@@ -1,8 +1,15 @@
+import logging
+
+from gatox.enumerate.results.confidence import Confidence
+from gatox.enumerate.results.complexity import Complexity
+from gatox.enumerate.results.issue_type import IssueType
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.caching.cache_manager import CacheManager
+
+logger = logging.getLogger(__name__)
 
 
 class PwnRequestVisitor:
@@ -108,10 +115,13 @@ class PwnRequestVisitor:
                         )
                     ) or not approval_gate:
                         sinks = graph.dfs_to_tag(node, "sink", api)
+                        complexity = Complexity.TOCTOU if approval_gate else Complexity.ZERO_CLICK
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
-
-                        VisitorUtils._add_results(path, results)
+                            confidence = Confidence.HIGH
+                        else:
+                            confidence = Confidence.UNKNOWN
+                        VisitorUtils._add_results(path, results, IssueType.PWN_REQUEST, complexity=complexity, confidence=confidence)
 
                 if node.outputs:
                     for key, val in node.outputs.items():
@@ -150,24 +160,6 @@ class PwnRequestVisitor:
             elif "ActionNode" in tags:
                 VisitorUtils.initialize_action_node(graph, api, node)
 
-    @staticmethod
-    def _finalize_result():
-        """
-        Takes a known reachable checkout and attempts to find an associated sink.
-
-        This method finalizes the result by identifying sinks related to a reachable checkout.
-        It ensures that any identified sinks are properly linked and recorded in the results.
-
-        Args:
-            None
-
-        Returns:
-            None
-
-        Raises:
-            NotImplementedError: Indicates that the method is not yet implemented.
-        """
-        raise NotImplementedError("This method needs to be implemented.")
 
     @staticmethod
     def find_pwn_requests(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
@@ -223,6 +215,5 @@ class PwnRequestVisitor:
                     )
                 # TODO: Make this more granular once all edge cases are handled.
                 except Exception as e:
-                    print(f"Error processing path: {e}")
-        print("PWN:")
+                    logger.error(f"Error processing path: {e}")
         VisitorUtils.ascii_render(results)

@@ -11,7 +11,6 @@ class StepNode(Node):
         type (str): The type of the step (script, action, or unknown).
         is_checkout (bool): Indicates if the step is a checkout step.
         id (str): The ID of the step.
-        if_condition (str): The condition under which the step runs.
         is_sink (bool): Indicates if the step is a sink.
         hard_gate (bool): Indicates if the step is a hard gate.
         soft_gate (bool): Indicates if the step is a soft gate.
@@ -57,13 +56,14 @@ class StepNode(Node):
         self.id = step_data.get("id", None)
         self.if_condition = step_data.get("if", "")
         # Need to check if it's actually something because it could be none
-        if self.if_condition:
-            self.if_condition = self.if_condition.replace("github.", "")
+        # if self.if_condition:
+        #     self.if_condition = self.if_condition.replace("github.", "")
         self.is_sink = False
         self.hard_gate = False
         self.soft_gate = False
         self.params = {}
         self.contexts = []
+        self.__repo_name = repo_name
         self.__step_data = None
         self.metadata = False
         self.outputs = step_data.get("outputs", {})
@@ -90,6 +90,9 @@ class StepNode(Node):
             return "script"
         else:
             return "unknown"
+        
+    def get_metadata(self):
+        return self.metadata
 
     def __process_script(self, script: str):
         """
@@ -131,6 +134,9 @@ class StepNode(Node):
                         or "github.head_ref" in ref_param
                         or "tag" in ref_param
                     ) and "repository" not in self.params:
+                        self.is_checkout = False
+                    
+                    elif "repository" in self.params and self.params["repository"].startswith(self.__repo_name.split('/')[0]):
                         self.is_checkout = False
                     else:
                         self.metadata = ref_param

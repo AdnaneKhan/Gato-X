@@ -1,5 +1,8 @@
 import re
 
+from gatox.enumerate.results.confidence import Confidence
+from gatox.enumerate.results.complexity import Complexity
+from gatox.enumerate.results.issue_type import IssueType
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.workflow_parser.utility import getTokens, getToken, checkUnsafe
@@ -175,7 +178,7 @@ class InjectionVisitor:
                                 elif "github." in val and not checkUnsafe(val):
                                     continue
                                 else:
-                                    VisitorUtils._add_results(path, results)
+                                    VisitorUtils._add_results(path, results, IssueType.ACTIONS_INJECTION)
                                     break
                     elif "WorkflowNode" in tags:
                         if index != 0 and "JobNode" in path[index - 1].get_tags():
@@ -206,7 +209,4 @@ class InjectionVisitor:
                 # or get passed through workflow calls.
                 # We also want to ensure tracking inside of
                 # composite actions.
-        print("INJECT:")
         VisitorUtils.ascii_render(results)
-
-        # Now we have all reponodes

@@ -33,6 +33,7 @@ class JobNode(Node):
         self.params = {}
         self.__repo_name = repo_name
         self.if_condition = None
+        self.if_evaluation = None
         self.wf_reference = None
         self.needs = []
         self.deployments = []
@@ -81,6 +82,10 @@ class JobNode(Node):
     def repo_name(self):
         """Return the repository name."""
         return self.__repo_name
+
+    def get_if_eval(self):
+        """ """
+        return self.if_evaluation
 
     def evaluate_if(self):
         """ """

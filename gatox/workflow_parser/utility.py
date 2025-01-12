@@ -124,6 +124,8 @@ def parse_script(contents: str):
         return_dict["soft_gate"] = True
     if "getCollaboratorPermissionLevel" in contents:
         return_dict["soft_gate"] = True
+    if "getMembershipForUserInOrg" in contents:
+        return_dict["soft_gate"] = True
 
     if check_sinks(contents):
         return_dict["is_sink"] = True
@@ -151,7 +153,7 @@ def check_sinks(script):
 @staticmethod
 def check_sus(item):
     """
-    Check if the given item starts with any of the predefined suspicious prefixes.
+    Check if the given item starts with any of the predefined potentially problematic prefixes.
 
     This method is used to identify potentially unsafe or
     suspicious variables in a GitHub Actions workflow.
@@ -243,7 +245,8 @@ def filter_tokens(tokens, strict=False):
     if not strict:
         tokens_sus = [item for item in tokens if check_sus(item)]
         tokens_knownbad.extend(tokens_sus)
-    return tokens_knownbad
+
+    return list(set(tokens_knownbad))
 
 
 @staticmethod

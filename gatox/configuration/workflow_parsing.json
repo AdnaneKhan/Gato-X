@@ -100,7 +100,11 @@
             "outputs.status",
             "outputs.name",
             "allowed",
-            "permitted"
+            "permitted",
+            "result",
+            "ok",
+            "outputs.approved",
+            "outputs.users"
         ],
         "SINKS": [
             "scripts/",
@@ -114,6 +118,8 @@
             "tox",
             "pnpm run",
             "mvn",
+            "pip install -r requirements.txt",
+            "pip install .",
             "pip install -e",
             "goreleaser",
             "bundle",

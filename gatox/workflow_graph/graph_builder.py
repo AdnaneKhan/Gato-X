@@ -131,8 +131,11 @@ class WorkflowGraphBuilder:
                 else:
                     return
 
-            self.graph.remove_tags_from_node(workflow, ["uninitialized"])
+            if callee_wf:    
+                workflow.initialize(callee_wf)
 
+            self.graph.remove_tags_from_node(workflow, ["uninitialized"])
+            
             self.build_workflow_jobs(callee_wf, workflow)
 
     def __transform_list_job(self, jobs: list):

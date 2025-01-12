@@ -1,5 +1,8 @@
 import re
 
+from gatox.enumerate.results.confidence import Confidence
+from gatox.enumerate.results.complexity import Complexity
+from gatox.enumerate.results.issue_type import IssueType
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
@@ -69,7 +72,6 @@ class DispatchTOCTOUVisitor:
                     print(f"Error processing path: {e}")
 
         # Render the aggregated results
-        print("DISPATCH:")
         VisitorUtils.ascii_render(results)
 
     @staticmethod
@@ -182,8 +184,9 @@ class DispatchTOCTOUVisitor:
                         sinks = graph.dfs_to_tag(node, "sink", api)
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
-
-                        VisitorUtils._add_results(path, results)
+                            VisitorUtils._add_results(path, results, IssueType.DISPATCH_TOCTOU, confidence=Confidence.HIGH, complexity=Complexity.TOCTOU)
+                        else:
+                            VisitorUtils._add_results(path, results, IssueType.DISPATCH_TOCTOU, confidence=Confidence.UNKNOWN, complexity=Complexity.TOCTOU)
 
             elif "ActionNode" in tags:
                 VisitorUtils.initialize_action_node(graph, api, node)

@@ -56,6 +56,10 @@ class ActionNode(Node):
             "actions-cool/check-user-permission",
             "shopify/snapit",
             "peter-evans/slash-command-dispatch",
+            "TheModdingInquisition/actions-team-membership",
+            "prince-chrismc/check-actor-permissions-action",
+            "lannonbr/repo-permission-check-action",
+            "skjnldsv/check-actor-permission"
         ]
     )
 
