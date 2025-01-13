@@ -1,6 +1,9 @@
 import time
 import random
 import threading
+import logging
+
+from requests.exceptions import RequestException
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -10,6 +13,7 @@ from gatox.models.repository import Repository
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.cli.output import Output
 
+logger = logging.getLogger(__name__)
 
 class DataIngestor:
     """Utility methods for performing parallel ingestion of data
@@ -114,8 +118,13 @@ class DataIngestor:
                 # to query.
                 while cls.__rl_lock.locked():
                     time.sleep(0.1)
-
-                result = api.call_post("/graphql", work_query)
+                try:
+                    result = api.call_post("/graphql", work_query)
+                except RequestException:
+                    logging.error("Request exception occurred, trying again.")
+                    time.sleep(15 + random.randint(0, 3))
+                    continue
+                    
                 # Sometimes we don't get a 200, fall back in this case.
                 if result.status_code == 200:
                     json_res = result.json()["data"]
@@ -139,6 +148,7 @@ class DataIngestor:
                 "Exception while running GraphQL query, will revert to REST "
                 "API workflow query for impacted repositories!"
             )
+            print(type(e))
             print(e)
 
     @staticmethod
