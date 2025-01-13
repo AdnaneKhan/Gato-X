@@ -183,7 +183,7 @@ class WorkflowGraphBuilder:
 
             return True
         except ValueError as e:
-            logger.warning(f"Error building graph from workflow: {e}")
+            logger.warning(f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}")
             # Likely encountered a syntax error in the workflow
             return False
 
@@ -194,7 +194,7 @@ class WorkflowGraphBuilder:
 
         if not jobs:
             raise ValueError(
-                f"No jobs found in workflow: {workflow_wrapper.workflow_contents}"
+                f"No jobs found in workflow: {workflow_wrapper.workflow_name}"
             )
 
         if isinstance(jobs, list):
