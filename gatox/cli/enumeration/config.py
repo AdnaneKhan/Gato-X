@@ -1,5 +1,5 @@
 from gatox.cli.output import Fore, Style, Output
-from gatox.util.arg_utils import StringType, ReadableFile, WriteableDir
+from gatox.util.arg_utils import StringType, ReadableFile, WriteableDir, WritablePath
 
 
 def configure_parser_enumerate(parser):
@@ -127,5 +127,5 @@ def configure_parser_enumerate(parser):
             "Path to JSON file to save cache to after executing. Can be the same as the restore file, in which case it will over-write it."
         ),
         metavar="JSON_FILE",
-        type=ReadableFile(),
+        type=WritablePath(),
     )
