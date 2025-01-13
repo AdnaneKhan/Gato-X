@@ -132,6 +132,9 @@ class ExpressionEvaluator:
             elif not node.value.startswith("github."):
                 raise NotImplementedError()
             
+            if isinstance(value, FlexibleAction):
+                return True
+
             return self.variables.get(node.value, node.value)
         elif node.type == "string":
             if node.value.startswith("'") and node.value.endswith("'"):
