@@ -1724,6 +1724,8 @@ class Api:
         else:
             if not file_path.endswith("/"):
                 file_path += "/"
+            elif file_path.endswith("//"):
+                file_path = file_path.replace("//", "/")
             paths = [f"{file_path}action.yml", f"{file_path}action.yaml"]
 
         for path in paths:

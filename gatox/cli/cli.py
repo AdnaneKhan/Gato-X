@@ -7,6 +7,7 @@ from colorama import Fore, Style
 from gatox import util
 from gatox.cli.colors import RED_DASH
 from gatox.cli.output import Output, SPLASH
+from gatox.caching.local_cache_manager import LocalCacheFactory
 from gatox.cli.enumeration.config import configure_parser_enumerate
 from gatox.cli.search.config import configure_parser_search
 from gatox.cli.attack.config import configure_parser_attack
@@ -310,6 +311,10 @@ def enumerate(args, parser):
     orgs = []
     repos = []
 
+    if args.cache_restore_file:
+        LocalCacheFactory.load_cache_from_file(args.cache_restore_file)
+        Output.info(f"Cache restored from file:{args.cache_restore_file}")
+
     if args.validate:
         orgs = gh_enumeration_runner.validate_only()
     elif args.self_enumeration:
@@ -342,6 +347,9 @@ def enumerate(args, parser):
     if args.output_json:
         Output.write_json(exec_wrapper, args.output_json)
 
+    if args.cache_save_file:
+        LocalCacheFactory.dump_cache(args.save_cache_file)
+        Output.info(f"Cache saved to file:{args.save_cache_file}")
 
 def search(args, parser):
     parser = parser.choices["search"]

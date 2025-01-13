@@ -111,3 +111,21 @@ def configure_parser_enumerate(parser):
         ),
         action="store_true",
     )
+
+    parser.add_argument(
+        "--cache-restore-file",
+        help=(
+            "Path to JSON file containing saved reusable action files. This will reduce the need for frequent API requests."
+        ),
+        metavar="JSON_FILE",
+        type=ReadableFile(),
+    )
+
+    parser.add_argument(
+        "--cache-save-file",
+        help=(  
+            "Path to JSON file to save cache to after executing. Can be the same as the restore file, in which case it will over-write it."
+        ),
+        metavar="JSON_FILE",
+        type=ReadableFile(),
+    )

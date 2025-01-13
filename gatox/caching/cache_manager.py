@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
+from typing import IO
 
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
@@ -172,3 +174,14 @@ class CacheManager:
         """
         key = f"{repo_slug.lower()}:{action_path}:{ref}"
         self.action_cache[key] = value
+
+    def serialize_full_cache(self, output_stream: IO[str]) -> None:
+        """
+        Serializes the action cache to JSON and writes it to the provided output stream.
+        Raises ValueError if the stream is invalid.
+        """
+        if not hasattr(output_stream, "write"):
+            raise ValueError("Output stream must have a 'write' method.")
+
+        json.dump(self._instance.action_cache, output_stream, indent=2)
+        output_stream.flush()
