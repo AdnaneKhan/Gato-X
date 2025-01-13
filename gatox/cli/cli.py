@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+import logging
 
 from colorama import Fore, Style
 
@@ -17,7 +18,6 @@ from gatox.attack.runner.webshell import WebShell
 from gatox.attack.secrets.secrets_attack import SecretsAttack
 from gatox.search.search import Searcher
 from gatox.models.execution import Execution
-
 
 def cli(args):
     parser = argparse.ArgumentParser(
@@ -84,6 +84,8 @@ def cli(args):
 
 
 def validate_arguments(args, parser):
+    logging.basicConfig(level=args.log_level)
+
     if "GH_TOKEN" not in os.environ:
         gh_token = input(
             "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
@@ -348,8 +350,8 @@ def enumerate(args, parser):
         Output.write_json(exec_wrapper, args.output_json)
 
     if args.cache_save_file:
-        LocalCacheFactory.dump_cache(args.save_cache_file)
-        Output.info(f"Cache saved to file:{args.save_cache_file}")
+        LocalCacheFactory.dump_cache(args.cache_save_file)
+        Output.info(f"Cache saved to file:{args.cache_save_file}")
 
 def search(args, parser):
     parser = parser.choices["search"]
@@ -393,6 +395,13 @@ def configure_parser_general(parser):
     Args:
         parser: The parser to add the arguments to.
     """
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="CRITICAL",
+        required=False,
+    )
+
     parser.add_argument(
         "--socks-proxy",
         "-sp",

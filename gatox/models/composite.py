@@ -1,5 +1,9 @@
 import yaml
+import logging
+
 from yaml import CSafeLoader
+
+logger = logging.getLogger(__name__)
 
 
 class Composite:
@@ -29,9 +33,8 @@ class Composite:
         except ValueError as parse_error:
             self.invalid = True
         except Exception as parse_error:
-            print(
-                "Received an exception while parsing action contents: "
-                + str(parse_error)
+            logging.error(
+                f"Received an exception while parsing action contents: {str(parse_error)}"
             )
             self.invalid = True
 

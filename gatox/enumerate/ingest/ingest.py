@@ -148,8 +148,7 @@ class DataIngestor:
                 "Exception while running GraphQL query, will revert to REST "
                 "API workflow query for impacted repositories!"
             )
-            print(type(e))
-            print(e)
+            logger.warning(f"{type(e)}: {str(e)}")
 
     @staticmethod
     def construct_workflow_cache(yml_results):

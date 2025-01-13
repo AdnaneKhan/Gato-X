@@ -11,7 +11,6 @@ from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
 from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.models.workflow import Workflow
-from gatox.models.repository import Repository
 from gatox.github.gql_queries import GqlQueries
 
 logger = logging.getLogger(__name__)
@@ -1720,6 +1719,7 @@ class Api:
     def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
         """Retrieves a GitHub action yaml file from a public repository."""
         if file_path.endswith(".yml") or file_path.endswith(".yaml"):
+            file_path = file_path.replace("//", "/")
             paths = [file_path]
         else:
             if not file_path.endswith("/"):
