@@ -131,7 +131,7 @@ class ExpressionEvaluator:
             # The vasty majority of if checks are context + string only.
             elif not node.value.startswith("github."):
                 raise NotImplementedError()
-            
+
             if isinstance(value, FlexibleAction):
                 return True
 

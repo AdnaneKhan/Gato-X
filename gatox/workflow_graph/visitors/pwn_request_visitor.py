@@ -211,7 +211,6 @@ class PwnRequestVisitor:
 
         # Retrieve all repository-related nodes with the specified tags
         nodes = graph.get_nodes_for_tags(query_taglist)
-
         all_paths = []
 
         for cn in nodes:

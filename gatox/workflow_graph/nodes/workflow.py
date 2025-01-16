@@ -82,6 +82,8 @@ class WorkflowNode(Node):
                         # If the branches filter is present, then
                         # forks cannot trigger the workflow.
                         self.__excluded = True
+                    else:
+                        extracted_triggers.append(trigger)
                 else:
                     extracted_triggers.append(trigger)
 
@@ -134,7 +136,6 @@ class WorkflowNode(Node):
     def initialize(self, workflow: Workflow):
         """Initialize the Workflow node with the parsed workflow data."""
         self.__triggers = self.__process_triggers(workflow.parsed_yml)
-
         self.__env_vars = self.__process_envs(workflow.parsed_yml)
 
         self.inputs = self.__process_inputs(workflow.parsed_yml)

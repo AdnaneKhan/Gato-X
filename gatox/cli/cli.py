@@ -19,6 +19,7 @@ from gatox.attack.secrets.secrets_attack import SecretsAttack
 from gatox.search.search import Searcher
 from gatox.models.execution import Execution
 
+
 def cli(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
@@ -352,6 +353,7 @@ def enumerate(args, parser):
     if args.cache_save_file:
         LocalCacheFactory.dump_cache(args.cache_save_file)
         Output.info(f"Cache saved to file:{args.cache_save_file}")
+
 
 def search(args, parser):
     parser = parser.choices["search"]

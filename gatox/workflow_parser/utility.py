@@ -303,6 +303,14 @@ def checkUnsafe(variable):
 
 
 @staticmethod
+def prReviewUnsafe(variable):
+    """Check if the variable is unsafe."""
+    return (
+        variable in ConfigurationManager().WORKFLOW_PARSING["PR_REVIEW_UNSAFE_CONTEXTS"]
+    )
+
+
+@staticmethod
 def getTokens(contents):
     """Get the context tokens from the step."""
     if contents:

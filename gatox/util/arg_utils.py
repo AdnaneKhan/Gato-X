@@ -81,15 +81,20 @@ class WritablePath(object):
         if os.path.exists(filepath):
             # Check if we can write to it
             if not os.access(filepath, os.W_OK):
-                raise argparse.ArgumentTypeError(f"Cannot write to existing file: {filepath}")
+                raise argparse.ArgumentTypeError(
+                    f"Cannot write to existing file: {filepath}"
+                )
         else:
             # Check if parent directory is writable
             if not os.path.isdir(parent_dir):
-                raise argparse.ArgumentTypeError(f"Directory does not exist: {parent_dir}")
+                raise argparse.ArgumentTypeError(
+                    f"Directory does not exist: {parent_dir}"
+                )
             if not os.access(parent_dir, os.W_OK):
                 raise argparse.ArgumentTypeError(f"Cannot create file at: {filepath}")
 
         return filepath
+
 
 class ReadableFile(object):
 

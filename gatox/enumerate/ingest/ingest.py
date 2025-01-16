@@ -15,6 +15,7 @@ from gatox.cli.output import Output
 
 logger = logging.getLogger(__name__)
 
+
 class DataIngestor:
     """Utility methods for performing parallel ingestion of data
     from GitHub using threadpools and GraphQL.
@@ -124,7 +125,7 @@ class DataIngestor:
                     logging.error("Request exception occurred, trying again.")
                     time.sleep(15 + random.randint(0, 3))
                     continue
-                    
+
                 # Sometimes we don't get a 200, fall back in this case.
                 if result.status_code == 200:
                     json_res = result.json()["data"]

@@ -4,6 +4,7 @@ from gatox.models.secret import Secret
 
 
 class Organization:
+    """ """
 
     def __init__(self, org_data: dict, user_scopes: list, limited_data: bool = False):
         """Wrapper object for an organization.

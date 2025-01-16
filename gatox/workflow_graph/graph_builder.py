@@ -172,7 +172,6 @@ class WorkflowGraphBuilder:
                 workflow_wrapper.repo_name,
                 workflow_wrapper.getPath(),
             )
-
             if not "uninitialized" in wf_node.get_tags():
                 self.graph.remove_tags_from_node(wf_node, "uninitialized")
 
@@ -183,7 +182,9 @@ class WorkflowGraphBuilder:
 
             return True
         except ValueError as e:
-            logger.warning(f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}")
+            logger.warning(
+                f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}"
+            )
             # Likely encountered a syntax error in the workflow
             return False
 

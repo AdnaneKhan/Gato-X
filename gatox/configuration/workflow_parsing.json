@@ -46,6 +46,10 @@
             "macos-14-large",
             "macos-14-xlarge"
         ],
+        "PR_REVIEW_UNSAFE_CONTEXTS": [
+            "github.event.review.body",
+            "github.event.comment.body"
+        ],
        "UNSAFE_CONTEXTS": [
             "github.event.issue.title",
             "github.event.pull_request.title",

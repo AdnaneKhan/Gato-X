@@ -92,6 +92,7 @@ def configure_parser_enumerate(parser):
             "fork pull requests."
         ),
         action="store_true",
+        default=False,
     )
 
     parser.add_argument(
@@ -123,7 +124,7 @@ def configure_parser_enumerate(parser):
 
     parser.add_argument(
         "--cache-save-file",
-        help=(  
+        help=(
             "Path to JSON file to save cache to after executing. Can be the same as the restore file, in which case it will over-write it."
         ),
         metavar="JSON_FILE",

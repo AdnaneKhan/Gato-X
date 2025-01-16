@@ -14,4 +14,5 @@ class IssueType(StrEnum):
     PWN_REQUEST: str = "Pwn Request"
     DISPATCH_TOCTOU: str = "Dispatch Time-of-Check to Time-of-Use"
     ACTIONS_INJECTION: str = "Actions Injection"
+    PR_REVIEW_INJECTON: str = "Pull Request Review Injection"
     ENVIRONMENT_POLLUTION: str = "Environment Pollution"

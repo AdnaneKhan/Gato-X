@@ -5,20 +5,26 @@ from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.issue_type import IssueType
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_parser.utility import CONTEXT_REGEX
-from gatox.workflow_parser.utility import getTokens, getToken, checkUnsafe
+from gatox.workflow_parser.utility import (
+    getTokens,
+    getToken,
+    checkUnsafe,
+    prReviewUnsafe,
+)
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.caching.cache_manager import CacheManager
 from gatox.github.api import Api
 
 
-class InjectionVisitor:
+class ReviewInjectionVisitor:
     """
     This class implements a graph visitor tasked with identifying
-    injection issues within GitHub workflows.
+    injection issues on the pull_request_review and
+    pull_request_review comment triggers..
     """
 
     @staticmethod
-    def find_injections(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
+    def find_injections(graph: TaggedGraph, api: Api):
         """
         Identify potential injection vulnerabilities within GitHub workflows.
 
@@ -48,20 +54,9 @@ class InjectionVisitor:
                        allowing the analysis to continue without interruption.
         """
         query_taglist = [
-            "issue_comment",
-            "pull_request_target",
-            "fork",
-            "issues",
-            "discussion",
-            "discussion_comment",
+            "pull_request_review_comment",
+            "pull_request_review",
         ]
-
-        # note - pull_request_review_comment and pull_request_review
-        # are only exploitable if the PR is from a feature branch,
-        # and then only the comment body is the injection point.
-
-        if not ignore_workflow_run:
-            query_taglist.append("workflow_run")
 
         nodes = graph.get_nodes_for_tags(query_taglist)
 
@@ -81,7 +76,6 @@ class InjectionVisitor:
                 flexible_lookup = {}
 
                 approval_gate = False
-
                 for index, node in enumerate(path):
                     tags = node.get_tags()
 
@@ -108,10 +102,6 @@ class InjectionVisitor:
                         paths = graph.dfs_to_tag(node, "permission_check", api)
                         if paths:
                             approval_gate = True
-
-                        paths = graph.dfs_to_tag(node, "permission_blocker", api)
-                        if paths:
-                            break
 
                         env_vars = node.get_env_vars()
                         for key, val in env_vars.items():
@@ -176,19 +166,15 @@ class InjectionVisitor:
                                     val = getTokens(val)
                                     if val:
                                         val = val[0]
-                                elif "github." in val and not checkUnsafe(val):
-                                    continue
-                                else:
-                                    conf = (
-                                        Confidence.HIGH
-                                        if checkUnsafe(val)
-                                        else Confidence.UNKNOWN
-                                    )
 
+                                if "github." in val and not prReviewUnsafe(val):
+                                    continue
+                                elif prReviewUnsafe(val) or "body" in val:
+                                    conf = Confidence.HIGH
                                     VisitorUtils._add_results(
                                         path,
                                         results,
-                                        IssueType.ACTIONS_INJECTION,
+                                        IssueType.PR_REVIEW_INJECTON,
                                         confidence=conf,
                                     )
                                     break
@@ -200,11 +186,6 @@ class InjectionVisitor:
                             input_lookup.update(node_params)
                         if index == 0:
                             repo = CacheManager().get_repository(node.repo_name())
-                            if repo.is_fork():
-                                break
-
-                            if "pull_request_target:labeled" in tags:
-                                approval_gate = True
 
                             # Check workflow environment variables.
                             # For env vars that are github.event.*

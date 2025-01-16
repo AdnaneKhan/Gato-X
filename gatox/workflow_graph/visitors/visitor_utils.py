@@ -1,5 +1,6 @@
 import json
 
+from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.caching.cache_manager import CacheManager
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.issue_type import IssueType
@@ -164,13 +165,24 @@ class VisitorUtils:
         Raises:
             None
         """
-
+        seen = set()
         for _, flows in data.items():
             for flow in flows:
+
+                seen_before = flow.get_first_and_last_hash()
+                if not seen_before in seen:
+                    seen.add(seen_before)
+                else:
+                    continue
+
                 value = flow.to_machine()
 
                 repo = CacheManager().get_repository(flow.repo_name())
-                if repo and is_within_last_day(repo.repo_data["pushed_at"]):
+                if (
+                    ConfigurationManager().NOTIFICATIONS["SLACK_WEBHOOKS"]
+                    and repo
+                    and is_within_last_day(repo.repo_data["pushed_at"])
+                ):
                     commit_date, author, sha = api.get_file_last_updated(
                         flow.repo_name(),
                         ".github/workflows/" + value.get("initial_workflow"),

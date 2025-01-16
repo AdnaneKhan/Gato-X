@@ -31,6 +31,19 @@ class InjectionResult(AnalysisResult):
 
         self.__attack_path = path
 
+    def get_first_and_last_hash(self):
+        """Returns a hash of the first and last node. In many
+        cases a path with the same start and end is effectively the same
+        from a security perspective, so we may not want to keep showing it.
+        """
+        return hash(
+            (
+                str(self.__attack_path[0]),
+                self.attack_complexity(),
+                self.confidence_score(),
+            )
+        )
+
     def to_machine(self):
 
         result = {

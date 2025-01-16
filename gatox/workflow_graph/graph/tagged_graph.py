@@ -66,7 +66,7 @@ class TaggedGraph(nx.DiGraph):
         if "uninitialized" in current_node.get_tags():
             self.builder.initialize_node(current_node, api)
 
-        elif target_tag in current_node.get_tags():
+        if target_tag in current_node.get_tags():
             all_paths.append(list(path))
         else:
             for neighbor in self.neighbors(current_node):

@@ -13,6 +13,7 @@ class Complexity(StrEnum):
     """
 
     ZERO_CLICK = "Zero Click"
+    FOLLOW_UP = "Persistent Approval Gated"
     TOCTOU = "Time-of-Check to Time-of-Use"
     BROKEN_ACCESS = "Broken Access Control"
     DEFAULT_DEPENDENT = "Default Configuration Dependent"

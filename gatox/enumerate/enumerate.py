@@ -16,6 +16,9 @@ from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
 from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
+from gatox.workflow_graph.visitors.review_injection_visitor import (
+    ReviewInjectionVisitor,
+)
 from gatox.enumerate.reports.runners import RunnersReport
 from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
 
@@ -392,6 +395,9 @@ class Enumerator:
         InjectionVisitor.find_injections(
             WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
         )
+
+        ReviewInjectionVisitor.find_injections(WorkflowGraphBuilder().graph, self.api)
+
         DispatchTOCTOUVisitor.find_dispatch_misconfigurations(
             WorkflowGraphBuilder().graph, self.api
         )
