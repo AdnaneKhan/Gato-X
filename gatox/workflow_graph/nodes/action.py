@@ -123,6 +123,8 @@ class ActionNode(Node):
             if initial_path in self.KNOWN_HARD_GATES:
                 self.is_gate = True
                 self.hard_gate = True
+            if initial_path in self.KNOWN_SINKS:
+                self.is_sink = True
         elif self.action_info["docker"]:
             # We don't resolve docker actions
             self.initialized = True
@@ -147,6 +149,10 @@ class ActionNode(Node):
             bool: True if the instances are equal, False otherwise.
         """
         return isinstance(other, self.__class__) and self.name == other.name
+
+    def get_step_data(self):
+        """ """
+        return self.action_info["key"]
 
     def get_tags(self):
         """
