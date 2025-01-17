@@ -127,7 +127,6 @@ class PwnRequestVisitor:
                             else Complexity.ZERO_CLICK
                         )
                         if sinks:
-                            print(sinks)
                             VisitorUtils.append_path(path, sinks[0])
                             confidence = Confidence.HIGH
                         else:
