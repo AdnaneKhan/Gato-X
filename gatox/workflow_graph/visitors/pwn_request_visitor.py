@@ -8,6 +8,7 @@ from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.caching.cache_manager import CacheManager
+from gatox.enumerate.reports.actions import ActionsReport
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,12 @@ class PwnRequestVisitor:
                         )
                     ) or not approval_gate:
                         sinks = graph.dfs_to_tag(node, "sink", api)
+
+                        if approval_gate:
+                            complexity = Complexity.TOCTOU
+                        elif "workflow_run" in path[0].get_tags():
+                            complexity = Complexity.CONTRIBUTION_REQUIRED
+
                         complexity = (
                             Complexity.TOCTOU
                             if approval_gate
@@ -231,4 +238,7 @@ class PwnRequestVisitor:
                 except Exception as e:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")
+
+
+
         VisitorUtils.ascii_render(results, api)

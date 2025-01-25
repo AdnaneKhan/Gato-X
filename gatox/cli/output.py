@@ -128,9 +128,9 @@ class Output(metaclass=Singleton):
 
             return length_without_color
 
-        lines = textwrap.wrap(message, width=78)
+        lines = textwrap.wrap(message, width=118)
         for line in lines:
-            padding = 78 - get_length_without_color_codes(line)
+            padding = 118 - get_length_without_color_codes(line)
 
             if line[0] not in [" ", "-", "=", "-", "~"]:
                 print(f"| {line}{' '*(padding-1)}|")

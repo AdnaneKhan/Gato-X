@@ -29,16 +29,7 @@ class AnalysisResult:
 
     def collect_steps(self, path: list):
         for node in path:
-            value = {
-                "node": str(node),
-            }
-
-            if node.get_if():
-                value["if"] = node.get_if()
-                if node.if_evaluation is not None and type(node.if_evaluation) is bool:
-                    value["if_eval"] = node.if_evaluation
-
-            yield value
+            yield node.get_repr()
 
     def repo_name(self):
         """

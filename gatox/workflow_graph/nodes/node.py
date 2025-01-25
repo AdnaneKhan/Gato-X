@@ -56,6 +56,18 @@ class Node:
             list: An empty list.
         """
         return []
+    
+    def get_repr(self):
+        """
+        Get the representation of the Node instance.
+
+        Returns:
+            value: A dict representation of the Node instance.
+        """
+        value = {
+            "node": str(self),
+        }
+        return value
 
     def get_tags(self):
         """

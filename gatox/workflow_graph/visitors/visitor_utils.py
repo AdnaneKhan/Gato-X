@@ -8,6 +8,8 @@ from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.result_factory import ResultFactory
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.github.api import Api
+from gatox.enumerate.reports.actions import ActionsReport
+
 from gatox.workflow_parser.utility import (
     CONTEXT_REGEX,
     is_within_last_day,
@@ -196,4 +198,4 @@ class VisitorUtils:
                     if is_within_last_day(commit_date) and "[bot]" not in author:
                         send_slack_webhook(value)
 
-                print(json.dumps(value, indent=4))
+                ActionsReport.report_actions_risk(flow)

@@ -17,3 +17,4 @@ class Complexity(StrEnum):
     TOCTOU = "Time-of-Check to Time-of-Use"
     BROKEN_ACCESS = "Broken Access Control"
     DEFAULT_DEPENDENT = "Default Configuration Dependent"
+    CONTRIBUTION_REQUIRED = "Workflow Run Triggered Issue"

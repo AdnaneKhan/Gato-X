@@ -1,5 +1,6 @@
 from gatox.workflow_parser.utility import parse_script, getTokens, filter_tokens
 from gatox.workflow_graph.nodes.node import Node
+from gatox.enumerate.results.issue_type import IssueType
 
 
 class StepNode(Node):
@@ -132,7 +133,7 @@ class StepNode(Node):
             ref_param = self.params["ref"]
             if isinstance(ref_param, str):
                 ref_param = ref_param.lower()
-                if "${{" in ref_param and "base" not in ref_param:
+                if "${{" in ref_param and ("base" not in ref_param and "github.event.repository.default_branch" not in ref_param):
                     if (
                         "github.event.pull_request.head.ref" in ref_param
                         or "github.head_ref" in ref_param
@@ -201,6 +202,30 @@ class StepNode(Node):
             str: The data associated with the step.
         """
         return self.__step_data
+    
+    def get_repr(self):
+        """
+        Get the representation of the Node instance.
+
+        Returns:
+            value: A dict representation of the Node instance.
+        """
+        value = {
+                "node": str(self),
+        }
+
+        if self.get_if():
+            value["if"] = self.get_if()
+            if self.if_evaluation is not None and type(self.if_evaluation) is bool:
+                value["if_eval"] = self.if_evaluation
+
+        if self.is_checkout:
+            value["checkout_ref"] = self.metadata
+
+        if self.contexts:
+            value["contexts"] = self.contexts
+
+        return value
 
     def get_tags(self):
         """
