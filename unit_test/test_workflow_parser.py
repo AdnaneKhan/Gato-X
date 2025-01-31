@@ -399,6 +399,7 @@ def test_check_sh_runnner():
     result = parser.self_hosted()
     assert len(result) > 0
 
+
 def test_parse_weird_if():
     workflow = Workflow("unit_test", TEST_WF8, "windows-cygwin.yml")
     parser = WorkflowParser(workflow)
