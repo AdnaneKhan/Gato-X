@@ -265,6 +265,58 @@ jobs:
 
 """
 
+TEST_WF8 = """
+name: build-php-cli-windows-cygwin
+
+on:
+  push:
+  pull_request:
+
+env:
+  BUILD_PHP_VERSION: 8.2.27
+
+jobs:
+  windows-cygwin:
+    if: 0
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        php-version:
+          - "8.2.27"
+          - "8.1.31"
+          - "8.3.15"
+          - "8.4.2"
+    steps:
+      - name: Show Environment Info
+        shell: cmd
+        run: |
+          ver
+          wmic cpu get name, caption, maxclockspeed, status
+          systeminfo
+          systeminfo | findstr /B /C:"OS Name" /C:"OS Version"
+          systeminfo | findstr /B /C:"Manufacturer" /C:"Product" /C:"Version"
+          set
+          ipconfig
+          uname -a
+          pwd
+          ipconfig /all
+
+      - name: Prepare git
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          git config --global core.ignorecase false
+          git config --global --add safe.directory ${{ github.workspace }}
+          ipconfig
+
+      - uses: actions/checkout@v4
+      - name: set php version
+        # 参考文档：  https://docs.github.com/zh/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsshell
+        shell: bash
+        run: |
+          echo "BUILD_PHP_VERSION=${{ matrix.php-version }}" >> $GITHUB_ENV
+"""
+
 
 def test_parse_workflow():
 
@@ -346,3 +398,10 @@ def test_check_sh_runnner():
 
     result = parser.self_hosted()
     assert len(result) > 0
+
+
+def test_parse_weird_if():
+    workflow = Workflow("unit_test", TEST_WF8, "windows-cygwin.yml")
+    parser = WorkflowParser(workflow)
+    result = parser.check_pwn_request()
+    assert result == {}

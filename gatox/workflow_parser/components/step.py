@@ -53,8 +53,11 @@ class Step:
         if "name" in self.step_data:
             self.name = self.step_data["name"]
 
-        if "if" in self.step_data and self.step_data["if"]:
-            self.if_condition = self.step_data["if"].replace("\n", "")
+        if "if" in self.step_data:
+            if type(self.step_data["if"]) == str:
+                self.if_condition = self.step_data["if"].replace("\n", "")
+            else:
+                self.if_condition = None
         else:
             self.if_condition = None
 
