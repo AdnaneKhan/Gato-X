@@ -1,4 +1,3 @@
-import json
 
 
 from gatox.enumerate.results.confidence import Confidence
@@ -6,7 +5,7 @@ from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.analysis_result import AnalysisResult
 
 
-class InjectionResult(AnalysisResult):
+class ReviewInjectionResult(AnalysisResult):
     """
     Represents the result of an Injection analysis.
     Inherits from AnalysisResult to include repository name, issue type,
@@ -18,13 +17,13 @@ class InjectionResult(AnalysisResult):
         path: list,
         confidence_score: Confidence,
         attack_complexity_score: Complexity,
-    ):
-
+    ):     
+        
         repository_name = path[0].repo_name()
 
         super().__init__(
             repository_name,
-            InjectionResult.__name__,
+            ReviewInjectionResult.__name__,
             confidence_score,
             attack_complexity_score,
         )
@@ -46,9 +45,9 @@ class InjectionResult(AnalysisResult):
 
     def filter_triggers(self, triggers):
         """Filter triggers to remove non-relevant ones."""
-        RELEVANT_TRIGGERS = {"issue_comment", "pull_request_target", "workflow_run", "issues", "discussion", "discussion_comment"}
+        RELEVANT_TRIGGERS = {"pull_request_review", "pull_request_review_comment"}
         return list(set(triggers) & RELEVANT_TRIGGERS)
-
+    
     def to_machine(self):
 
         result = {

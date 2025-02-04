@@ -41,12 +41,17 @@ class PwnRequestResult(AnalysisResult):
             )
         )
 
+    def filter_triggers(self, triggers):
+        """Filter triggers to remove non-relevant ones."""
+        RELEVANT_TRIGGERS = {"pull_request_target:labeled", "workflow_run", "issue_comment", "pull_request_target"}
+        return list(set(triggers) & RELEVANT_TRIGGERS)
+
     def to_machine(self):
         """Returns a machine readable JSON output of the pwn request result."""
         result = {
             "repository_name": self.repo_name(),
             "issue_type": self.issue_type(),
-            "triggers": self.__attack_path[0].get_triggers(),
+            "triggers": self.filter_triggers(self.__attack_path[0].get_triggers()),
             "initial_workflow": self.__attack_path[0].get_workflow_name(),
             "confidence": self.confidence_score(),
             "attack_complexity": self.attack_complexity(),

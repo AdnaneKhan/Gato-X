@@ -141,6 +141,24 @@ class JobNode(Node):
     def get_if(self):
         return self.if_condition
 
+    def get_repr(self):
+        """
+        Get the representation of the Node instance.
+
+        Returns:
+            value: A dict representation of the Node instance.
+        """
+
+        value = {
+            "node": str(self),
+        }
+        if self.get_if():
+            value["if"] = self.get_if()
+            if self.if_evaluation is not None and type(self.if_evaluation) is bool:
+                value["if_eval"] = self.if_evaluation
+
+        return value
+
     def set_params(self, params):
         self.params = params
 
