@@ -40,7 +40,10 @@ def process_matrix(job_def, runs_on):
         # Check if strategy exists in the yaml file
         if "strategy" in job_def and "matrix" in job_def["strategy"]:
             matrix = job_def["strategy"]["matrix"]
-
+            # Fail open in case we have step output or fromJSON
+            if type(matrix) is str:
+                return True
+            
             # Use previously acquired key to retrieve list of OSes
             if matrix_key in matrix:
                 os_list = matrix[matrix_key]
