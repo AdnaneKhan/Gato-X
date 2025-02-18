@@ -1,4 +1,5 @@
 import re
+import logging
 
 from datetime import datetime, timedelta
 
@@ -7,6 +8,7 @@ from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
 from gatox.caching.cache_manager import CacheManager
 
+logger = logging.getLogger(__name__)
 
 pattern = re.compile(
     r"checkout\s+(\$\{\{)?\s*(\S*([a-z$_]+)\S*)\s*(\}\})?", re.IGNORECASE
@@ -134,9 +136,6 @@ def process_runner(runs_on):
 @staticmethod
 def parse_script(contents: str):
     """Processes run steps for additional context"""
-    if not contents:
-        return {}
-
     return_dict = {
         "is_checkout": False,
         "metadata": None,
@@ -144,6 +143,10 @@ def parse_script(contents: str):
         "hard_gate": False,
         "soft_gate": False,
     }
+
+    if not contents or not isinstance(contents, str):
+        logging.warning("Invalid contents for script parsing:" + str(contents))
+        return return_dict
 
     if "git checkout" in contents or "pr checkout" in contents:
         match = pattern.search(contents)
