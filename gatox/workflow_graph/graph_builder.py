@@ -131,8 +131,10 @@ class WorkflowGraphBuilder:
                 else:
                     return
 
-            if callee_wf:
+            if callee_wf and not callee_wf.isInvalid():
                 workflow.initialize(callee_wf)
+            else:
+                raise ValueError("Invalid callee workflow!")
 
             self.graph.remove_tags_from_node(workflow, ["uninitialized"])
 
@@ -183,7 +185,7 @@ class WorkflowGraphBuilder:
             return True
         except ValueError as e:
             logger.warning(
-                f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}"
+                f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}, {repo_wrapper.name}"
             )
             # Likely encountered a syntax error in the workflow
             return False
