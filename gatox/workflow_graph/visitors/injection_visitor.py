@@ -1,4 +1,5 @@
 import re
+import logging
 
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
@@ -9,6 +10,9 @@ from gatox.workflow_parser.utility import getTokens, getToken, checkUnsafe
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.caching.cache_manager import CacheManager
 from gatox.github.api import Api
+
+
+logger = logging.getLogger(__name__)
 
 
 class InjectionVisitor:
@@ -70,9 +74,13 @@ class InjectionVisitor:
         rule_cache = {}
 
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "injectable", api)
-            if paths:
-                all_paths.append(paths)
+            try:
+                paths = graph.dfs_to_tag(cn, "injectable", api)
+                if paths:
+                    all_paths.append(paths)
+            except Exception as e:
+                logger.error(f"Error finding paths for injection node: {e}")
+                logger.error(f"Node: {cn}")
 
         for path_set in all_paths:
             for path in path_set:

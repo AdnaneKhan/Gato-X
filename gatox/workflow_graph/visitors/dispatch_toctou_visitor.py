@@ -64,9 +64,13 @@ class DispatchTOCTOUVisitor:
 
         # Perform DFS from each "workflow_dispatch" node to find paths to "checkout" nodes
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "checkout", api)
-            if paths:
-                all_paths.append(paths)
+            try:
+                paths = graph.dfs_to_tag(cn, "checkout", api)
+                if paths:
+                    all_paths.append(paths)
+            except Exception as e:
+                logger.error(f"Error finding paths for dispatch node: {e}")
+                logger.warning(f"Node: {cn}")
 
         # Process each discovered path to identify TOCTOU vulnerabilities
         for path_set in all_paths:

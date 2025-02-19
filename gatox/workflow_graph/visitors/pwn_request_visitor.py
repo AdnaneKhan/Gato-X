@@ -221,9 +221,13 @@ class PwnRequestVisitor:
         all_paths = []
 
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "checkout", api)
-            if paths:
-                all_paths.append(paths)
+            try:
+                paths = graph.dfs_to_tag(cn, "checkout", api)
+                if paths:
+                    all_paths.append(paths)
+            except Exception as e:
+                logger.error(f"Error finding paths for pwn request node: {e}")
+                logger.error(f"Node: {cn}")
 
         results = {}
         rule_cache = {}
