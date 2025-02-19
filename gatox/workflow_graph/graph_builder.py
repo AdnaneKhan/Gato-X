@@ -187,6 +187,13 @@ class WorkflowGraphBuilder:
             )
             # Likely encountered a syntax error in the workflow
             return False
+        except Exception as e:
+            logger.warning(
+                f"Exception building graph from workflow, likely Gato-X bug: {workflow_wrapper.getPath()}"
+            )
+            logger.debug(str(e))
+            # Likely gato-x bug
+            return False
 
     def build_workflow_jobs(self, workflow_wrapper: Workflow, wf_node: WorkflowNode):
         """Build workflow jobs from the parsed yaml file."""
