@@ -46,7 +46,9 @@ class VisitorUtils:
         elif issue_type == IssueType.DISPATCH_TOCTOU:
             result = ResultFactory.create_toctou_result(path, confidence, complexity)
         elif issue_type == IssueType.PR_REVIEW_INJECTON:
-            result = ResultFactory.create_review_injection_result(path, confidence, complexity)
+            result = ResultFactory.create_review_injection_result(
+                path, confidence, complexity
+            )
         else:
             raise ValueError(f"Unknown issue type: {issue_type}")
 

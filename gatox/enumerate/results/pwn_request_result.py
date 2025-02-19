@@ -43,7 +43,12 @@ class PwnRequestResult(AnalysisResult):
 
     def filter_triggers(self, triggers):
         """Filter triggers to remove non-relevant ones."""
-        RELEVANT_TRIGGERS = {"pull_request_target:labeled", "workflow_run", "issue_comment", "pull_request_target"}
+        RELEVANT_TRIGGERS = {
+            "pull_request_target:labeled",
+            "workflow_run",
+            "issue_comment",
+            "pull_request_target",
+        }
         return list(set(triggers) & RELEVANT_TRIGGERS)
 
     def to_machine(self):

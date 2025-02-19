@@ -56,7 +56,7 @@ class Node:
             list: An empty list.
         """
         return []
-    
+
     def get_repr(self):
         """
         Get the representation of the Node instance.

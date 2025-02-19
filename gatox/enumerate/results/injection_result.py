@@ -46,7 +46,14 @@ class InjectionResult(AnalysisResult):
 
     def filter_triggers(self, triggers):
         """Filter triggers to remove non-relevant ones."""
-        RELEVANT_TRIGGERS = {"issue_comment", "pull_request_target", "workflow_run", "issues", "discussion", "discussion_comment"}
+        RELEVANT_TRIGGERS = {
+            "issue_comment",
+            "pull_request_target",
+            "workflow_run",
+            "issues",
+            "discussion",
+            "discussion_comment",
+        }
         return list(set(triggers) & RELEVANT_TRIGGERS)
 
     def to_machine(self):

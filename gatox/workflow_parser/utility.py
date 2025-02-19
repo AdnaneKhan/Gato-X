@@ -45,7 +45,7 @@ def process_matrix(job_def, runs_on):
             # Fail open in case we have step output or fromJSON
             if type(matrix) is str:
                 return True
-            
+
             # Use previously acquired key to retrieve list of OSes
             if matrix_key in matrix:
                 os_list = matrix[matrix_key]

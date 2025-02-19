@@ -41,7 +41,7 @@ class ActionNode(Node):
             "bridgecrewio/checkov-action",
             "pre-commit/action",
             "oxsecurity/megalinter",
-            "andresz1/size-limit-action"
+            "andresz1/size-limit-action",
         ]
     )
 

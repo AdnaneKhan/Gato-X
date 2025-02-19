@@ -1,5 +1,3 @@
-
-
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.analysis_result import AnalysisResult
@@ -17,8 +15,8 @@ class ReviewInjectionResult(AnalysisResult):
         path: list,
         confidence_score: Confidence,
         attack_complexity_score: Complexity,
-    ):     
-        
+    ):
+
         repository_name = path[0].repo_name()
 
         super().__init__(
@@ -47,7 +45,7 @@ class ReviewInjectionResult(AnalysisResult):
         """Filter triggers to remove non-relevant ones."""
         RELEVANT_TRIGGERS = {"pull_request_review", "pull_request_review_comment"}
         return list(set(triggers) & RELEVANT_TRIGGERS)
-    
+
     def to_machine(self):
 
         result = {

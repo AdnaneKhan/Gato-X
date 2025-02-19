@@ -63,7 +63,7 @@ class ActionsReport(Report):
         machine_details = result.to_machine()
         cls.print_header(machine_details)
 
-        pogression = cls.__report_path(machine_details['path'], result)
+        pogression = cls.__report_path(machine_details["path"], result)
 
         for entry in pogression:
             Output.generic(entry)
@@ -108,16 +108,20 @@ class ActionsReport(Report):
 
             details.append(f"{'-'*118}")
             details.append(f" → {Output.bright(node['node'])}")
-            if 'if' in node:
+            if "if" in node:
                 details.append(f"   ↪ If: {Output.yellow(node['if'])}")
-            if 'if_eval' in node:
+            if "if_eval" in node:
                 details.append(f"   ↪ If Check: {Output.yellow(node['if_eval'])}")
 
-            if 'checkout_ref' in node and result.issue_type() in ["PwnRequestResult", "DispatchTOCTOUResult"]:
+            if "checkout_ref" in node and result.issue_type() in [
+                "PwnRequestResult",
+                "DispatchTOCTOUResult",
+            ]:
                 details.append(f"   ↪ Checkout: {Output.yellow(node['checkout_ref'])}")
 
-            if 'contexts' in node and result.issue_type() == "InjectionResult":
-                details.append(f"   ↪ Context Vars: {Output.yellow(', '.join(node['contexts']))}")
-            
-        return details
+            if "contexts" in node and result.issue_type() == "InjectionResult":
+                details.append(
+                    f"   ↪ Context Vars: {Output.yellow(', '.join(node['contexts']))}"
+                )
 
+        return details

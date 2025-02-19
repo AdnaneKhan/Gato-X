@@ -239,6 +239,4 @@ class PwnRequestVisitor:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")
 
-
-
         VisitorUtils.ascii_render(results, api)
