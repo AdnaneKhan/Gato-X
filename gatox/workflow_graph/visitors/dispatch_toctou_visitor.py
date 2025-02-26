@@ -82,7 +82,7 @@ class DispatchTOCTOUVisitor:
                     logger.warning(f"Path: {path}")
 
         # Render the aggregated results
-        VisitorUtils.ascii_render(results, api)
+        VisitorUtils.add_repo_results(results, api)
 
     @staticmethod
     def __process_path(path, graph: TaggedGraph, api: Api, results: dict):

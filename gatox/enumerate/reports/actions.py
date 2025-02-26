@@ -56,7 +56,7 @@ class ActionsReport(Report):
     )
 
     @classmethod
-    def report_actions_risk(cls, result: AnalysisResult):
+    def report_actions_risk(cls, result):
         """Report Pwn Requests in the repository in a clean, human readable format."""
 
         cls.print_divider()
@@ -98,6 +98,11 @@ class ActionsReport(Report):
         details.append(f" Confidence: {Output.red(designation)}")
 
         return details
+
+    @classmethod
+    def render_report(cls, risk: AnalysisResult):
+        """Render report associated with a particular risk."""
+        cls.report_actions_risk(risk)
 
     @classmethod
     def __report_path(self, path, result: AnalysisResult):

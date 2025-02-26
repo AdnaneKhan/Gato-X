@@ -202,4 +202,5 @@ class ReviewInjectionVisitor:
                 # or get passed through workflow calls.
                 # We also want to ensure tracking inside of
                 # composite actions.
-        VisitorUtils.ascii_render(results, api)
+
+        VisitorUtils.add_repo_results(results, api)

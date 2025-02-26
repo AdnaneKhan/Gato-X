@@ -19,7 +19,7 @@ from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOU
 from gatox.workflow_graph.visitors.review_injection_visitor import (
     ReviewInjectionVisitor,
 )
-from gatox.enumerate.reports.runners import RunnersReport
+
 from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
 
 
@@ -353,7 +353,6 @@ class Enumerator:
             Output.inform(
                 "Deep dive workflow ingestion enabled, this will slow down enumeration!"
             )
-        try:
             for repo in enum_list:
                 if repo.is_archived():
                     continue
@@ -361,27 +360,32 @@ class Enumerator:
                     continue
 
                 cached_repo = CacheManager().get_repository(repo.name)
-                if cached_repo:
-                    repo = cached_repo
+                if self.deep_dive and not cached_repo.is_fork():
+                    IngestNonDefault.ingest(cached_repo, self.api)
 
-                if self.deep_dive and not repo.is_fork():
-                    IngestNonDefault.ingest(repo, self.api)
+            IngestNonDefault.pool_empty()
+            Output.info("Deep dive ingestion complete!")
 
-                self.repo_e.enumerate_repository(repo)
-                self.repo_e.enumerate_repository_secrets(repo)
-                organization.set_repository(repo)
+        self.process_graph()
 
+        try:
+            for repo in enum_list:
+                if repo.is_archived():
+                    continue
+                if repo.is_fork():
+                    continue
+
+                repo = CacheManager().get_repository(repo.name)
+                if repo:
+                    self.repo_e.enumerate_repository(repo)
+                    self.repo_e.enumerate_repository_secrets(repo)
+                    organization.set_repository(repo)
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
-        if self.deep_dive:
-            IngestNonDefault.pool_empty()
-            Output.info("Deep dive ingestion complete!")
-        self.enumerate_new()
-
         return organization
 
-    def enumerate_new(self):
+    def process_graph(self):
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
@@ -403,20 +407,7 @@ class Enumerator:
         )
 
         if not self.skip_log:
-            results = RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
-            if results:
-                Output.info(
-                    f"Identified potential self-hosted runner usage in {len(results.keys())} repositories!"
-                )
-                Output.info(f"Analyizing run logs...")
-                for repo, workflows in results.items():
-                    repo = CacheManager().get_repository(repo)
-                    if repo and workflows:
-                        Output.tabbed(
-                            f"Checking run-logs for: {Output.bright(repo.name)}!"
-                        )
-                        if self.repo_e.perform_runlog_enumeration(repo, workflows):
-                            RunnersReport.report_runners(repo)
+            RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
 
     def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
@@ -449,6 +440,10 @@ class Enumerator:
             for repo in repo_names:
                 repo_obj = CacheManager().get_repository(repo)
                 IngestNonDefault.ingest(repo_obj, self.api)
+
+        IngestNonDefault.pool_empty()
+        self.process_graph()
+
         try:
             for repo in repo_names:
                 repo_obj = self.__enumerate_repo_only(repo)
@@ -456,8 +451,5 @@ class Enumerator:
                     repo_wrappers.append(repo_obj)
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
-
-        IngestNonDefault.pool_empty()
-        self.enumerate_new()
 
         return repo_wrappers

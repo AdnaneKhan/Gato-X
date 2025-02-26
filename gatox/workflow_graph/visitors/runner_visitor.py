@@ -1,5 +1,6 @@
 import logging
 
+from gatox.caching.cache_manager import CacheManager
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 
@@ -17,7 +18,6 @@ class RunnerVisitor:
         to use self-hosted runners.
         """
         nodes = graph.get_nodes_for_tags(["self-hosted"])
-
         workflows = {}
         for node in nodes:
             try:
@@ -30,6 +30,10 @@ class RunnerVisitor:
                         workflows.setdefault(repo, set()).add(
                             caller.get_workflow_name()
                         )
+
+                cached_repo = CacheManager().get_repository(repo)
+                if cached_repo:
+                    cached_repo.add_self_hosted_workflows([node.get_workflow_name()])
 
                 workflows.setdefault(repo, set()).add(node.get_workflow_name())
             except Exception as e:

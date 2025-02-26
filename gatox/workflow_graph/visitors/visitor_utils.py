@@ -33,12 +33,6 @@ class VisitorUtils:
         if repo_name not in results:
             results[repo_name] = []
 
-        result_package = {
-            "path": path,
-            "confidence": confidence,
-            "complexity": complexity,
-        }
-
         if issue_type == IssueType.ACTIONS_INJECTION:
             result = ResultFactory.create_injection_result(path, confidence, complexity)
         elif issue_type == IssueType.PWN_REQUEST:
@@ -155,6 +149,21 @@ class VisitorUtils:
         return head
 
     @staticmethod
+    def add_repo_results(data: dict, api: Api):
+        """Add results to the repository data."""
+        seen = set()
+        for repo_name, flows in data.items():
+            for flow in flows:
+                seen_before = flow.get_first_and_last_hash()
+                if not seen_before in seen:
+                    seen.add(seen_before)
+                else:
+                    continue
+
+                repo = CacheManager().get_repository(flow.repo_name())
+                repo.set_results(flow)
+
+    @staticmethod
     def ascii_render(data: dict, api: Api):
         """
         Render the structure of workflows, jobs, and steps in ASCII format.
@@ -201,5 +210,3 @@ class VisitorUtils:
 
                     if is_within_last_day(commit_date) and "[bot]" not in author:
                         send_slack_webhook(value)
-
-                ActionsReport.report_actions_risk(flow)

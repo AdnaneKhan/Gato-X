@@ -1,13 +1,12 @@
 import logging
 
-from datetime import datetime, timedelta
-
+from gatox.enumerate.reports.runners import RunnersReport
 from gatox.cli.output import Output
+from gatox.enumerate.reports.actions import ActionsReport
 from gatox.models.execution import Repository
 from gatox.models.secret import Secret
 from gatox.models.runner import Runner
 from gatox.github.api import Api
-from gatox.notifications.send_webhook import send_slack_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -62,54 +61,6 @@ class RepositoryEnum:
 
         return runner_detected
 
-    def __create_info_package(
-        self, workflow_name, workflow_url, details, rules, parent_workflow=None
-    ):
-        """Create information package for slack webhook."""
-        package = {
-            "workflow_name": workflow_name,
-            "workflow_url": workflow_url,
-            "details": details,
-            "environments": rules,
-        }
-
-        if parent_workflow:
-            package["parent_workflow"] = parent_workflow
-        return package
-
-    @staticmethod
-    def __is_within_last_day(timestamp_str, format="%Y-%m-%dT%H:%M:%SZ"):
-        # Convert the timestamp string to a datetime object
-        date = datetime.strptime(timestamp_str, format)
-
-        # Get the current date and time
-        now = datetime.now()
-        # Calculate the date 1 days ago
-        one_day_ago = now - timedelta(days=1)
-
-        # Return True if the date is within the last day, False otherwise
-        return one_day_ago <= date <= now
-
-    @staticmethod
-    def __return_recent(time1, time2, format="%Y-%m-%dT%H:%M:%SZ"):
-        """
-        Takes two timestamp strings and returns the most recent one.
-
-        Args:
-            time1 (str): The first timestamp string.
-            time2 (str): The second timestamp string.
-            format (str): The format of the timestamp strings. Default is '%Y-%m-%dT%H:%M:%SZ'.
-
-        Returns:
-            str: The most recent timestamp string.
-        """
-        # Convert the timestamp strings to datetime objects
-        date1 = datetime.strptime(time1, format)
-        date2 = datetime.strptime(time2, format)
-
-        # Return the most recent timestamp string
-        return time1 if date1 > date2 else time2
-
     def enumerate_repository(self, repository: Repository):
         """Enumerate a repository, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
@@ -118,12 +69,15 @@ class RepositoryEnum:
             repository (Repository): Wrapper object created from calling the
             API and retrieving a repository.
         """
-        runner_detected = False
-        repository.update_time()
-
         if not repository.can_pull():
             Output.error("The user cannot pull, skipping.")
             return
+        Output.tabbed(f"Checking repository: {Output.bright(repository.name)}")
+
+        repository.update_time()
+        if repository.get_risks():
+            for risk in repository.get_risks():
+                ActionsReport.report_actions_risk(risk)
 
         if repository.is_admin():
             runners = self.api.get_repo_runners(repository.name)
@@ -141,6 +95,18 @@ class RepositoryEnum:
                 ]
 
                 repository.set_runners(repo_runners)
+        else:
+            runner_wfs = repository.get_sh_workflow_names()
+            if runner_wfs:
+                runner_detected = self.perform_runlog_enumeration(
+                    repository, runner_wfs
+                )
+                if runner_detected:
+                    Output.info(f"Analyizing run logs for {repository.name}")
+                    if self.perform_runlog_enumeration(
+                        repository, repository.get_sh_workflow_names()
+                    ):
+                        RunnersReport.report_runners(repository)
 
     def enumerate_repository_secrets(self, repository: Repository):
         """Enumerate secrets accessible to a repository.
