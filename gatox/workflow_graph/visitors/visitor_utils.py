@@ -163,41 +163,12 @@ class VisitorUtils:
                 repo = CacheManager().get_repository(flow.repo_name())
                 repo.set_results(flow)
 
-    @staticmethod
-    def ascii_render(data: dict, api: Api):
-        """
-        Render the structure of workflows, jobs, and steps in ASCII format.
-
-        Primarily used for debugging and testing purposes.
-
-        Args:
-            data (dict):
-                A dictionary containing workflow data organized by repository.
-
-        Returns:
-            None
-
-        Raises:
-            None
-        """
-        seen = set()
-        for _, flows in data.items():
-            for flow in flows:
-
-                seen_before = flow.get_first_and_last_hash()
-                if not seen_before in seen:
-                    seen.add(seen_before)
-                else:
-                    continue
-
-                value = flow.to_machine()
-
-                repo = CacheManager().get_repository(flow.repo_name())
                 if (
                     ConfigurationManager().NOTIFICATIONS["SLACK_WEBHOOKS"]
                     and repo
                     and is_within_last_day(repo.repo_data["pushed_at"])
                 ):
+                    value = flow.to_machine()
                     commit_date, author, sha = api.get_file_last_updated(
                         flow.repo_name(),
                         ".github/workflows/" + value.get("initial_workflow"),
