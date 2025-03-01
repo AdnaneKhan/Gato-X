@@ -132,7 +132,7 @@ class ExpressionEvaluator:
             elif not node.value.startswith("github."):
                 raise NotImplementedError()
 
-            if isinstance(value, FlexibleAction):
+            if isinstance(node.value, FlexibleAction):
                 return True
 
             return self.variables.get(node.value, node.value)

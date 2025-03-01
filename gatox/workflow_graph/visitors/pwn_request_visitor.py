@@ -244,3 +244,4 @@ class PwnRequestVisitor:
                     logger.warning(f"Path: {path}")
 
         VisitorUtils.add_repo_results(results, api)
+        return results

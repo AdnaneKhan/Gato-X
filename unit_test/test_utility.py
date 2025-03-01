@@ -90,7 +90,13 @@ def test_process_matrix_invalid(mock_config):
 def test_parse_script_empty(mock_check_sinks, mock_pattern, mock_config):
     mock_check_sinks.return_value = False
     result = parse_script("")
-    assert result == {}
+    assert result == {
+        "is_checkout": False,
+        "metadata": None,
+        "is_sink": False,
+        "hard_gate": False,
+        "soft_gate": False,
+    }
 
 
 @patch("gatox.workflow_parser.utility.ConfigurationManager")

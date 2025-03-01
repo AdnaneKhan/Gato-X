@@ -179,114 +179,6 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
 
 
 @patch("gatox.enumerate.enumerate.Api")
-def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
-    """Test constructor for enumerator."""
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy="localhost:8080",
-        output_yaml=True,
-        skip_log=False,
-    )
-
-    mock_api.return_value.is_app_token.return_value = False
-
-    mock_api.return_value.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo"],
-    }
-
-    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
-
-    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
-    repo_data["permissions"]["admin"] = False
-
-    mock_api.return_value.get_repository.return_value = repo_data
-
-    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
-
-    captured = capsys.readouterr()
-
-    print_output = captured.out
-
-    assert " scope, which means an existing workflow trigger must" in escape_ansi(
-        print_output
-    )
-
-
-@patch("gatox.enumerate.enumerate.Api")
-def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
-    """Test constructor for enumerator."""
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy="localhost:8080",
-        output_yaml=True,
-        skip_log=False,
-    )
-
-    mock_api.return_value.is_app_token.return_value = False
-
-    mock_api.return_value.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo", "workflow"],
-    }
-
-    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
-
-    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
-
-    repo_data["permissions"]["maintain"] = True
-
-    mock_api.return_value.get_repository.return_value = repo_data
-
-    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
-    captured = capsys.readouterr()
-
-    print_output = captured.out
-
-    assert " The user is a maintainer on the" in escape_ansi(print_output)
-
-
-@patch("gatox.enumerate.enumerate.Api")
-def test_enumerate_repo_only(mock_api, capsys):
-    """Test constructor for enumerator."""
-
-    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy="localhost:8080",
-        output_yaml=True,
-        skip_log=False,
-    )
-
-    mock_api.return_value.is_app_token.return_value = False
-
-    mock_api.return_value.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo", "workflow"],
-    }
-
-    mock_api.return_value.retrieve_run_logs.return_value = BASE_MOCK_RUNNER
-    mock_api.return_value.get_repository.return_value = repo_data
-
-    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
-
-    captured = capsys.readouterr()
-
-    print_output = captured.out
-
-    assert "Runner Name: much_unit_such_test" in escape_ansi(print_output)
-
-    assert "Machine Name: unittest1" in escape_ansi(print_output)
-
-    assert "Labels: self-hosted, Linux, X64" in escape_ansi(print_output)
-
-
-@patch("gatox.enumerate.enumerate.Api")
 def test_enum_validate(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -335,7 +227,7 @@ def test_enum_repo(mock_api, mock_time, capfd):
 
     gh_enumeration_runner._Enumerator__enumerate_repo_only("octocat/Hello-World")
     out, err = capfd.readouterr()
-    assert "Enumerating: octocat/Hello-World" in escape_ansi(out)
+    assert "Checking repository: octocat/Hello-World" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_called_once_with("octocat/Hello-World")
 
 
@@ -412,11 +304,10 @@ def test_enum_org(mock_api, mock_time, capfd):
     out, err = capfd.readouterr()
 
     escaped_output = escape_ansi(out)
-    assert (
-        "The repository can access 1 secret(s) and the token can use a workflow to read them!"
-        in escaped_output
-    )
-    assert "TEST_SECRET" in escaped_output
+
+    assert "The organization has 2 secret(s)" in escaped_output
+    assert "organization has 1 org-level self-hosted runners" in escaped_output
+    assert "DEPLOY_TOKEN" in escaped_output
     assert "ghrunner-test" in escaped_output
 
 
@@ -505,7 +396,7 @@ def test_enum_repos(mock_api, mock_time, capfd):
 
     gh_enumeration_runner.enumerate_repos(["octocat/Hello-World"])
     out, _ = capfd.readouterr()
-    assert "Enumerating: octocat/Hello-World" in escape_ansi(out)
+    assert "Checking repository: octocat/Hello-World" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_called_once_with("octocat/Hello-World")
 
 

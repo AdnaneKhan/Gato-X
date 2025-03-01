@@ -89,6 +89,7 @@ def test_cli_s2s_token_machine(mock_post, mock_get, capfd):
 
     # Mock out the enumerator’s HTTP calls here as needed
     mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {"total_count": 0}
     mock_post.return_value.status_code = 200
 
     cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])

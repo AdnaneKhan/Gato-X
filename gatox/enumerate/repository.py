@@ -95,6 +95,7 @@ class RepositoryEnum:
                 ]
 
                 repository.set_runners(repo_runners)
+                RunnersReport.report_runners(repository)
         else:
             runner_wfs = repository.get_sh_workflow_names()
             if runner_wfs:

@@ -230,3 +230,4 @@ class InjectionVisitor:
                 # We also want to ensure tracking inside of
                 # composite actions.
         VisitorUtils.add_repo_results(results, api)
+        return results

@@ -83,6 +83,7 @@ class DispatchTOCTOUVisitor:
 
         # Render the aggregated results
         VisitorUtils.add_repo_results(results, api)
+        return results
 
     @staticmethod
     def __process_path(path, graph: TaggedGraph, api: Api, results: dict):

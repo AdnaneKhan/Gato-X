@@ -21,6 +21,7 @@ from gatox.workflow_graph.visitors.review_injection_visitor import (
 )
 
 from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
+from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 
 
 logger = logging.getLogger(__name__)
@@ -378,6 +379,9 @@ class Enumerator:
                 repo = CacheManager().get_repository(repo.name)
                 if repo:
                     self.repo_e.enumerate_repository(repo)
+                    Recommender.print_repo_attack_recommendations(
+                        self.user_perms["scopes"], repo
+                    )
                     self.repo_e.enumerate_repository_secrets(repo)
                     organization.set_repository(repo)
         except KeyboardInterrupt:
@@ -393,18 +397,26 @@ class Enumerator:
             f"Performing graph analysis on {WorkflowGraphBuilder().graph.number_of_nodes()} nodes!"
         )
 
-        PwnRequestVisitor.find_pwn_requests(
-            WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
-        )
-        InjectionVisitor.find_injections(
-            WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
-        )
+        visitors = [
+            (PwnRequestVisitor, "find_pwn_requests"),
+            (InjectionVisitor, "find_injections"),
+            (ReviewInjectionVisitor, "find_injections"),
+            (DispatchTOCTOUVisitor, "find_dispatch_misconfigurations"),
+        ]
 
-        ReviewInjectionVisitor.find_injections(WorkflowGraphBuilder().graph, self.api)
+        for visitor_class, visitor_method in visitors:
+            visitor = visitor_class()  # Instantiate the visitor class
+            visitor_func = getattr(visitor, visitor_method)  # Get the method
 
-        DispatchTOCTOUVisitor.find_dispatch_misconfigurations(
-            WorkflowGraphBuilder().graph, self.api
-        )
+            if visitor_class == PwnRequestVisitor or visitor_class == InjectionVisitor:
+                results = visitor_func(
+                    WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
+                )
+            else:
+                results = visitor_func(WorkflowGraphBuilder().graph, self.api)
+
+            if results:
+                VisitorUtils.add_repo_results(results, self.api)
 
         if not self.skip_log:
             RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)

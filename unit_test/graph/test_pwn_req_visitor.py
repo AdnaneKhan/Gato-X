@@ -30,14 +30,9 @@ def mock_cache_manager():
 
 def test_find_pwn_requests_no_nodes(mock_graph, mock_api, mock_cache_manager):
     mock_graph.get_nodes_for_tags.return_value = []
-    with patch.object(VisitorUtils, "ascii_render") as mock_render:
+    with patch.object(VisitorUtils, "add_repo_results") as mock_add:
         PwnRequestVisitor.find_pwn_requests(mock_graph, mock_api)
-        mock_render.assert_called_with({})
-
-
-def test_finalize_result_not_implemented():
-    with pytest.raises(NotImplementedError):
-        PwnRequestVisitor._finalize_result()
+        mock_add.assert_called_with({}, mock.ANY)
 
 
 def test_find_pwn_requests_with_nodes(mock_graph, mock_api, mock_cache_manager):
@@ -47,8 +42,8 @@ def test_find_pwn_requests_with_nodes(mock_graph, mock_api, mock_cache_manager):
 
     with (
         patch.object(PwnRequestVisitor, "_process_single_path") as mock_process,
-        patch.object(VisitorUtils, "ascii_render") as mock_render,
+        patch.object(VisitorUtils, "add_repo_results") as mock_add,
     ):
         PwnRequestVisitor.find_pwn_requests(mock_graph, mock_api)
         mock_process.assert_called_once()
-        mock_render.assert_called()
+        mock_add.assert_called()

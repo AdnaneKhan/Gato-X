@@ -1,6 +1,13 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
+from gatox.enumerate.reports.actions import ActionsReport
+from gatox.enumerate.results.complexity import Complexity
+from gatox.enumerate.results.confidence import Confidence
+from gatox.enumerate.results.issue_type import IssueType
+from gatox.enumerate.results.result_factory import ResultFactory
+from gatox.github.api import Api
+from gatox.models.workflow import Workflow
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
@@ -10,12 +17,17 @@ from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 
 
+@pytest.fixture
+def mock_api():
+    return MagicMock(spec=Api)
+
+
 def test_add_results():
     # Test adding paths to results dict
     path = [WorkflowNode("main", "org/repo1", ".github/workflows/test.yml")]
     results = {}
 
-    VisitorUtils._add_results(path, results)
+    VisitorUtils._add_results(path, results, IssueType.ACTIONS_INJECTION)
 
     assert "org/repo1" in results
     assert len(results["org/repo1"]) == 1
@@ -70,38 +82,52 @@ def test_initialize_action_node(mock_api):
     assert "uninitialized" not in node.get_tags()
 
 
-def test_ascii_render(capsys):
+def test_action_render(capsys, mock_api):
+
+    MOCK_WORKFLOW = """
+    on:
+      pull_request_target:
+
+    jobs:
+      test1:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Test Step
+            run: echo ${{github.event.pull_request.title}}
+
+    """
 
     step_data = {
         "name": "test_step",
-        "run": "test",
+        "run": "echo ${{github.event.pull_request.title}}",
     }
 
-    data = {
-        "test_repo": [
-            [
-                WorkflowNode("main", "testOrg/test_repo", "workflow1"),
-                JobNode(
-                    "Test1", "main", "testOrg/test_repo", ".github/workflows/test.yml"
-                ),
-                StepNode(
-                    step_data,
-                    "main",
-                    "testOrg/test_repo",
-                    ".github/workflows/",
-                    "tests.yml",
-                    1,
-                ),
-            ]
-        ]
-    }
+    test_workflow = Workflow(
+        "testOrg/test_repo", MOCK_WORKFLOW, ".github/workflows/test.yml"
+    )
+    test_flow = [
+        WorkflowNode("main", "testOrg/test_repo", ".github/workflows/test.yml"),
+        JobNode("Test1", "main", "testOrg/test_repo", ".github/workflows/test.yml"),
+        StepNode(
+            step_data,
+            "main",
+            "testOrg/test_repo",
+            ".github/workflows/",
+            "tests.yml",
+            1,
+        ),
+    ]
 
-    VisitorUtils.ascii_render(data)
+    test_flow[0].initialize(test_workflow)
+
+    flow = ResultFactory.create_injection_result(
+        test_flow, Confidence.HIGH, Complexity.ZERO_CLICK
+    )
+
+    # print(flow.to_machine())
+    ActionsReport.render_report(flow)
     captured = capsys.readouterr()
 
-    assert "Repository: test_repo" in captured.out
-    assert "Flow #1:" in captured.out
-    assert "Workflow ->" in captured.out
-    assert "Job ->" in captured.out
-    assert "Step ->" in captured.out
-    assert "Contents:" in captured.out
+    assert "Repository Name: testOrg/test_repo" in captured.out
+    assert "Report Type: InjectionResult" in captured.out
+    assert "Context Vars: github.event.pull_request.title" in captured.out

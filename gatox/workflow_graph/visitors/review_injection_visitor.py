@@ -204,3 +204,4 @@ class ReviewInjectionVisitor:
                 # composite actions.
 
         VisitorUtils.add_repo_results(results, api)
+        return results

@@ -74,32 +74,6 @@ class ActionsReport(Report):
         cls.print_divider()
 
     @classmethod
-    def __reusable_details(
-        cls,
-        entry: dict,
-        workflow_url: str,
-        issue_type: str,
-        description: str,
-        triggers: list[str],
-        designation,
-    ):
-        """Reusable details printer."""
-        details = []
-        details.append(f"{'-'*118}")
-        details.append(f" Workflow Name: {Output.yellow(entry['workflow_name'])}")
-        details.append(f" Issue Type: {issue_type}")
-        details.append(f' Trigger(s): {Output.yellow(",".join(triggers))}')
-        details.append(f" Details: {description}")
-        details.append(f" Workflow URL: {Output.blue(workflow_url)}")
-        if "parent_workflow" in entry:
-            details.append(
-                f" Calling Workflow: {Output.yellow(entry['parent_workflow'])}"
-            )
-        details.append(f" Confidence: {Output.red(designation)}")
-
-        return details
-
-    @classmethod
     def render_report(cls, risk: AnalysisResult):
         """Render report associated with a particular risk."""
         cls.report_actions_risk(risk)
