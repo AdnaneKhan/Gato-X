@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.workflow_parser.expression_parser import ExpressionParser
 from gatox.workflow_parser.expression_evaluator import ExpressionEvaluator
-from gatox.caching.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
 
@@ -228,6 +227,15 @@ def check_sus(item):
             else:
                 return True
     return False
+
+
+@staticmethod
+def check_risky_regexes(item):
+    regexes = ConfigurationManager().WORKFLOW_PARSING["RISKY_CONTEXT_REGEXES"]
+
+    for regex in regexes:
+        if re.search(regex, item):
+            return True
 
 
 @staticmethod

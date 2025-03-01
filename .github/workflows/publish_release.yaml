@@ -55,7 +55,7 @@ jobs:
           --user
       - name: Build Binary wheel Source Tarball
         run: python3 -m build
-      - uses: actions/attest-build-provenance@v1
+      - uses: actions/attest-build-provenance@v2
         with:
           subject-path: 'dist/gato_x-*'
       - name: Store Distribution Packages
@@ -87,7 +87,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Publish Distribution
-        uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
+        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46
         with:
@@ -95,7 +95,7 @@ jobs:
             ./dist/*.tar.gz
             ./dist/*.whl
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda
         with:
           tag_name: v${{ needs.check_version.outputs.version }}
           name: Gato-X Release v${{ needs.check_version.outputs.version }}

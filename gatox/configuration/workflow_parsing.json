@@ -88,6 +88,9 @@
             "github.event.workflow_run.referenced_workflows.path",
             "github.event.workflow_run.head_branch"
         ],
+        "RISKY_CONTEXT_REGEXES": [
+            "(pr|PR).*(branch|head|ref)"
+        ],
         "SAFE_ISH_CONTEXTS": [
             "flag",
             "numbers",

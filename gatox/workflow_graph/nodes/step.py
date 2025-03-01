@@ -56,6 +56,10 @@ class StepNode(Node):
         self.is_checkout = False
         self.id = step_data.get("id", None)
         self.if_condition = step_data.get("if", "")
+        if type(self.if_condition) == str:
+            self.if_condition = self.if_condition.replace("\n", "")
+        else:
+            self.if_condition = None
         self.if_evaluation = None
         # Need to check if it's actually something because it could be none
         # if self.if_condition:

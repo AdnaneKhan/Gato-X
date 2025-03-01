@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -190,10 +191,11 @@ class WorkflowGraphBuilder:
             # Likely encountered a syntax error in the workflow
             return False
         except Exception as e:
-            logger.warning(
+            logger.error(
                 f"Exception building graph from workflow, likely Gato-X bug: {workflow_wrapper.getPath()}"
             )
             logger.debug(str(e))
+            logger.debug(traceback.format_exc())
             # Likely gato-x bug
             return False
 

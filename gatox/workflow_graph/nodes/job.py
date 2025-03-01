@@ -122,7 +122,11 @@ class JobNode(Node):
 
         if job_def and "if" in job_def:
             self.if_condition = job_def["if"]
-            self.if_evaluation = validate_if_check(self.if_condition, {})
+            if type(self.if_condition) == str:
+                self.if_condition = self.if_condition.replace("\n", "")
+                self.if_evaluation = validate_if_check(self.if_condition, {})
+            else:
+                self.if_condition = None
         else:
             self.if_evaluation = True
 

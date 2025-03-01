@@ -347,8 +347,14 @@ def enumerate(args, parser):
     exec_wrapper.add_organizations(orgs)
     exec_wrapper.add_repositories(repos)
 
-    if args.output_json:
-        Output.write_json(exec_wrapper, args.output_json)
+    try:
+
+        if args.output_json:
+            Output.write_json(exec_wrapper, args.output_json)
+    except Exception as output_error:
+        Output.error(
+            "Encountered an error writing the output JSON, this is likely a Gato-X bug."
+        )
 
     if args.cache_save_file:
         LocalCacheFactory.dump_cache(args.cache_save_file)
