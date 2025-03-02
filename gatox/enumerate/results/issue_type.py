@@ -1,7 +1,7 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class IssueType(StrEnum):
+class IssueType(str, Enum):
     """
 
     Values:
@@ -16,3 +16,9 @@ class IssueType(StrEnum):
     ACTIONS_INJECTION: str = "Actions Injection"
     PR_REVIEW_INJECTON: str = "Pull Request Review Injection"
     ENVIRONMENT_POLLUTION: str = "Environment Pollution"
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def __repr__(self) -> str:
+        return str(self.value)
