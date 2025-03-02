@@ -99,15 +99,12 @@ class RepositoryEnum:
         else:
             runner_wfs = repository.get_sh_workflow_names()
             if runner_wfs:
+                Output.info(f"Analyizing run logs for {repository.name}")
                 runner_detected = self.perform_runlog_enumeration(
                     repository, runner_wfs
                 )
                 if runner_detected:
-                    Output.info(f"Analyizing run logs for {repository.name}")
-                    if self.perform_runlog_enumeration(
-                        repository, repository.get_sh_workflow_names()
-                    ):
-                        RunnersReport.report_runners(repository)
+                    RunnersReport.report_runners(repository)
 
     def enumerate_repository_secrets(self, repository: Repository):
         """Enumerate secrets accessible to a repository.

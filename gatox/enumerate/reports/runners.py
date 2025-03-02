@@ -34,7 +34,7 @@ class RunnersReport(Report):
             )
 
             for runner in repo.accessible_runners:
-                Output.generic(f"{'-'*78}")
+                Output.generic(f"{'-'*118}")
                 if runner.non_ephemeral:
                     Output.generic(f" Runner Type: {Output.red('NON-EPHEMERAL')}")
                 else:
