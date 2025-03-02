@@ -404,7 +404,7 @@ def test_retrieve_run_logs(api_access, mock_all_requests):
     curr_path = pathlib.Path(__file__).parent.resolve()
     mock_get = mock_all_requests["get"]
     mock_get.return_value.status_code = 200
-
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     # Mock the workflow runs response
     mock_get.return_value.json.return_value = {
         "workflow_runs": [
@@ -423,12 +423,17 @@ def test_retrieve_run_logs(api_access, mock_all_requests):
         zip_bytes = run_log.read()
         mock_get.return_value.content = zip_bytes
 
-    logs = api_access.retrieve_run_logs("testOrg/testRepo")
+    abstraction_layer = Api(test_pat, "2022-11-28")
+    logs = abstraction_layer.retrieve_run_logs(
+        "testOrg/testRepo", workflows=["build.yml"]
+    )
 
     assert len(logs) == 1
     assert list(logs)[0]["runner_name"] == "runner-30"
 
-    logs = api_access.retrieve_run_logs("testOrg/testRepo", short_circuit=False)
+    logs = abstraction_layer.retrieve_run_logs(
+        "testOrg/testRepo", workflows=["build.yml"]
+    )
 
     assert len(logs) == 1
     assert list(logs)[0]["runner_name"] == "runner-30"

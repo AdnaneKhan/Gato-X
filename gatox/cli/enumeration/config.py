@@ -1,5 +1,5 @@
 from gatox.cli.output import Fore, Style, Output
-from gatox.util.arg_utils import StringType, ReadableFile, WriteableDir
+from gatox.util.arg_utils import StringType, ReadableFile, WriteableDir, WritablePath
 
 
 def configure_parser_enumerate(parser):
@@ -85,9 +85,48 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
+        "--ignore-workflow-run",
+        help=(
+            "Ignore the `workflow_run` trigger when enumerating repositories.\n"
+            "This is useful if you know the organization requires approval for all\n"
+            "fork pull requests."
+        ),
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--output-json",
         "-oJ",
         help=("Save enumeration output to JSON file."),
         metavar="JSON_FILE",
         type=StringType(256),
+    )
+
+    parser.add_argument(
+        "--deep-dive",
+        "-dd",
+        help=(
+            "Perform deep dive static analysis, which includes analyzing non-default branches for Pwn Request vulnerabilities.\n"
+            "Git is required on the PATH for this feature."
+        ),
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--cache-restore-file",
+        help=(
+            "Path to JSON file containing saved reusable action files. This will reduce the need for frequent API requests."
+        ),
+        metavar="JSON_FILE",
+        type=ReadableFile(),
+    )
+
+    parser.add_argument(
+        "--cache-save-file",
+        help=(
+            "Path to JSON file to save cache to after executing. Can be the same as the restore file, in which case it will over-write it."
+        ),
+        metavar="JSON_FILE",
+        type=WritablePath(),
     )

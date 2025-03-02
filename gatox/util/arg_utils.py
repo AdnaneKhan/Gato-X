@@ -61,6 +61,41 @@ class WriteableDir(object):
             )
 
 
+class WritablePath(object):
+    def __call__(self, filepath: str) -> str:
+        """
+        Checks that filepath is writable if it exists, or can be created if it does not exist.
+
+        Args:
+            filepath (str): The path to check.
+
+        Raises:
+            argparse.ArgumentTypeError: Raised if we cannot create or write to the file.
+
+        Returns:
+            str: The validated path.
+        """
+
+        parent_dir = os.path.dirname(filepath) or "."
+
+        if os.path.exists(filepath):
+            # Check if we can write to it
+            if not os.access(filepath, os.W_OK):
+                raise argparse.ArgumentTypeError(
+                    f"Cannot write to existing file: {filepath}"
+                )
+        else:
+            # Check if parent directory is writable
+            if not os.path.isdir(parent_dir):
+                raise argparse.ArgumentTypeError(
+                    f"Directory does not exist: {parent_dir}"
+                )
+            if not os.access(parent_dir, os.W_OK):
+                raise argparse.ArgumentTypeError(f"Cannot create file at: {filepath}")
+
+        return filepath
+
+
 class ReadableFile(object):
 
     def __call__(self, filepath: str):

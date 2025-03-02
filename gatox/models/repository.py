@@ -2,6 +2,7 @@ import datetime
 
 from gatox.models.runner import Runner
 from gatox.models.secret import Secret
+from gatox.enumerate.results.analysis_result import AnalysisResult
 
 
 class Repository:
@@ -25,15 +26,14 @@ class Repository:
         self.org_name = self.name.split("/")[0]
         self.secrets: list[Secret] = []
         self.org_secrets: list[Secret] = []
-        self.sh_workflow_names = []
+        self.sh_workflow_names = set()
         self.enum_time = datetime.datetime.now()
 
         self.permission_data = self.repo_data["permissions"]
         self.sh_runner_access = False
         self.accessible_runners: list[Runner] = []
         self.runners: list[Runner] = []
-        self.pwn_req_risk = []
-        self.injection_risk = []
+        self.risks = []
 
     def is_admin(self):
         return self.permission_data.get("admin", False)
@@ -81,29 +81,6 @@ class Repository:
         """
         self.org_secrets = secrets
 
-    def set_pwn_request(self, pwn_request_package: dict):
-        self.pwn_req_risk.append(pwn_request_package)
-
-    def clear_pwn_request(self, workflow_name):
-        """Remove pwn request entry since it's a false positive."""
-        self.pwn_req_risk = [
-            element
-            for element in self.pwn_req_risk
-            if element["workflow_name"] != workflow_name
-        ]
-
-    def has_pwn_request(self):
-        """Return True if there are any pwn request risks."""
-        return len(self.pwn_req_risk) > 0
-
-    def set_injection(self, injection_package: dict):
-        """Set injection risk package."""
-        self.injection_risk.append(injection_package)
-
-    def has_injection(self):
-        """Return True if there are any injection risks."""
-        return len(self.injection_risk) > 0
-
     def set_secrets(self, secrets: list[Secret]):
         """Sets secrets that are attached to this repository.
 
@@ -119,7 +96,11 @@ class Repository:
 
     def add_self_hosted_workflows(self, workflows: list):
         """Add a list of workflow file names that run on self-hosted runners."""
-        self.sh_workflow_names.extend(workflows)
+        self.sh_workflow_names.update(workflows)
+
+    def get_sh_workflow_names(self):
+        """Get names of workflows that might run on self-hosted runners."""
+        return self.sh_workflow_names
 
     def add_accessible_runner(self, runner: Runner):
         """Add a runner is accessible by this repo. This runner could be org
@@ -130,6 +111,14 @@ class Repository:
         """
         self.sh_runner_access = True
         self.accessible_runners.append(runner)
+
+    def get_risks(self):
+        """Return repository risks."""
+        return self.risks
+
+    def set_results(self, result: AnalysisResult):
+        """Set results on the repository object."""
+        self.risks.append(result)
 
     def toJSON(self):
         """Converts the repository to a Gato JSON representation."""
@@ -146,8 +135,7 @@ class Repository:
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],
-            "pwn_request_risk": self.pwn_req_risk,
-            "injection_risk": self.injection_risk,
+            "risks": [risk.to_machine() for risk in self.risks],
         }
 
         return representation

@@ -7,7 +7,6 @@ from gatox.configuration.configuration_manager import ConfigurationManager
 def send_slack_webhook(message):
     # Create the payload
     payload = {"text": json.dumps(message, indent=4)}
-
     hooks = ConfigurationManager().NOTIFICATIONS["SLACK_WEBHOOKS"]
 
     for webhook in hooks:

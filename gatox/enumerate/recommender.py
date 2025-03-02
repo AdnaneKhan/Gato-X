@@ -20,8 +20,6 @@ class Recommender:
             scopes (list): List of scopes for user who ran Gato.
             repository (Repository): Repository wrapper object.
         """
-        ActionsReport.report_pwn(repository)
-        ActionsReport.report_injection(repository)
 
         if not repository.sh_runner_access:
             if repository.is_admin():
@@ -138,14 +136,13 @@ class Recommender:
         Args:
             repository (Repository): Repository wrapper object.
         """
-        RunnersReport.report_runners(repository)
 
         if repository.runners:
             Output.result(
                 f"The repository has {len(repository.runners)} repo-level"
                 " self-hosted runners!"
             )
-            Recommender.print_runner_info(repository.runners)
+            RunnersReport.report_runners(repository)
 
     @staticmethod
     def print_runner_info(runners: list[Runner]):

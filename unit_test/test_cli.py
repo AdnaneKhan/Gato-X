@@ -1,17 +1,34 @@
 import pytest
 import os
 import pathlib
+import requests  # If using the requests library
 
 from unittest import mock
-from gatox.cli import cli
 from unittest.mock import patch
 
-from gatox.util.arg_utils import read_file_and_validate_lines
-from gatox.util.arg_utils import is_valid_directory
+from gatox.cli import cli
+from gatox.util.arg_utils import read_file_and_validate_lines, is_valid_directory
 
 
 @pytest.fixture(autouse=True)
-def mock_settings_env_vars(request):
+def block_network_calls(monkeypatch):
+    """
+    Fixture to block real network calls during tests,
+    raising an error if any attempt to send a request is made.
+    """
+
+    def mock_request(*args, **kwargs):
+        raise RuntimeError("Blocked a real network call during tests.")
+
+    monkeypatch.setattr(requests.sessions.Session, "request", mock_request)
+
+
+@pytest.fixture(autouse=True)
+def mock_settings_env_vars():
+    """
+    Fixture that mocks the GH_TOKEN environment variable
+    for all tests in this module.
+    """
     with mock.patch.dict(
         os.environ, {"GH_TOKEN": "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
     ):
@@ -64,13 +81,22 @@ def test_cli_s2s_token_no_machine(mock_enumerate, capfd):
     assert "not support App tokens without machine flag" in err
 
 
-@mock.patch("gatox.cli.cli.Enumerator")
-def test_cli_s2s_token_machine(mock_enumerate, capfd):
+@patch("gatox.enumerate.enumerate.Api.call_get")
+@patch("gatox.enumerate.enumerate.Api.call_post")
+def test_cli_s2s_token_machine(mock_post, mock_get, capfd):
     """Test case where a service-to-service token is provided."""
+    import os
+    from gatox.cli import cli  # [gatox/cli/cli.py](gatox/cli/cli.py)
+
     os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
+    # Mock out the enumerator’s HTTP calls here as needed
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {"total_count": 0}
+    mock_post.return_value.status_code = 200
+
     cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
-    out, err = capfd.readouterr()
+    out, _ = capfd.readouterr()
     assert "Allowing the use of a GitHub App token for single repo enumeration" in out
 
 

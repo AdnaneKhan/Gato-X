@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gato-x"
-version = "0.6.0"
+version = "0.6.1"
 description = "GitHub Actions Enumeration and Attack Framework"
 readme = "README.md"
 authors = [
@@ -20,14 +20,16 @@ dependencies = [
     "colorama",
     "requests",
     "pyyaml",
-    "cryptography"
+    "cryptography",
+    "networkx"
 ]
 
 [project.optional-dependencies]
 test = [
     "flake8",
     "pytest",
-    "pytest-cov"
+    "pytest-cov",
+    "black"
 ]
 
 [tool.hatch.build.targets.wheel]
