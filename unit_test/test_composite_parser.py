@@ -4,7 +4,6 @@ import pathlib
 
 from unittest.mock import patch, ANY, mock_open
 
-from gatox.workflow_parser.composite_parser import CompositeParser
 
 TEST_COMPOSITE = """
 name: ci-lint-charts
@@ -20,10 +19,3 @@ runs:
       run: |
         echo "${{ github.event.pull_request.title }}"
 """
-
-
-def test_parse_composite():
-    """Test for parsing a composite action."""
-    parser = CompositeParser(TEST_COMPOSITE)
-    assert parser.is_composite() == True
-    assert len(parser.check_injection()) == 1

@@ -20,14 +20,16 @@ dependencies = [
     "colorama",
     "requests",
     "pyyaml",
-    "cryptography"
+    "cryptography",
+    "networkx"
 ]
 
 [project.optional-dependencies]
 test = [
     "flake8",
     "pytest",
-    "pytest-cov"
+    "pytest-cov",
+    "black"
 ]
 
 [tool.hatch.build.targets.wheel]

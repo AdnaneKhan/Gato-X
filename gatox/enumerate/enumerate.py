@@ -1,17 +1,28 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from gatox.github.api import Api
-from gatox.github.gql_queries import GqlQueries
-from gatox.models.repository import Repository
-from gatox.models.organization import Organization
+from gatox.caching.cache_manager import CacheManager
 from gatox.cli.output import Output
-from gatox.enumerate.repository import RepositoryEnum
+from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.enumerate.organization import OrganizationEnum
 from gatox.enumerate.recommender import Recommender
-from gatox.enumerate.ingest.ingest import DataIngestor
-from gatox.caching.cache_manager import CacheManager
+from gatox.enumerate.repository import RepositoryEnum
+from gatox.github.api import Api
+from gatox.github.gql_queries import GqlQueries
+from gatox.models.organization import Organization
+from gatox.models.repository import Repository
+from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
+from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
+from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
+from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
+from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
+from gatox.workflow_graph.visitors.review_injection_visitor import (
+    ReviewInjectionVisitor,
+)
+
+from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
+from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +41,8 @@ class Enumerator:
         skip_log: bool = False,
         github_url: str = None,
         output_json: str = None,
+        ignore_workflow_run: bool = False,
+        deep_dive: bool = False,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -60,6 +73,8 @@ class Enumerator:
         self.user_perms = None
         self.github_url = github_url
         self.output_json = output_json
+        self.deep_dive = deep_dive
+        self.ignore_workflow_run = ignore_workflow_run
 
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
         self.org_e = OrganizationEnum(self.api)
@@ -106,9 +121,20 @@ class Enumerator:
         return True
 
     def __query_graphql_workflows(self, queries):
-        """Wrapper for querying workflows using the github graphql API.
+        """
+        Query workflows using the GitHub GraphQL API.
 
-        Since this is an IO heavy operation, we use a threadpool with 3 workers.
+        This method performs an IO-heavy operation by querying workflows in batches.
+        It utilizes a thread pool with a maximum of 3 workers to execute the queries concurrently.
+
+        Args:
+            queries (List[Any]): A list of GraphQL query objects to be executed.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Propagates any exceptions raised during the query execution.
         """
         with ThreadPoolExecutor(max_workers=3) as executor:
             Output.info(f"Querying repositories in {len(queries)} batches!")
@@ -123,6 +149,80 @@ class Enumerator:
                     end="\r",
                 )
                 DataIngestor.construct_workflow_cache(future.result())
+
+    def __retrieve_missing_ymls(self, repo_name: str):
+        """ """
+        repo = CacheManager().is_repo_cached(repo_name)
+        if not repo:
+            repo_data = self.api.get_repository(repo_name)
+            if repo_data:
+                repo = Repository(repo_data)
+                CacheManager().set_repository(repo)
+
+                if repo:
+                    workflows = self.api.retrieve_workflow_ymls(repo)
+
+                    for workflow in workflows:
+                        CacheManager().set_workflow(
+                            repo, workflow.workflow_name, workflow
+                        )
+            else:
+                Output.warn(
+                    f"Unable to retrieve workflows for {Output.bright(repo_name)}! "
+                    "Ensure the repository exists and the user has access."
+                )
+
+    def __enumerate_repo_only(self, repo_name: str):
+        """Enumerate only a single repository. No checks for org-level
+        self-hosted runners will be performed in this case.
+
+        Args:
+            repo_name (str): Repository name in {Org/Owner}/Repo format.
+            large_enum (bool, optional): Whether to only download
+            run logs when workflow analysis detects runners. Defaults to False.
+        """
+        if not self.__setup_user_info():
+            return False
+
+        repo = CacheManager().get_repository(repo_name)
+
+        if not repo:
+            repo_data = self.api.get_repository(repo_name)
+            if repo_data:
+                repo = Repository(repo_data)
+
+        if repo:
+            if repo.is_archived():
+                Output.tabbed(
+                    f"Skipping archived repository: {Output.bright(repo.name)}!"
+                )
+                return False
+
+            self.repo_e.enumerate_repository(repo)
+            self.repo_e.enumerate_repository_secrets(repo)
+            Recommender.print_repo_secrets(
+                self.user_perms["scopes"], repo.secrets + repo.org_secrets
+            )
+            Recommender.print_repo_runner_info(repo)
+            Recommender.print_repo_attack_recommendations(
+                self.user_perms["scopes"], repo
+            )
+
+            return repo
+        else:
+            Output.warn(
+                f"Unable to enumerate {Output.bright(repo_name)}! It may not "
+                "exist or the user does not have access."
+            )
+
+    def __finalize_caches(self, repos: list):
+        """Finalizes the caches for the repositories enumerated.
+
+        Args:
+            repos (list): List of Repository objects.
+        """
+        for repo in repos:
+            self.__retrieve_missing_ymls(repo.name)
 
     def validate_only(self):
         """Validates the PAT access and exits."""
@@ -155,7 +255,6 @@ class Enumerator:
             bool: False if the PAT is not valid for enumeration.
             (list, list): Tuple containing list of orgs and list of repos.
         """
-
         self.__setup_user_info()
 
         if not self.user_perms:
@@ -249,80 +348,78 @@ class Enumerator:
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
         self.__query_graphql_workflows(wf_queries)
+        self.__finalize_caches(enum_list)
 
-        try:
+        if self.deep_dive:
+            Output.inform(
+                "Deep dive workflow ingestion enabled, this will slow down enumeration!"
+            )
             for repo in enum_list:
                 if repo.is_archived():
                     continue
                 if self.skip_log and repo.is_fork():
                     continue
-                Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
 
                 cached_repo = CacheManager().get_repository(repo.name)
-                if cached_repo:
-                    repo = cached_repo
+                if self.deep_dive and not cached_repo.is_fork():
+                    IngestNonDefault.ingest(cached_repo, self.api)
 
-                self.repo_e.enumerate_repository(
-                    repo, large_org_enum=len(enum_list) > 25
-                )
-                self.repo_e.enumerate_repository_secrets(repo)
+            IngestNonDefault.pool_empty()
+            Output.info("Deep dive ingestion complete!")
 
-                organization.set_repository(repo)
+        self.process_graph()
 
-                Recommender.print_repo_secrets(self.user_perms["scopes"], repo.secrets)
-                Recommender.print_repo_runner_info(repo)
-                Recommender.print_repo_attack_recommendations(
-                    self.user_perms["scopes"], repo
-                )
+        try:
+            for repo in enum_list:
+                if repo.is_archived():
+                    continue
+                if repo.is_fork():
+                    continue
+
+                repo = CacheManager().get_repository(repo.name)
+                if repo:
+                    self.repo_e.enumerate_repository(repo)
+                    Recommender.print_repo_attack_recommendations(
+                        self.user_perms["scopes"], repo
+                    )
+                    self.repo_e.enumerate_repository_secrets(repo)
+                    organization.set_repository(repo)
         except KeyboardInterrupt:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
         return organization
 
-    def enumerate_repo_only(self, repo_name: str, large_enum=False):
-        """Enumerate only a single repository. No checks for org-level
-        self-hosted runners will be performed in this case.
-
-        Args:
-            repo_name (str): Repository name in {Org/Owner}/Repo format.
-            large_enum (bool, optional): Whether to only download
-            run logs when workflow analysis detects runners. Defaults to False.
+    def process_graph(self):
+        """Temporarily build new enumeration functionality
+        alongside the old one and then will cut over.
         """
-        if not self.__setup_user_info():
-            return False
+        Output.info(
+            f"Performing graph analysis on {WorkflowGraphBuilder().graph.number_of_nodes()} nodes!"
+        )
 
-        repo = CacheManager().get_repository(repo_name)
+        visitors = [
+            (PwnRequestVisitor, "find_pwn_requests"),
+            (InjectionVisitor, "find_injections"),
+            (ReviewInjectionVisitor, "find_injections"),
+            (DispatchTOCTOUVisitor, "find_dispatch_misconfigurations"),
+        ]
 
-        if not repo:
-            repo_data = self.api.get_repository(repo_name)
-            if repo_data:
-                repo = Repository(repo_data)
+        for visitor_class, visitor_method in visitors:
+            visitor = visitor_class()  # Instantiate the visitor class
+            visitor_func = getattr(visitor, visitor_method)  # Get the method
 
-        if repo:
-            if repo.is_archived():
-                Output.tabbed(
-                    f"Skipping archived repository: {Output.bright(repo.name)}!"
+            if visitor_class == PwnRequestVisitor or visitor_class == InjectionVisitor:
+                results = visitor_func(
+                    WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
                 )
-                return False
+            else:
+                results = visitor_func(WorkflowGraphBuilder().graph, self.api)
 
-            Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
+            if results:
+                VisitorUtils.add_repo_results(results, self.api)
 
-            self.repo_e.enumerate_repository(repo, large_org_enum=large_enum)
-            self.repo_e.enumerate_repository_secrets(repo)
-            Recommender.print_repo_secrets(
-                self.user_perms["scopes"], repo.secrets + repo.org_secrets
-            )
-            Recommender.print_repo_runner_info(repo)
-            Recommender.print_repo_attack_recommendations(
-                self.user_perms["scopes"], repo
-            )
-
-            return repo
-        else:
-            Output.warn(
-                f"Unable to enumerate {Output.bright(repo_name)}! It may not "
-                "exist or the user does not have access."
-            )
+        if not self.skip_log:
+            RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
 
     def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
@@ -345,10 +442,23 @@ class Enumerator:
         )
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
         self.__query_graphql_workflows(queries)
+        for repo in repo_names:
+            self.__retrieve_missing_ymls(repo)
+
+        if self.deep_dive:
+            Output.inform(
+                "Performing deep dive workflow ingestion, this will be a very slow process!"
+            )
+            for repo in repo_names:
+                repo_obj = CacheManager().get_repository(repo)
+                IngestNonDefault.ingest(repo_obj, self.api)
+
+        IngestNonDefault.pool_empty()
+        self.process_graph()
 
         try:
             for repo in repo_names:
-                repo_obj = self.enumerate_repo_only(repo, len(repo_names) > 100)
+                repo_obj = self.__enumerate_repo_only(repo)
                 if repo_obj:
                     repo_wrappers.append(repo_obj)
         except KeyboardInterrupt:

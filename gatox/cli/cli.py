@@ -1,12 +1,14 @@
 import argparse
 import os
 import re
+import logging
 
 from colorama import Fore, Style
 
 from gatox import util
 from gatox.cli.colors import RED_DASH
 from gatox.cli.output import Output, SPLASH
+from gatox.caching.local_cache_manager import LocalCacheFactory
 from gatox.cli.enumeration.config import configure_parser_enumerate
 from gatox.cli.search.config import configure_parser_search
 from gatox.cli.attack.config import configure_parser_attack
@@ -83,6 +85,8 @@ def cli(args):
 
 
 def validate_arguments(args, parser):
+    logging.basicConfig(level=args.log_level)
+
     if "GH_TOKEN" not in os.environ:
         gh_token = input(
             "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
@@ -302,11 +306,17 @@ def enumerate(args, parser):
         output_yaml=args.output_yaml,
         skip_log=args.skip_runners,
         github_url=args.api_url,
+        ignore_workflow_run=args.ignore_workflow_run,
+        deep_dive=args.deep_dive,
     )
 
     exec_wrapper = Execution()
     orgs = []
     repos = []
+
+    if args.cache_restore_file:
+        LocalCacheFactory.load_cache_from_file(args.cache_restore_file)
+        Output.info(f"Cache restored from file:{args.cache_restore_file}")
 
     if args.validate:
         orgs = gh_enumeration_runner.validate_only()
@@ -345,6 +355,10 @@ def enumerate(args, parser):
         Output.error(
             "Encountered an error writing the output JSON, this is likely a Gato-X bug."
         )
+
+    if args.cache_save_file:
+        LocalCacheFactory.dump_cache(args.cache_save_file)
+        Output.info(f"Cache saved to file:{args.cache_save_file}")
 
 
 def search(args, parser):
@@ -389,6 +403,13 @@ def configure_parser_general(parser):
     Args:
         parser: The parser to add the arguments to.
     """
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="CRITICAL",
+        required=False,
+    )
+
     parser.add_argument(
         "--socks-proxy",
         "-sp",

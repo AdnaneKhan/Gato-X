@@ -20,8 +20,6 @@ class Recommender:
             scopes (list): List of scopes for user who ran Gato.
             repository (Repository): Repository wrapper object.
         """
-        ActionsReport.report_pwn(repository)
-        ActionsReport.report_injection(repository)
 
         if not repository.sh_runner_access:
             if repository.is_admin():

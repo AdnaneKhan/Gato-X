@@ -22,12 +22,21 @@ class Report:
     """Parent class for report formatting classes."""
 
     @classmethod
-    def print_header(cls, repo: Repository, report_type):
+    def print_header_runner(cls, repo: Repository, report_type: str):
+        """Prints a header for the report."""
+        Output.generic(f" Repository Name: {Output.bright(repo.name)}")
+        Output.generic(f" Report Type: {Output.bright(report_type)}")
+
+    @classmethod
+    def print_header(cls, details):
         """Prints a header for the repository report."""
-        Output.generic(f" Repository Name: {repo.name}")
-        Output.generic(f" Report Type: {report_type}")
+        Output.generic(f" Repository Name: {Output.bright(details['repository_name'])}")
+        Output.generic(f" Report Type: {Output.bright(details['issue_type'])}")
+        Output.generic(f" Triggers: {Output.yellow(' '.join(details['triggers']))}")
+        Output.generic(f" Confidence: {Output.red(details['confidence'])}")
+        Output.generic(f" Complexity: {Output.blue(details['attack_complexity'])}")
 
     @classmethod
     def print_divider(cls):
         """Prints a divider with `=` symbols."""
-        Output.generic(f'{"="*78}')
+        Output.generic(f'{"="*118}')

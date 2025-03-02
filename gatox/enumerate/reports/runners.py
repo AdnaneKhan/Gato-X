@@ -27,14 +27,14 @@ class RunnersReport(Report):
         """Reports Self-Hosted Runners attached to the repository."""
         if repo.accessible_runners:
             cls.print_divider()
-            cls.print_header(repo, "Self-Hosted Runners")
+            cls.print_header_runner(repo, "Self-Hosted Runners")
 
             Output.generic(
                 f" Potential Runner Workflows: {Output.yellow(', '.join(repo.sh_workflow_names))}"
             )
 
             for runner in repo.accessible_runners:
-                Output.generic(f"{'-'*78}")
+                Output.generic(f"{'-'*118}")
                 if runner.non_ephemeral:
                     Output.generic(f" Runner Type: {Output.red('NON-EPHEMERAL')}")
                 else:

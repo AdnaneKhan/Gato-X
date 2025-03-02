@@ -94,7 +94,7 @@ class ExpressionEvaluator:
         ),
         "github.event.comment.body": Wildcard("github.event.comment.body"),
         "github.event.label.name": False,
-        "github.event.issue.pull_request": True,
+        "github.event.issue.pull_request": FlexibleAction([True, False]),
         "github.event.pull_request.merged": False,
         "github.event.comment.author_association": FlexibleAction(
             ["CONTRIBUTOR", "NONE"]
@@ -131,6 +131,10 @@ class ExpressionEvaluator:
             # The vasty majority of if checks are context + string only.
             elif not node.value.startswith("github."):
                 raise NotImplementedError()
+
+            if isinstance(node.value, FlexibleAction):
+                return True
+
             return self.variables.get(node.value, node.value)
         elif node.type == "string":
             if node.value.startswith("'") and node.value.endswith("'"):
@@ -138,6 +142,13 @@ class ExpressionEvaluator:
             return node.value
         elif node.type == "unary_negation":
             # Evaluate the operand and negate its value
+
+            value = self.evaluate(node.children[0])
+
+            # There are certain values that can be true for us always, so match either.
+            if isinstance(value, FlexibleAction) and True in value and False in value:
+                return True
+
             return not self.evaluate(node.children[0])
         elif node.type == "logical_and":
             # Evaluate logical AND between children

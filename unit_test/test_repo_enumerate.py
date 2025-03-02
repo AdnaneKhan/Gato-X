@@ -4,8 +4,7 @@ import pytest
 import json
 import datetime
 
-from unittest.mock import MagicMock, patch, Mock
-from unittest import mock
+from unittest.mock import MagicMock
 
 import gatox.enumerate.repository
 from gatox.models.repository import Repository
@@ -58,6 +57,7 @@ def test_enumerate_repo():
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     test_repo = Repository(repo_data)
+    test_repo.add_self_hosted_workflows(["build.yaml"])
 
     gh_enumeration_runner.enumerate_repository(test_repo)
 
@@ -96,3 +96,44 @@ def test_enumerate_repo_admin():
     gh_enumeration_runner.enumerate_repository(test_repo)
 
     assert test_repo.is_admin()
+
+
+def test_enumerate_repo_secrets():
+    """Test constructor for enumerator."""
+    mock_api = MagicMock()
+
+    gh_enumeration_runner = RepositoryEnum(mock_api, False, True)
+
+    mock_api.check_user.return_value = {
+        "user": "testUser",
+        "scopes": ["repo", "workflow"],
+    }
+
+    mock_api.get_secrets.return_value = [
+        {
+            "name": "GIST_ID",
+            "created_at": "2019-08-10T14:59:22Z",
+            "updated_at": "2020-01-10T14:59:22Z",
+            "visibility": "private",
+        },
+        {
+            "name": "DEPLOY_TOKEN",
+            "created_at": "2019-08-10T14:59:22Z",
+            "updated_at": "2020-01-10T14:59:22Z",
+            "visibility": "all",
+        },
+        {
+            "name": "GH_TOKEN",
+            "created_at": "2019-08-10T14:59:22Z",
+            "updated_at": "2020-01-10T14:59:22Z",
+            "visibility": "selected",
+            "selected_repositories_url": "https://api.github.com/orgs/octo-org/actions/secrets/SUPER_SECRET/repositories",
+        },
+    ]
+
+    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
+    test_repo = Repository(repo_data)
+
+    gh_enumeration_runner.enumerate_repository_secrets(test_repo)
+
+    assert len(test_repo.secrets) > 0

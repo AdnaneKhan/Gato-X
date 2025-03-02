@@ -6,6 +6,8 @@ import hashlib
 import yaml
 from yaml import CSafeLoader
 
+from gatox.models.workflow import Workflow
+
 logger = logging.getLogger(__name__)
 
 
@@ -178,9 +180,6 @@ class Git:
                         content = f.read()
                         if "pull_request_target" in content:
                             try:
-                                parsed_yaml = yaml.load(
-                                    content.replace("\t", "  "), Loader=CSafeLoader
-                                )
                                 file_hash = self.__get_file_hash(file)
                                 if file_hash == main_file_hashes.get(file):
                                     continue
@@ -194,15 +193,27 @@ class Git:
                                 if "/checkout" not in content:
                                     continue
 
+                                candidate = Workflow(
+                                    self.repo_name,
+                                    content,
+                                    file,
+                                    default_branch=def_branch,
+                                    non_default=branch,
+                                )
+
+                                if candidate.isInvalid():
+                                    continue
+
                                 if (
-                                    "on" in parsed_yaml
-                                    and "pull_request_target" in parsed_yaml["on"]
+                                    "on" in candidate.parsed_yml
+                                    and "pull_request_target"
+                                    in candidate.parsed_yml["on"]
                                 ):
-                                    vals = parsed_yaml["on"]["pull_request_target"]
+                                    vals = candidate.parsed_yml["on"][
+                                        "pull_request_target"
+                                    ]
                                     if not vals or "branches" not in vals:
-                                        values.append(
-                                            (branch, file, content, last_commit_date)
-                                        )
+                                        values.append(candidate)
                                     elif vals and "branches" in vals:
                                         branch_matchers = vals["branches"]
                                         for br in branch_matchers:
@@ -210,17 +221,11 @@ class Git:
                                                 br.replace("*", "", 2)
                                                 in branch.split("/")[-1]
                                             ):
-                                                values.append(
-                                                    (
-                                                        branch,
-                                                        file,
-                                                        content,
-                                                        last_commit_date,
-                                                    )
-                                                )
-                            except Exception as e:
-                                print(e)
-                                print("Error!")
+                                                values.append(candidate)
+                            except Exception:
+                                # We really shouldn't get here, but
+                                # we don't want to crash enum.
+                                pass
         return values
 
     def perform_clone(self):

@@ -432,12 +432,16 @@ def test_retrieve_run_logs(mock_get):
         mock_get.return_value.content = zip_bytes
 
     abstraction_layer = Api(test_pat, "2022-11-28")
-    logs = abstraction_layer.retrieve_run_logs("testOrg/testRepo")
+    logs = abstraction_layer.retrieve_run_logs(
+        "testOrg/testRepo", workflows=["build.yml"]
+    )
 
     assert len(logs) == 1
     assert list(logs)[0]["runner_name"] == "runner-30"
 
-    logs = abstraction_layer.retrieve_run_logs("testOrg/testRepo", short_circuit=False)
+    logs = abstraction_layer.retrieve_run_logs(
+        "testOrg/testRepo", workflows=["build.yml"], short_circuit=False
+    )
 
     assert len(logs) == 1
     assert list(logs)[0]["runner_name"] == "runner-30"
