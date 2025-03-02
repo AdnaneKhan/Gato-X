@@ -1,7 +1,7 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class Complexity(StrEnum):
+class Complexity(str, Enum):
     """
     Represents the complexity level of a workflow vulnerability.
 
@@ -18,3 +18,9 @@ class Complexity(StrEnum):
     BROKEN_ACCESS = "Broken Access Control"
     DEFAULT_DEPENDENT = "Default Configuration Dependent"
     CONTRIBUTION_REQUIRED = "Workflow Run Triggered Issue"
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def __repr__(self) -> str:
+        return str(self.value)

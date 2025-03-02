@@ -152,7 +152,7 @@ class VisitorUtils:
     def add_repo_results(data: dict, api: Api):
         """Add results to the repository data."""
         seen = set()
-        for repo_name, flows in data.items():
+        for _, flows in data.items():
             for flow in flows:
                 seen_before = flow.get_first_and_last_hash()
                 if not seen_before in seen:
