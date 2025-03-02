@@ -4,9 +4,7 @@
 # Gato (Github Attack TOolkit) - Extreme Edition
 
 Gato-X is a _FAST_ scanning and attack tool for GitHub Actions pipelines. You can use it to identify
-Pwn Requests, Actions Injection, TOCTOU Vulnerabilities, and Self-Hosted Runner takeover at scale using just a single API token.
-
-As an example, you can scan all repositories Apache's GitHub organization in minutes from a MacBook Air with a broadband internet connection.
+Pwn Requests, Actions Injection, TOCTOU Vulnerabilities, and Self-Hosted Runner takeover at scale using just a single API token. It will also analyze cross-repository workflows and reusable actions. This surfaces vulnerabilities that other scanners miss because they only scan workflows within a single repository.
 
 <p align="center">
   <img src="demo.svg" width=600>
@@ -22,18 +20,14 @@ to follow responsible disclosure if you find vulnerabilities with Gato-X.
 
 **Gato-X is a powerful tool and should only be used for ethical security research purposes.**
 
-
 ## Table of Contents
 
 - [What is Gato-X?](#what-is-gato-x)
-- [New Features](#new-features)
-  - [Automated Self Hosted Runner Takeover](#automated-self-hosted-runner-attacks)
+- [Feature Highlights](#feature-highlights)
   - [Enumeration for Pwn Requests and Injection](#enumeration-for-github-actions-injection-and-pwn-requests)
-  - [Other Improvements](#other-improvements)
+  - [Post Compromise Enumeration](#post-compromise-enumeration)
   - [Features Coming Soon](#features-coming-soon)
-    - [Composite Action Analysis](#analyze-referenced-composite-actions)
-    - [LLM Augmented Analysis](#llm-powered-result-analysis)
-- [Hall of Fame](#hall-of-fame)
+    - [Automated Pwn Requests](#automated-pwn-requests)
 - [Quick Start](#quick-start)
   - [Perform Runner Takeover](#perform-self-hosted-runner-takeover)
   - [Scan for Vulnerabilities](#search-for-github-actions-vulnerabilities-at-github-scale)
@@ -48,21 +42,31 @@ to follow responsible disclosure if you find vulnerabilities with Gato-X.
 
 ## What is Gato-X?
 
-Gato Extreme Edition is a hard fork of Gato, which was originally developed by 
-@AdnaneKhan, @mas0nd, and @DS-koolaid. Gato-X is maintained 
-by @AdnaneKhan and serves to automate advanced enumeration and exploitation
-techniques against GitHub repositories and organizations for security research purposes.
+Gato Extreme Edition is a tool designed to help security practitioners identify exploitable vulnerabilities in GitHub Actions workflows. It is not focused on surfacing best-practices or defense in depth measures, but instead provides users with detailed information about how someone could exploit a workflow misconfiguration.
 
-Gato-X accompanies the **BlackHat USA 2024 talk: Self-Hosted GitHub CI/CD Runners: Continuous Integration, Continuous Destruction**
-and the **DEF CON 32 talk Grand Theft Actions: Abusing Self-Hosted GitHub Runners** at scale.
 
-## New Features
+## Feature Highlights
+
+### Enumeration for GitHub Actions Injection and Pwn Requests
+
+Gato-X contains a powerful scanning engine for GitHub Actions Injection and
+Pwn Request vulnerabilities. As of writing, Gato-X is one of the fastest tools
+for the task. It is capable of scanning 35-40 *thousand* repositories in a few hours
+using a single GitHub PAT. This is the most sophisticated feature in Gato-X and is the result of countless hours of development and iteration.
+
+* Reachability Analysis
+* Same and Cross-Repository Transitive Workflow Analysis
+* Parsing and Simulation of "If Statements"
+* Gate Check Detection (permission checks, etc.)
+* Lightweight Source-Sink Analysis for Variables
+* Priority Guidelines
+
+As an operator facing tool, Gato-X is tuned with a higher false positive rate than a tool designed to generate alerts, but it provides contextual information to quickly 
+determine if something is worth investigating or not. To aid in triage, Gato-X attempts to apply confidence ratings to its reports.
 
 ### Automated Self-Hosted Runner Attacks
 
-Gato-X automates the "Runner-on-Runner" (RoR) technique used extensively by Adnan Khan and
-John Stawinski during their self-hosted runner bug bounty campaign. This feature replaces
-the basic attack PoC functionality included in the original version of Gato.
+Gato-X automates the "Runner-on-Runner" (RoR) technique, which essentially means installing _another_ GitHub Actions runner as an implant on an existing runner.
 
 Gato-X supports deploying RoR through fork pull requests. Gato-X also supports
 creating a RoR payload only, which can be used in conjunction with the `push` workflow
@@ -76,57 +80,17 @@ Under the hood, Gato-X will perform the following steps:
 * Confirm successful callback and runner installation.
 * Provide user with an interactive webshell upon successful connection.
 
-From the user's persective, it's simply: run command, get shell. What more could a hacker want?
+From the user's perspective, it's simply: run command, get shell. What more could a hacker want?
 
-### Enumeration for GitHub Actions Injection and Pwn Requests
+### Post Compromise Enumeration
 
-Gato-X contains a powerful scanning engine for GitHub Actions Injection and
-Pwn Request vulnerabilities. As of writing, Gato-X is one of the fastest tools
-for the task. It is capable of scanning 35-40 *thousand* repositories in 1-2 hours
-using a single GitHub PAT. This is the most sophisticated new feature in Gato-X and is the result of countless hours of development and iteration in my spare time over the last six months.
-
-* Reachability Analysis
-* Same and Cross-Repository Transitive Workflow Analysis
-* Parsing and Simulation of "If Statements"
-* Gate Check Detection (permission checks, etc.)
-* Lightweight Source-Sink Analysis for Variables
-* Priority Guidelines
-
-As an operator facing tool, Gato-X is tuned with a higher false positive rate than a tool designed to generate alerts, but it provides contextual information to quickly 
-determine if something is worth investigating or not. To aid in triage, Gato-X attempts to apply confidence ratings to its reports.
-
-### Other Improvements
-
-* Improved Secrets Exfiltration.
-* Enumeration of deployment environment secrets.
-* Speed improvements for runlog analysis.
-* General speed improvements throughout.
-* Improved CLI interface and reports.
-* Removed dependancy on Git.
+If you ever encounter a GitHub PAT, you can use Gato-X to validate it and identify what it has access to. Gato-X will identify repositories with administrative access and the names of accessible secrets (if the user has write access).
 
 ### Features Coming Soon
 
-There are a number of features I plan to add to Gato-X in the coming weeks or months.
+#### Automated Pwn Requests
 
-#### Analyze Referenced Composite Actions
-
-Currently, Gato-X does not analyze referenced composite actions. In some cases, risky operations can be performed within composite actions (such as referencing user-controlled context variables or checking out PR code).
-
-The problem with this is that retrieving an additional file requires an addition round trip request. This can significantly slow down enumeration. This will probably be an option that is disabled by default when I add it.
-
-#### LLM Powered Result Analysis 
-
-Gato-X's biggest weakness is identifying injection points that
-are outputs of steps that run arbitrary code. This creates a lot of 'UNKNOWN' confidence Actions Injection Reports. Using LLMs to reason about whether a variable is user control or not based on context will allow further narrowing down results. This feature will likely include support for passing an OpenAI API key and some Gato-X system prompts that I will use to inform ChatGPT of what to look for and how to respond.
-
-Similarly, this can apply to capture code that performs permission checks or enforces immutable references.
-
-## Hall of Fame
-
-In order to motivate hackers to use Gato-X to find and report vulnerabilities in open-source repositories, I've
-created a mini [hall of fame](https://github.com/AdnaneKhan/Gato-X/wiki/Hall-of-Fame). If you found an issue
-with Gato-X and reported it, feel free to follow the instructions on the page so I can add your accomplishment
-for all to see!
+Gato-X currently only automates the self-hosted runner attack. It does not contain any features to automate the exploitation process for Pwn Requests and Injection. I plan to add a feature 
 
 ## Quick Start
 
