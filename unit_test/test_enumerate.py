@@ -368,7 +368,7 @@ def test_enum_repo_runner(mock_api, capfd):
     assert "[!] The user is an administrator on the repository!" in escaped_output
 
     assert (
-        "The runner has the following labels: self-hosted, Linux, X64!"
+        "Labels: self-hosted, Linux, X64"
         in escaped_output
     )
 

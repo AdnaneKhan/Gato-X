@@ -85,17 +85,18 @@ class RepositoryEnum:
             if runners:
                 repo_runners = [
                     Runner(
-                        runner,
-                        machine_name=None,
+                        runner["name"],
+                        machine_name="N/A",
                         os=runner["os"],
                         status=runner["status"],
-                        labels=runner["labels"],
+                        labels=[label["name"] for label in runner["labels"]],
+                        runner_type="Repository",
+                        runner_group="N/A",
                     )
                     for runner in runners
                 ]
 
                 repository.set_runners(repo_runners)
-                RunnersReport.report_runners(repository)
         else:
             runner_wfs = repository.get_sh_workflow_names()
             if runner_wfs:
