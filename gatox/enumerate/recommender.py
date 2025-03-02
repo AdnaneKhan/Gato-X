@@ -136,14 +136,13 @@ class Recommender:
         Args:
             repository (Repository): Repository wrapper object.
         """
-        RunnersReport.report_runners(repository)
 
         if repository.runners:
             Output.result(
                 f"The repository has {len(repository.runners)} repo-level"
                 " self-hosted runners!"
             )
-            Recommender.print_runner_info(repository.runners)
+            RunnersReport.report_runners(repository)
 
     @staticmethod
     def print_runner_info(runners: list[Runner]):

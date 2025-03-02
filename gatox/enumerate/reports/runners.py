@@ -25,14 +25,15 @@ class RunnersReport(Report):
     @classmethod
     def report_runners(cls, repo: Repository):
         """Reports Self-Hosted Runners attached to the repository."""
-        if repo.accessible_runners:
+        if repo.accessible_runners or repo.runners:
             cls.print_divider()
             cls.print_header_runner(repo, "Self-Hosted Runners")
 
-            Output.generic(
-                f" Potential Runner Workflows: {Output.yellow(', '.join(repo.sh_workflow_names))}"
-            )
-
+            if repo.sh_workflow_names:
+                Output.generic(
+                    f" Potential Runner Workflows: {Output.yellow(', '.join(repo.sh_workflow_names))}"
+                )
+            repo.accessible_runners.extend(repo.runners)
             for runner in repo.accessible_runners:
                 Output.generic(f"{'-'*118}")
                 if runner.non_ephemeral:

@@ -440,7 +440,7 @@ def test_retrieve_run_logs(mock_get):
     assert list(logs)[0]["runner_name"] == "runner-30"
 
     logs = abstraction_layer.retrieve_run_logs(
-        "testOrg/testRepo", workflows=["build.yml"], short_circuit=False
+        "testOrg/testRepo", workflows=["build.yml"]
     )
 
     assert len(logs) == 1
