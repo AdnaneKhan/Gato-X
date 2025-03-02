@@ -862,14 +862,11 @@ class Api:
 
         return []
 
-    def retrieve_run_logs(
-        self, repo_name: str, short_circuit: str = True, workflows: list = []
-    ):
+    def retrieve_run_logs(self, repo_name: str, workflows: list = []):
         """Retrieve the most recent run log associated with a repository.
 
         Args:
             repo_name (str): Full name of the repository.
-            short_circuit (bool, optional): Whether to return as soon as the
             first instance of a non-ephemeral self-hosted runner is detected.
             Defaults to True.
             workflows (list, optional): List of workflows to check for. Defaults
@@ -933,7 +930,7 @@ class Api:
                         key = f"{run_log['machine_name']}:{run_log['runner_name']}"
                         run_logs[key] = run_log
 
-                        if short_circuit and run_log["non_ephemeral"]:
+                        if run_log["non_ephemeral"]:
                             return run_logs.values()
                 except Exception as e:
                     logger.warning(

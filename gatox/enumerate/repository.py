@@ -40,9 +40,7 @@ class RepositoryEnum:
         runner_detected = False
         wf_runs = []
 
-        wf_runs = self.api.retrieve_run_logs(
-            repository.name, short_circuit=True, workflows=workflows
-        )
+        wf_runs = self.api.retrieve_run_logs(repository.name, workflows=workflows)
 
         if wf_runs:
             for wf_run in wf_runs:
