@@ -1,8 +1,8 @@
-from enum import StrEnum
+from enum import Enum
 import json
 
 
-class Confidence(StrEnum):
+class Confidence(str, Enum):
     """
     Represents the confidence level in a finding or result.
 
@@ -17,6 +17,12 @@ class Confidence(StrEnum):
     MEDIUM: str = "Medium"
     LOW: str = "Low"
     UNKNOWN: str = "Unknown"
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def __repr__(self) -> str:
+        return str(self.value)
 
     def to_machine(self):
         """Convert enum to machine readable format for JSON serialization."""
