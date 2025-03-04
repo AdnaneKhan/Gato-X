@@ -93,8 +93,8 @@ class ActionsReport(Report):
                 details.append(f"   ↪ If Check: {Output.yellow(node['if_eval'])}")
 
             if "checkout_ref" in node and result.issue_type() in [
-                "PwnRequestResult",
-                "DispatchTOCTOUResult",
+                IssueType.PWN_REQUEST,
+                IssueType.DISPATCH_TOCTOU,
             ]:
                 details.append(f"   ↪ Checkout: {Output.yellow(node['checkout_ref'])}")
 

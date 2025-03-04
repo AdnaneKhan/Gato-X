@@ -3,8 +3,6 @@ import os
 import subprocess
 import logging
 import hashlib
-import yaml
-from yaml import CSafeLoader
 
 from gatox.models.workflow import Workflow
 
