@@ -97,8 +97,6 @@ class DispatchTOCTOUVisitor:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")
 
-        # Render the aggregated results
-        VisitorUtils.add_repo_results(results, api)
         return results
 
     @staticmethod
@@ -223,7 +221,7 @@ class DispatchTOCTOUVisitor:
                                 path,
                                 results,
                                 IssueType.DISPATCH_TOCTOU,
-                                confidence=Confidence.UNKNOWN,
+                                confidence=Confidence.LOW,
                                 complexity=Complexity.TOCTOU,
                             )
 

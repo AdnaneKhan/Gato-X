@@ -141,18 +141,19 @@ class PwnRequestVisitor:
                         if approval_gate:
                             complexity = Complexity.TOCTOU
                         elif "workflow_run" in path[0].get_tags():
-                            complexity = Complexity.CONTRIBUTION_REQUIRED
+                            complexity = Complexity.PREVIOUS_CONTRIBUTOR
 
                         complexity = (
                             Complexity.TOCTOU
                             if approval_gate
-                            else Complexity.ZERO_CLICK
+                            else complexity
                         )
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
                             confidence = Confidence.HIGH
                         else:
                             confidence = Confidence.UNKNOWN
+
                         VisitorUtils._add_results(
                             path,
                             results,
@@ -160,6 +161,7 @@ class PwnRequestVisitor:
                             complexity=complexity,
                             confidence=confidence,
                         )
+                        break
 
                 if node.outputs:
                     for key, val in node.outputs.items():
@@ -257,6 +259,4 @@ class PwnRequestVisitor:
                 except Exception as e:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")
-
-        VisitorUtils.add_repo_results(results, api)
         return results

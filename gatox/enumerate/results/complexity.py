@@ -28,12 +28,12 @@ class Complexity(str, Enum):
         DEFAULT_DEPENDENT: Vulnerability depends on default configuration
     """
 
-    ZERO_CLICK = "Zero Click"
+    ZERO_CLICK = "No Interaction"
+    PREVIOUS_CONTRIBUTOR = "Previous Contributor"
     FOLLOW_UP = "Persistent Approval Gated"
     TOCTOU = "Time-of-Check to Time-of-Use"
     BROKEN_ACCESS = "Broken Access Control"
     DEFAULT_DEPENDENT = "Default Configuration Dependent"
-    CONTRIBUTION_REQUIRED = "Workflow Run Triggered Issue"
 
     def __str__(self) -> str:
         return str(self.value)

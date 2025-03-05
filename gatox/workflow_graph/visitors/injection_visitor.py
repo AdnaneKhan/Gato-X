@@ -16,6 +16,7 @@ limitations under the License.
 
 import logging
 
+from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.issue_type import IssueType
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
@@ -207,11 +208,17 @@ class InjectionVisitor:
                                         else Confidence.UNKNOWN
                                     )
 
+                                    if "workflow_run" in path[0].get_tags():
+                                        complexity = Complexity.PREVIOUS_CONTRIBUTOR
+                                    else:
+                                        complexity = Complexity.ZERO_CLICK
+
                                     VisitorUtils._add_results(
                                         path,
                                         results,
                                         IssueType.ACTIONS_INJECTION,
                                         confidence=conf,
+                                        complexity=complexity
                                     )
                                     break
                     elif "WorkflowNode" in tags:
@@ -243,5 +250,4 @@ class InjectionVisitor:
                 # or get passed through workflow calls.
                 # We also want to ensure tracking inside of
                 # composite actions.
-        VisitorUtils.add_repo_results(results, api)
         return results
