@@ -27,7 +27,6 @@ from gatox.workflow_parser.utility import (
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.caching.cache_manager import CacheManager
 from gatox.github.api import Api
-from gatox.util import async_wrap
 
 class ReviewInjectionVisitor:
     """
@@ -37,7 +36,7 @@ class ReviewInjectionVisitor:
     """
 
     @staticmethod
-    def find_injections(graph: TaggedGraph, api: Api):
+    async def find_injections(graph: TaggedGraph, api: Api):
         """
         Identify potential injection vulnerabilities within GitHub workflows.
 
@@ -78,7 +77,7 @@ class ReviewInjectionVisitor:
         rule_cache = {}
 
         for cn in nodes:
-            paths = async_wrap(graph.dfs_to_tag, cn, "injectable", api)
+            paths = await graph.dfs_to_tag(cn, "injectable", api)
             if paths:
                 all_paths.append(paths)
 
@@ -112,7 +111,7 @@ class ReviewInjectionVisitor:
                                 if deployment in rules:
                                     approval_gate = True
 
-                        paths = async_wrap(graph.dfs_to_tag, node, "permission_check", api)
+                        paths = await graph.dfs_to_tag(node, "permission_check", api)
                         if paths:
                             approval_gate = True
 
