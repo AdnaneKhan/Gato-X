@@ -12,7 +12,7 @@ from gatox.util.async_utils import async_wrap
 @pytest.fixture
 def mock_api():
     mock_api = Mock(spec=Api)
-    mock_api.get_all_environment_protection_rules.return_value = {}
+    mock_api.get_all_environment_protection_rules = AsyncMock(return_value={})
     return mock_api
 
 

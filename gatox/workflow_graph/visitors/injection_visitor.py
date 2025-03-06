@@ -114,7 +114,7 @@ class InjectionVisitor:
                             if node.repo_name() in rule_cache:
                                 rules = rule_cache[node.repo_name()]
                             else:
-                                rules = api.get_all_environment_protection_rules(
+                                rules = await api.get_all_environment_protection_rules(
                                     node.repo_name()
                                 )
                                 rule_cache[node.repo_name()] = rules

@@ -1458,7 +1458,7 @@ class Api:
 
         return commit_date, commit_author, commit_sha
 
-    def get_all_environment_protection_rules(self, repo_name: str):
+    async def get_all_environment_protection_rules(self, repo_name: str):
         """
         Query all environments for a GitHub repository and return the combined protection rules array.
 
@@ -1468,7 +1468,7 @@ class Api:
         Returns:
             list: The combined protection rules array from all environments.
         """
-        response = self.call_get(f"/repos/{repo_name}/environments")
+        response = await self.call_get_async(f"/repos/{repo_name}/environments")
 
         all_protection_rules = []
 
