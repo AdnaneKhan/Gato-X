@@ -242,11 +242,7 @@ class Api:
 
                         return content
 
-    def __get_raw_file(self, repo: str, file_path: str, ref: str):
-        """Get a raw file with a web request."""
-        return async_wrap(self.__get_raw_file_async, repo, file_path, ref)
-
-    async def __get_raw_file_async(self, repo: str, file_path: str, ref: str):
+    async def get_raw_file_async(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
         async with httpx.AsyncClient(
             mounts=self.proxies, verify=self.verify_ssl
@@ -1313,9 +1309,8 @@ class Api:
         endpoint to save on the API rate limit.
         """
         file_data = None
-
         if public:
-            file_data = await self.__get_raw_file_async(repo_name, file_path, ref)
+            file_data = await self.get_raw_file_async(repo_name, file_path, ref)
         else:
             resp = await self.call_get_async(
                 f"/repos/{repo_name}/contents/{file_path}", params={"ref": ref}
@@ -1775,7 +1770,7 @@ class Api:
             paths = [f"{file_path}action.yml", f"{file_path}action.yaml"]
 
         for path in paths:
-            res = await self.__get_raw_file_async(repo, path, ref)
+            res = await self.get_raw_file_async(repo, path, ref)
 
             if res:
                 return res
