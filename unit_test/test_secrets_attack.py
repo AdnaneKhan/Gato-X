@@ -1,6 +1,6 @@
 import re
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from unittest.mock import MagicMock
 
 from gatox.attack.secrets.secrets_attack import SecretsAttack
@@ -41,11 +41,11 @@ def test_create_secret_exil_yaml():
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump(mock_api, mock_privkey, mock_dec, capsys):
     """Test secrets dump functionality."""
-    mock_api.return_value.check_user.return_value = {
+    mock_api.return_value.check_user = AsyncMock(return_value={
         "user": "testUser",
         "name": "test user",
         "scopes": ["repo", "workflow"],
-    }
+    })
     mock_api.return_value.get_secrets.return_value = [{"name": "TEST_SECRET"}]
     mock_api.return_value.get_repo_org_secrets.return_value = []
     mock_api.return_value.get_repo_branch.return_value = 0
@@ -95,11 +95,11 @@ w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
 @patch("gatox.attack.attack.Api")
 def test_secrets_dump_baduser(mock_api, capsys):
     """Test secrets dump functionality with bad permissions."""
-    mock_api.return_value.check_user.return_value = {
+    mock_api.return_value.check_user = AsyncMock(return_value={
         "user": "testUser",
         "name": "test user",
         "scopes": ["repo"],
-    }
+    })
 
     gh_attacker = SecretsAttack(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -122,11 +122,11 @@ def test_secrets_dump_baduser(mock_api, capsys):
 def test_secrets_dump_nosecret(mock_api, capsys):
     """Test secrets dump where repo has no secrets."""
 
-    mock_api.return_value.check_user.return_value = {
+    mock_api.return_value.check_user = AsyncMock(return_value={
         "user": "testUser",
         "name": "test user",
         "scopes": ["repo", "workflow"],
-    }
+    })
 
     mock_api.return_value.get_secrets.return_value = []
     mock_api.return_value.get_repo_org_secrets.return_value = []
@@ -151,11 +151,11 @@ def test_secrets_dump_nosecret(mock_api, capsys):
 def test_secrets_dump_branchexist(mock_api, capsys):
     """Test secrets dump where exfil branch already exists."""
 
-    mock_api.return_value.check_user.return_value = {
+    mock_api.return_value.check_user = AsyncMock(return_value={
         "user": "testUser",
         "name": "test user",
         "scopes": ["repo", "workflow"],
-    }
+    })
 
     mock_api.return_value.get_secrets.return_value = [{"name": "TEST_SECRET"}]
     mock_api.return_value.get_repo_org_secrets.return_value = []
@@ -179,11 +179,11 @@ def test_secrets_dump_branchexist(mock_api, capsys):
 def test_secrets_dump_branchfail(mock_api, capsys):
     """Test secrets dump where branch check fails."""
 
-    mock_api.return_value.check_user.return_value = {
+    mock_api.return_value.check_user = AsyncMock(return_value={
         "user": "testUser",
         "name": "test user",
         "scopes": ["repo", "workflow"],
-    }
+    })
 
     mock_api.return_value.get_secrets.return_value = [{"name": "TEST_SECRET"}]
     mock_api.return_value.get_repo_org_secrets.return_value = []

@@ -19,6 +19,7 @@ from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOU
 from gatox.workflow_graph.visitors.review_injection_visitor import (
     ReviewInjectionVisitor,
 )
+from gatox.util import async_wrap
 
 from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
@@ -97,7 +98,7 @@ class Enumerator:
                     return False
 
         if not self.user_perms:
-            self.user_perms = self.api.check_user()
+            self.user_perms = async_wrap(self.api.check_user)
             if not self.user_perms:
                 Output.error("This token cannot be used for enumeration!")
                 return False

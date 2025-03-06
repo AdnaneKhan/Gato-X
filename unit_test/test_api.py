@@ -69,7 +69,7 @@ def test_http_proxy(api_access):
     )
 
 
-@patch.object(Api, "call_get")
+@patch.object(Api, "call_get_async", new_callable=AsyncMock)
 def test_user_scopes(mock_get):
     """Check user."""
     # This PAT is INVALID,
@@ -88,7 +88,7 @@ def test_user_scopes(mock_get):
 
     mock_get.return_value = mock_result
 
-    user_info = abstraction_layer.check_user()
+    user_info = async_wrap(abstraction_layer.check_user)
 
     assert user_info["user"] == "TestUserName"
     assert "repo" in user_info["scopes"]
@@ -144,7 +144,7 @@ def test_invalid_pat(mock_get):
 
     mock_get().status_code = 401
 
-    assert abstraction_layer.check_user() is None
+    assert async_wrap(abstraction_layer.check_user) is None
 
 
 @patch.object(Api, "call_delete")
