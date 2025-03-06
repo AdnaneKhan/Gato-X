@@ -207,7 +207,7 @@ class ReviewInjectionVisitor:
                                     if "github." in val:
                                         env_lookup[key] = val
                     elif "ActionNode" in tags:
-                        VisitorUtils.initialize_action_node(graph, api, node)
+                        await VisitorUtils.initialize_action_node(graph, api, node)
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps

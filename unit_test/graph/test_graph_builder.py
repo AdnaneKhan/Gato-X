@@ -7,7 +7,7 @@ from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
-
+from gatox.util import async_wrap
 
 @pytest.fixture
 def builder():
@@ -148,5 +148,5 @@ def test_initialize_action_node(mock_cache, builder):
         - run: echo test
     """
 
-    builder._initialize_action_node(action_node, api)
+    async_wrap(builder._initialize_action_node, action_node, api)
     assert action_node.initialized

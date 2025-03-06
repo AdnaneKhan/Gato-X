@@ -226,4 +226,4 @@ class DispatchTOCTOUVisitor:
                             )
 
             elif "ActionNode" in tags:
-                VisitorUtils.initialize_action_node(graph, api, node)
+                await VisitorUtils.initialize_action_node(graph, api, node)
