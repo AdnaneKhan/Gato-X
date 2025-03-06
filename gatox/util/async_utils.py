@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 executor = ThreadPoolExecutor()
 
+
 def async_wrap(func, *args, **kwargs):
     try:
         loop = asyncio.get_running_loop()

@@ -157,11 +157,13 @@ def test_push_workflow_attack(mock_api, capsys):
 
     print(mock_api)
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo", "workflow"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo", "workflow"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 
@@ -195,11 +197,13 @@ def test_push_workflow_attack(mock_api, capsys):
 def test_push_workflow_attack_perm(mock_api, capsys):
     """Test executing shell workflow attack with invalid permissions."""
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 
@@ -225,11 +229,13 @@ def test_push_workflow_attack_perm(mock_api, capsys):
 def test_push_workflow_attack_fail_wf(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo", "workflow"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo", "workflow"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 
@@ -263,11 +269,13 @@ def test_push_workflow_attack_fail_wf(mock_api, mock_time, capsys):
 def test_push_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo", "workflow"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo", "workflow"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 
@@ -301,11 +309,13 @@ def test_push_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
 def test_push_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo", "workflow"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo", "workflow"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 
@@ -339,11 +349,13 @@ def test_push_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
 def test_push_workflow_attack_fail_branch(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo", "workflow"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo", "workflow"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 
@@ -371,11 +383,13 @@ def test_push_workflow_attack_fail_branch(mock_api, mock_time, capsys):
 def test_push_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
-    mock_api.return_value.check_user = AsyncMock(return_value={
-        "user": "testUser",
-        "name": "test user",
-        "scopes": ["repo", "workflow"],
-    })
+    mock_api.return_value.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "name": "test user",
+            "scopes": ["repo", "workflow"],
+        }
+    )
 
     mock_api.return_value.proxies = {"https": "http://localhost:8080"}
 

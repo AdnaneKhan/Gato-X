@@ -92,7 +92,9 @@ class DispatchTOCTOUVisitor:
         for path_set in all_paths:
             for path in path_set:
                 try:
-                    await DispatchTOCTOUVisitor.__process_path(path, graph, api, results)
+                    await DispatchTOCTOUVisitor.__process_path(
+                        path, graph, api, results
+                    )
                 except Exception as e:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")

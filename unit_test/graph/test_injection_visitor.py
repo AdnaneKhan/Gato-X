@@ -9,6 +9,7 @@ from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.util.async_utils import async_wrap
 
+
 @pytest.fixture
 def mock_api():
     mock_api = Mock(spec=Api)
