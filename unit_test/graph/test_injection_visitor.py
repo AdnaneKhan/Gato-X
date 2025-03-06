@@ -7,7 +7,7 @@ from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
-
+from gatox.util.async_utils import async_wrap
 
 @pytest.fixture
 def mock_api():
@@ -25,7 +25,7 @@ def test_find_injections_no_nodes(mock_graph, mock_api, capsys):
     """Test when no nodes are found with injection tags"""
     mock_graph.get_nodes_for_tags.return_value = []
 
-    results = InjectionVisitor.find_injections(mock_graph, mock_api)
+    results = async_wrap(InjectionVisitor.find_injections, mock_graph, mock_api)
     assert results == {}
     # captured = capsys.readouterr()
     # assert "INJECT:" in captured.out
@@ -105,6 +105,6 @@ def test_find_injections_with_action_node(mock_graph, mock_api):
     mock_graph.get_nodes_for_tags.return_value = [action_node]
     mock_graph.dfs_to_tag.return_value = [[action_node]]
 
-    InjectionVisitor.find_injections(mock_graph, mock_api)
+    async_wrap(InjectionVisitor.find_injections, mock_graph, mock_api)
 
     mock_graph.get_nodes_for_tags.assert_called_once()
