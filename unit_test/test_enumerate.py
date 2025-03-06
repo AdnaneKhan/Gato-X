@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 from gatox.models.repository import Repository
 from gatox.enumerate.enumerate import Enumerator
 from gatox.cli.output import Output
-
+from gatox.util import async_wrap
 from unit_test.utils import escape_ansi as escape_ansi
 
 TEST_REPO_DATA = None
@@ -382,7 +382,7 @@ def test_enum_repos(mock_api, mock_time, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_repos(["octocat/Hello-World"])
+    async_wrap(gh_enumeration_runner.enumerate_repos, ["octocat/Hello-World"])
     out, _ = capfd.readouterr()
     assert "Checking repository: octocat/Hello-World" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_called_once_with("octocat/Hello-World")
@@ -407,7 +407,7 @@ def test_enum_repos_empty(mock_api, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_repos([])
+    async_wrap(gh_enumeration_runner.enumerate_repos, [])
     out, _ = capfd.readouterr()
     assert "The list of repositories was empty!" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_not_called()

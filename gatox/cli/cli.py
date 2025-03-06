@@ -20,6 +20,7 @@ from gatox.attack.runner.webshell import WebShell
 from gatox.attack.secrets.secrets_attack import SecretsAttack
 from gatox.search.search import Searcher
 from gatox.models.execution import Execution
+from gatox.util import async_wrap
 
 
 def cli(args):
@@ -347,14 +348,14 @@ def enumerate(args, parser):
             repo_list = util.read_file_and_validate_lines(
                 args.repositories, r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
-            repos = gh_enumeration_runner.enumerate_repos(repo_list)
+            repos = async_wrap(gh_enumeration_runner.enumerate_repos, repo_list)
         except argparse.ArgumentError as e:
             parser.error(
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
     elif args.repository:
-        repos = gh_enumeration_runner.enumerate_repos([args.repository])
+        repos = async_wrap(gh_enumeration_runner.enumerate_repos, [args.repository])
 
     if args.output_yaml:
         save_workflow_ymls(args.output_yaml)

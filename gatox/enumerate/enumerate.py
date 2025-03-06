@@ -264,7 +264,7 @@ class Enumerator:
         Output.info("Enumerating user owned repositories!")
 
         repos = self.api.get_own_repos()
-        repo_wrappers = self.enumerate_repos(repos)
+        repo_wrappers = async_wrap(self.enumerate_repos, repos)
         orgs = self.api.check_organizations()
 
         Output.info(
@@ -296,7 +296,7 @@ class Enumerator:
 
         Output.result(f"Enumerating the {Output.bright(user)} user!")
 
-        repo_wrappers = self.enumerate_repos(repos)
+        repo_wrappers = async_wrap(self.enumerate_repos, repos)
 
         return repo_wrappers
 
@@ -421,7 +421,7 @@ class Enumerator:
         if not self.skip_log:
             RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
 
-    def enumerate_repos(self, repo_names: list):
+    async def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
         format.
 
@@ -454,7 +454,7 @@ class Enumerator:
                 IngestNonDefault.ingest(repo_obj, self.api)
 
         IngestNonDefault.pool_empty()
-        async_wrap(self.process_graph)
+        await self.process_graph()
 
         try:
             for repo in repo_names:
