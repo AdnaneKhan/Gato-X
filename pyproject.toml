@@ -20,6 +20,7 @@ dependencies = [
     "colorama",
     "requests",
     "pyyaml",
+    "httpx",
     "cryptography",
     "networkx"
 ]

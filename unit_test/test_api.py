@@ -1,13 +1,15 @@
 import base64
 import os
+from httpcore import URL
 import pytest
 import pathlib
 import logging
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from gatox.github.api import Api
 from gatox.cli.output import Output
+from gatox.util import async_wrap
 
 logging.root.setLevel(logging.DEBUG)
 
@@ -44,8 +46,12 @@ def test_socks(api_access):
 
     abstraction_layer = Api(test_pat, "2022-11-28", socks_proxy="localhost:9090")
 
-    assert abstraction_layer.proxies["http"] == "socks5://localhost:9090"
-    assert abstraction_layer.proxies["https"] == "socks5://localhost:9090"
+    assert abstraction_layer.proxies["http://"]._pool._proxy_url == URL(
+        "socks5://localhost:9090"
+    )
+    assert abstraction_layer.proxies["https://"]._pool._proxy_url == URL(
+        "socks5://localhost:9090"
+    )
 
 
 def test_http_proxy(api_access):
@@ -55,11 +61,15 @@ def test_http_proxy(api_access):
 
     abstraction_layer = Api(test_pat, "2022-11-28", http_proxy="localhost:1080")
 
-    assert abstraction_layer.proxies["http"] == "http://localhost:1080"
-    assert abstraction_layer.proxies["https"] == "http://localhost:1080"
+    assert abstraction_layer.proxies["http://"]._pool._proxy_url == URL(
+        "http://localhost:1080"
+    )
+    assert abstraction_layer.proxies["https://"]._pool._proxy_url == URL(
+        "http://localhost:1080"
+    )
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_user_scopes(mock_get):
     """Check user."""
     # This PAT is INVALID,
@@ -99,7 +109,7 @@ def test_socks_and_http(api_access):
         )
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_validate_sso(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -112,7 +122,7 @@ def test_validate_sso(mock_get):
     assert res is True
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_validate_sso_fail(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -125,7 +135,7 @@ def test_validate_sso_fail(mock_get):
     assert res is False
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_invalid_pat(mock_get):
     """Test calling a request with an invalid PAT"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -137,7 +147,7 @@ def test_invalid_pat(mock_get):
     assert abstraction_layer.check_user() is None
 
 
-@patch("gatox.github.api.requests.delete")
+@patch.object(Api, "call_delete")
 def test_delete_repo(mock_delete):
     """Test forking a repository"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -151,7 +161,7 @@ def test_delete_repo(mock_delete):
     assert result is True
 
 
-@patch("gatox.github.api.requests.delete")
+@patch.object(Api, "call_delete")
 def test_delete_fail(mock_delete):
     """Test forking a repository"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -164,7 +174,7 @@ def test_delete_fail(mock_delete):
     assert result is False
 
 
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_post")
 def test_fork_repository(mock_post):
     """Test fork repo happy path"""
 
@@ -179,7 +189,7 @@ def test_fork_repository(mock_post):
     assert result == "myusername/TestRepo"
 
 
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_post")
 def test_fork_repository_forbid(mock_post):
     """Test repo fork forbidden."""
 
@@ -193,7 +203,7 @@ def test_fork_repository_forbid(mock_post):
     assert result is False
 
 
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_post")
 def test_fork_repository_notfound(mock_post):
     """Test repo fork 404."""
 
@@ -207,7 +217,7 @@ def test_fork_repository_notfound(mock_post):
     assert result is False
 
 
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_post")
 def test_fork_repository_fail(mock_post):
     """Test repo fork failure"""
 
@@ -221,7 +231,7 @@ def test_fork_repository_fail(mock_post):
     assert result is False
 
 
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_post")
 def test_fork_pr(mock_post):
     """Test creating a fork PR"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -240,7 +250,7 @@ def test_fork_pr(mock_post):
     assert result == "https://github.com/testOrg/testRepo/pull/11"
 
 
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_post")
 def test_fork_pr_failed(mock_post):
     """Test creating a fork PR"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -259,7 +269,7 @@ def test_fork_pr_failed(mock_post):
     assert result is None
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_repo(mock_get):
     """Test getting repo info."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -273,7 +283,7 @@ def test_get_repo(mock_get):
     assert result["repo1"] == "fakerepodata"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_org(mock_get):
     """Test retrievign org info."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -287,7 +297,7 @@ def test_get_org(mock_get):
     assert result["org1"] == "fakeorgdata"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_org_notfound(mock_get):
     """Test 404 code when retrieving org info."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -300,7 +310,7 @@ def test_get_org_notfound(mock_get):
     assert result is None
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_check_org_runners(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -315,7 +325,7 @@ def test_check_org_runners(mock_get):
     assert result == {"total_count": 5}
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_check_org_runners_fail(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -328,7 +338,7 @@ def test_check_org_runners_fail(mock_get):
     assert result is None
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_check_repo_runners(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -353,7 +363,7 @@ def test_check_repo_runners(mock_get):
     assert not result
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_check_org_repos_invalid(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -364,7 +374,7 @@ def test_check_org_repos_invalid(mock_get):
         abstraction_layer.check_org_repos("testOrg", "invalid")
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_check_org_repos(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -385,7 +395,7 @@ def test_check_org_repos(mock_get):
     assert len(result) == 5
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_check_org(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -423,7 +433,7 @@ def test_check_org(mock_get):
     assert result[4] == "org5"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_retrieve_run_logs(mock_get):
     """Test retrieving run logs."""
     curr_path = pathlib.Path(__file__).parent.resolve()
@@ -463,7 +473,7 @@ def test_retrieve_run_logs(mock_get):
     assert list(logs)[0]["runner_name"] == "runner-30"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_parse_wf_runs(mock_get):
     """Test retrieving wf run count."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -477,7 +487,7 @@ def test_parse_wf_runs(mock_get):
     assert wf_count == 2
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_parse_wf_runs_fail(mock_get):
     """Test 403 code when retrieving wf run count"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -489,7 +499,7 @@ def test_parse_wf_runs_fail(mock_get):
     assert wf_count is None
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_recent_workflow(mock_get):
     """Test retrieving a recent workflow by sha."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -506,7 +516,7 @@ def test_get_recent_workflow(mock_get):
     assert workflow_id == 15
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_recent_workflow_missing(mock_get):
     """Test retrieving a missing recent workflow by sha."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -524,7 +534,7 @@ def test_get_recent_workflow_missing(mock_get):
     assert workflow_id == 0
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_recent_workflow_fail(mock_get):
     """Test failing the retrieval of a recent workflow by sha."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -537,7 +547,7 @@ def test_get_recent_workflow_fail(mock_get):
     assert workflow_id == -1
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_workflow_status_queued(mock_get):
     """Test retrieving the status of a workflow."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -549,7 +559,7 @@ def test_get_workflow_status_queued(mock_get):
     assert api.get_workflow_status("repo", 5) == 0
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_workflow_status_failed(mock_get):
     """Test retrieving the status of a workflow."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -564,7 +574,7 @@ def test_get_workflow_status_failed(mock_get):
     assert api.get_workflow_status("repo", 5) == -1
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_workflow_status_errorr(mock_get):
     """Test retrieving the status of a workflow."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -575,7 +585,7 @@ def test_get_workflow_status_errorr(mock_get):
     assert api.get_workflow_status("repo", 5) == -1
 
 
-@patch("gatox.github.api.requests.delete")
+@patch.object(Api, "call_delete")
 def test_delete_workflow_fail(mock_get):
     """Test retrieving the status of a workflow."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -587,7 +597,7 @@ def test_delete_workflow_fail(mock_get):
 
 
 @patch("gatox.github.api.open")
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_download_workflow_success(mock_get, mock_open):
     """Test retrieving the status of a workflow."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -599,7 +609,7 @@ def test_download_workflow_success(mock_get, mock_open):
 
 
 @patch("gatox.github.api.open")
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_download_workflow_fail(mock_get, mock_open):
     """Test retrieving the status of a workflow."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -610,7 +620,7 @@ def test_download_workflow_fail(mock_get, mock_open):
     assert not api.download_workflow_logs("repo", 5)
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_repo_branch(mock_get):
     """Test retrieving the existence of a branch."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -627,8 +637,8 @@ def test_get_repo_branch(mock_get):
     assert api.get_repo_branch("repo", "branch") == -1
 
 
-@patch("gatox.github.api.requests.post")
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_post")
+@patch.object(Api, "call_get")
 def test_create_branch(mock_get, mock_post):
     """Test creating a new branch"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -655,8 +665,8 @@ def test_create_branch(mock_get, mock_post):
     assert api.create_branch("test_repo", "abcdefg") is True
 
 
-@patch("gatox.github.api.requests.post")
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_post")
+@patch.object(Api, "call_get")
 def test_create_branch_fail(mock_get, mock_post):
     """Test creating a new branch"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -683,7 +693,7 @@ def test_create_branch_fail(mock_get, mock_post):
     assert api.create_branch("test_repo", "abcdefg") is False
 
 
-@patch("gatox.github.api.requests.delete")
+@patch.object(Api, "call_delete")
 def test_delete_branch(mock_delete):
     """Test deleting branch"""
 
@@ -694,7 +704,7 @@ def test_delete_branch(mock_delete):
     assert api.delete_branch("testRepo", "testBranch")
 
 
-@patch("gatox.github.api.requests.put")
+@patch.object(Api, "call_put")
 def test_commit_file(mock_put):
     """Test commiting a file"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -719,7 +729,7 @@ def test_commit_file(mock_put):
     assert commit_sha == test_sha
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_workflow_ymls(mock_get):
     """Test retrieving workflow yml files using the API."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -759,7 +769,7 @@ def test_workflow_ymls(mock_get):
     assert ymls[0].workflow_contents == "FooBarBaz"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_secrets(mock_get):
     """Test getting repo secret names."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -776,7 +786,7 @@ def test_get_secrets(mock_get):
     assert len(secrets) == 3
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_org_secrets(mock_get):
     """Tests getting org secrets"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -819,7 +829,7 @@ def test_get_org_secrets(mock_get):
     assert len(secrets[1]["repos"]) == 2
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_org_secrets_empty(mock_get):
     """Tests getting org secrets"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -833,7 +843,7 @@ def test_get_org_secrets_empty(mock_get):
     assert secrets == []
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_repo_org_secrets(mock_get):
     """Tests getting org secrets accessible to a repo."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -847,7 +857,7 @@ def test_get_repo_org_secrets(mock_get):
     assert len(secrets) == 2
 
 
-@patch("gatox.github.api.time")
+@patch("gatox.github.api.asyncio.sleep", new_callable=AsyncMock)
 def test_handle_ratelimit(mock_time):
     """Test rate limit handling"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -861,13 +871,12 @@ def test_handle_ratelimit(mock_time):
         "X-RateLimit-Limit": 5000,
     }
 
-    api._Api__check_rate_limit(test_headers)
+    async_wrap(api._Api__check_rate_limit, test_headers)
+    mock_time.assert_called_once()
 
-    mock_time.sleep.assert_called_once()
 
-
-@patch("gatox.github.api.requests.get")
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_get")
+@patch.object(Api, "call_post")
 def test_commit_workflow(mock_call_post, mock_call_get):
     # Arrange
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -902,8 +911,8 @@ def test_commit_workflow(mock_call_post, mock_call_get):
     assert mock_call_post.call_count == 4
 
 
-@patch("gatox.github.api.requests.get")
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_get")
+@patch.object(Api, "call_post")
 def test_commit_workflow_failure(mock_call_post, mock_call_get):
     # Arrange
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -938,8 +947,8 @@ def test_commit_workflow_failure(mock_call_post, mock_call_get):
     assert mock_call_post.call_count == 4
 
 
-@patch("gatox.github.api.requests.get")
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_get")
+@patch.object(Api, "call_post")
 def test_commit_workflow_failure2(mock_call_post, mock_call_get):
     # Arrange
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -972,8 +981,8 @@ def test_commit_workflow_failure2(mock_call_post, mock_call_get):
     assert mock_call_post.call_count == 2
 
 
-@patch("gatox.github.api.requests.get")
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_get")
+@patch.object(Api, "call_post")
 def test_graphql_org_query(mock_call_post, mock_call_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     api = Api(test_pat, "2022-11-28")
@@ -1024,8 +1033,8 @@ def test_graphql_org_query_badtype():
         api.get_org_repo_names_graphql("testOrg", "UNKNOWN")
 
 
-@patch("gatox.github.api.requests.get")
-@patch("gatox.github.api.requests.post")
+@patch.object(Api, "call_get")
+@patch.object(Api, "call_post")
 def test_graphql_mergedat_query(mock_call_post, mock_call_get):
     """ """
     mock_results = {
@@ -1061,7 +1070,7 @@ def test_graphql_mergedat_query(mock_call_post, mock_call_get):
     assert date == "2024-06-21T09:57:58Z"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_user_type(mock_call_get):
 
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -1076,7 +1085,7 @@ def test_get_user_type(mock_call_get):
     assert user_type == "User"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_user_repos(mock_call_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     api = Api(test_pat, "2022-11-28")
@@ -1099,7 +1108,7 @@ def test_get_user_repos(mock_call_get):
     assert repos[1] == "testRepo2"
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_own_repos_single_page(mock_call_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     api = Api(test_pat, "2022-11-28")
@@ -1121,7 +1130,7 @@ def test_get_own_repos_single_page(mock_call_get):
     mock_call_get.assert_called_once()
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_own_repos_multiple_pages(mock_call_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     api = Api(test_pat, "2022-11-28")
@@ -1153,7 +1162,7 @@ def test_get_own_repos_multiple_pages(mock_call_get):
     assert mock_call_get.call_count == 2
 
 
-@patch("gatox.github.api.requests.get")
+@patch.object(Api, "call_get")
 def test_get_own_repos_empty_response(mock_call_get):
 
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
