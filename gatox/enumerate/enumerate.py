@@ -408,7 +408,11 @@ class Enumerator:
             visitor = visitor_class()  # Instantiate the visitor class
             visitor_func = getattr(visitor, visitor_method)  # Get the method
 
-            if visitor_class == PwnRequestVisitor or visitor_class == InjectionVisitor:
+            if visitor_class == PwnRequestVisitor:
+                results = async_wrap(visitor_func,
+                    WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
+                )
+            elif visitor_class == InjectionVisitor:
                 results = visitor_func(
                     WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
                 )

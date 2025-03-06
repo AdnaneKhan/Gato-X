@@ -200,7 +200,7 @@ class PwnRequestVisitor:
                 VisitorUtils.initialize_action_node(graph, api, node)
 
     @staticmethod
-    def find_pwn_requests(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
+    async def find_pwn_requests(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
         """
         Identify and process potential Pwn Requests within the workflow graph.
 
@@ -238,7 +238,7 @@ class PwnRequestVisitor:
 
         for cn in nodes:
             try:
-                paths = async_wrap(graph.dfs_to_tag, cn, "checkout", api)
+                paths = await graph.dfs_to_tag(cn, "checkout", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:
