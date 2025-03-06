@@ -364,7 +364,7 @@ class Enumerator:
             IngestNonDefault.pool_empty()
             Output.info("Deep dive ingestion complete!")
 
-        self.process_graph()
+        async_wrap(self.process_graph)
 
         try:
             for repo in enum_list:
@@ -389,7 +389,7 @@ class Enumerator:
 
         return organization
 
-    def process_graph(self):
+    async def process_graph(self):
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
@@ -409,11 +409,11 @@ class Enumerator:
             visitor_func = getattr(visitor, visitor_method)  # Get the method
 
             if visitor_class == PwnRequestVisitor or visitor_class == InjectionVisitor:
-                results = async_wrap(visitor_func,
+                results = await visitor_func(
                     WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
                 )
             else:
-                results = visitor_func(WorkflowGraphBuilder().graph, self.api)
+                results = await visitor_func(WorkflowGraphBuilder().graph, self.api)
 
             if results:
                 VisitorUtils.add_repo_results(results, self.api)
@@ -454,7 +454,7 @@ class Enumerator:
                 IngestNonDefault.ingest(repo_obj, self.api)
 
         IngestNonDefault.pool_empty()
-        self.process_graph()
+        async_wrap(self.process_graph)
 
         try:
             for repo in repo_names:
