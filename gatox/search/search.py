@@ -6,6 +6,7 @@ from gatox.cli.output import Output
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.github.search import Search
 from gatox.github.api import Api
+from gatox.util import async_wrap
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class Searcher:
             bool: If the PAT is associated with a valid user.
         """
         if not self.user_perms:
-            self.user_perms = self.api.check_user()
+            self.user_perms = async_wrap(self.api.check_user)
             if not self.user_perms:
                 Output.error("This token cannot be used for enumeration!")
                 return False

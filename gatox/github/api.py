@@ -837,7 +837,7 @@ class Api:
 
         return repos
 
-    def check_user(self):
+    async def check_user(self):
         """Gets the authenticated user associated with a GitHub PAT and returns
         the username and available scopes.
 
@@ -851,7 +851,7 @@ class Api:
         Returns:
             dict: User associated with the PAT, None otherwise.
         """
-        result = self.call_get("/user")
+        result = await self.call_get_async("/user")
 
         if result.status_code == 200:
             resp_headers = result.headers.get("x-oauth-scopes")
