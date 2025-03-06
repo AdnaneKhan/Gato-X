@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.github.api import Api
@@ -18,7 +18,7 @@ def mock_api():
 
 @pytest.fixture
 def mock_graph():
-    return Mock(spec=TaggedGraph)
+    return AsyncMock(spec=TaggedGraph)
 
 
 def test_find_injections_no_nodes(mock_graph, mock_api, capsys):

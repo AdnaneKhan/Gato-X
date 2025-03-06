@@ -1,6 +1,6 @@
 import pytest
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch
 from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.github.api import Api
@@ -10,7 +10,7 @@ from gatox.caching.cache_manager import CacheManager
 
 @pytest.fixture
 def mock_graph():
-    return MagicMock(spec=TaggedGraph)
+    return AsyncMock(spec=TaggedGraph)
 
 
 @pytest.fixture

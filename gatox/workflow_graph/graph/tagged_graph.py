@@ -38,7 +38,7 @@ class TaggedGraph(nx.DiGraph):
         self.builder = builder
         self.tags = {}  # Dictionary to map tags to sets of nodes
 
-    def dfs_to_tag(self, start_node, target_tag, api):
+    async def dfs_to_tag(self, start_node, target_tag, api):
         """
         Perform a Depth-First Search (DFS) from the start node to find all paths
         that lead to nodes with the specified target tag.
@@ -55,7 +55,7 @@ class TaggedGraph(nx.DiGraph):
         all_paths = list()
         visited = set()
 
-        async_wrap(self._dfs, start_node, target_tag, path, all_paths, visited, api)
+        await self._dfs(start_node, target_tag, path, all_paths, visited, api)
 
         return all_paths
 

@@ -27,6 +27,7 @@ from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.caching.cache_manager import CacheManager
+from gatox.util import async_wrap
 
 
 logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class DispatchTOCTOUVisitor:
         # Perform DFS from each "workflow_dispatch" node to find paths to "checkout" nodes
         for cn in nodes:
             try:
-                paths = graph.dfs_to_tag(cn, "checkout", api)
+                paths = async_wrap(graph.dfs_to_tag, cn, "checkout", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:
@@ -206,7 +207,7 @@ class DispatchTOCTOUVisitor:
                             checkout_ref = input_lookup[processed_var]
 
                     if VisitorUtils.check_mutable_ref(checkout_ref):
-                        sinks = graph.dfs_to_tag(node, "sink", api)
+                        sinks = async_wrap(graph.dfs_to_tag, node, "sink", api)
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
                             VisitorUtils._add_results(

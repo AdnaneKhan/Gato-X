@@ -25,6 +25,7 @@ from gatox.workflow_parser.utility import getTokens, getToken, checkUnsafe
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.caching.cache_manager import CacheManager
 from gatox.github.api import Api
+from gatox.util import async_wrap
 
 
 logger = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ class InjectionVisitor:
 
         for cn in nodes:
             try:
-                paths = graph.dfs_to_tag(cn, "injectable", api)
+                paths = async_wrap(graph.dfs_to_tag, cn, "injectable", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:
@@ -128,11 +129,11 @@ class InjectionVisitor:
                                 if deployment in rules:
                                     approval_gate = True
 
-                        paths = graph.dfs_to_tag(node, "permission_check", api)
+                        paths = async_wrap(graph.dfs_to_tag, node, "permission_check", api)
                         if paths:
                             approval_gate = True
 
-                        paths = graph.dfs_to_tag(node, "permission_blocker", api)
+                        paths = async_wrap(graph.dfs_to_tag, node, "permission_blocker", api)
                         if paths:
                             break
 
