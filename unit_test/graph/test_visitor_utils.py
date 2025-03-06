@@ -15,7 +15,7 @@ from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
-
+from gatox.util import async_wrap
 
 @pytest.fixture
 def mock_api():
@@ -74,7 +74,7 @@ def test_initialize_action_node(mock_api):
     node = ActionNode("someorg/testaction@v4", "main", "action.yml", "testOrg/repo", {})
 
     try:
-        VisitorUtils.initialize_action_node(graph, api, node)
+        async_wrap(VisitorUtils.initialize_action_node, graph, api, node)
     except:
         pass  # Expected to fail without proper mocking
 

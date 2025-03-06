@@ -62,7 +62,7 @@ class VisitorUtils:
         results[repo_name].append(result)
 
     @staticmethod
-    def initialize_action_node(graph, api, node):
+    async def initialize_action_node(graph, api, node):
         """
         Initialize an action node by removing the 'uninitialized' tag and setting it up.
 
@@ -82,7 +82,7 @@ class VisitorUtils:
         """
         tags = node.get_tags()
         if "uninitialized" in tags:
-            WorkflowGraphBuilder()._initialize_action_node(node, api)
+            await WorkflowGraphBuilder()._initialize_action_node(node, api)
             graph.remove_tags_from_node(node, ["uninitialized"])
 
     @staticmethod
