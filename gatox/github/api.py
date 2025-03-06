@@ -1765,6 +1765,8 @@ class Api:
         if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             file_path = file_path.replace("//", "/")
             paths = [file_path]
+        elif file_path == "":
+            paths = ["action.yml", "action.yaml"]
         else:
             if not file_path.endswith("/"):
                 file_path += "/"
