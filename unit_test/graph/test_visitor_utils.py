@@ -17,6 +17,7 @@ from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.util import async_wrap
 
+
 @pytest.fixture
 def mock_api():
     return MagicMock(spec=Api)

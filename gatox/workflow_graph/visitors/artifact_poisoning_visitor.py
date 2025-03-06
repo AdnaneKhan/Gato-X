@@ -18,6 +18,7 @@ from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.github.api import Api
 from gatox.util import async_wrap
 
+
 def ArtifactPoisoningVisitor():
     """Visits the graph to find potential artifact poisoning vulnerabilities.
 

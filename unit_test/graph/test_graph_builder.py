@@ -9,6 +9,7 @@ from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.util import async_wrap
 
+
 @pytest.fixture
 def builder():
     builder = WorkflowGraphBuilder()
