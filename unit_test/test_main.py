@@ -9,4 +9,4 @@ def test_cli_double_proxy(capfd):
         main.entry()
 
     out, err = capfd.readouterr()
-    assert "are required: command" in err
+    assert "command: invalid choice" in err
