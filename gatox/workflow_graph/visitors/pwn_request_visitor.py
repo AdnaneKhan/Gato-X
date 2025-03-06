@@ -24,6 +24,7 @@ from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.caching.cache_manager import CacheManager
+from gatox.util import async_wrap
 
 logger = logging.getLogger(__name__)
 
@@ -94,11 +95,11 @@ class PwnRequestVisitor:
                 # if not node.if_evaluation:
                 #     approval_gate = True
 
-                paths = graph.dfs_to_tag(node, "permission_blocker", api)
+                paths = async_wrap(graph.dfs_to_tag, node, "permission_blocker", api)
                 if paths:
                     break
 
-                paths = graph.dfs_to_tag(node, "permission_check", api)
+                paths = async_wrap(graph.dfs_to_tag, node, "permission_check", api)
                 if paths:
                     approval_gate = True
 
@@ -136,7 +137,7 @@ class PwnRequestVisitor:
                             checkout_ref, path[0].get_tags()
                         )
                     ) or not approval_gate:
-                        sinks = graph.dfs_to_tag(node, "sink", api)
+                        sinks = async_wrap(graph.dfs_to_tag, node, "sink", api)
 
                         if approval_gate:
                             complexity = Complexity.TOCTOU
@@ -237,7 +238,7 @@ class PwnRequestVisitor:
 
         for cn in nodes:
             try:
-                paths = graph.dfs_to_tag(cn, "checkout", api)
+                paths = async_wrap(graph.dfs_to_tag, cn, "checkout", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:

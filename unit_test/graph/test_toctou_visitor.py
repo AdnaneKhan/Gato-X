@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch
+from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
 
 
@@ -10,7 +11,7 @@ def mock_api():
 
 @pytest.fixture
 def mock_graph():
-    return MagicMock()
+    return AsyncMock(spec=TaggedGraph)
 
 
 def test_no_workflow_dispatch_nodes(mock_graph, mock_api):
