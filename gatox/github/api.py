@@ -1304,7 +1304,7 @@ class Api:
 
         return ymls
 
-    def retrieve_repo_file(
+    async def retrieve_repo_file(
         self, repo_name: str, file_path: str, ref: str, public=False
     ):
         """Retrieves a single file from a GitHub repository.
@@ -1315,9 +1315,9 @@ class Api:
         file_data = None
 
         if public:
-            file_data = self.__get_raw_file(repo_name, file_path, ref)
+            file_data = await self.__get_raw_file_async(repo_name, file_path, ref)
         else:
-            resp = self.call_get(
+            resp = await self.call_get_async(
                 f"/repos/{repo_name}/contents/{file_path}", params={"ref": ref}
             )
             if resp.status_code == 200:
