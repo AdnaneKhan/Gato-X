@@ -143,11 +143,7 @@ class PwnRequestVisitor:
                         elif "workflow_run" in path[0].get_tags():
                             complexity = Complexity.PREVIOUS_CONTRIBUTOR
 
-                        complexity = (
-                            Complexity.TOCTOU
-                            if approval_gate
-                            else complexity
-                        )
+                        complexity = Complexity.TOCTOU if approval_gate else complexity
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
                             confidence = Confidence.HIGH

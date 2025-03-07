@@ -17,6 +17,7 @@ limitations under the License.
 from gatox.workflow_parser.utility import parse_script, getTokens, filter_tokens
 from gatox.workflow_graph.nodes.node import Node
 
+
 class StepNode(Node):
     """
     Wrapper class for a GitHub Actions workflow step.

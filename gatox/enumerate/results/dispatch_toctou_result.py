@@ -67,6 +67,7 @@ class DispatchTOCTOUResult(AnalysisResult):
             "initial_workflow": self.__attack_path[0].get_workflow_name(),
             "confidence": self.confidence_score(),
             "attack_complexity": self.attack_complexity(),
+            "explanation": self.attack_complexity().explain(),
             "path": [node for node in self.collect_steps(self.__attack_path)],
             "sink": (
                 self.__attack_path[-1].get_step_data()

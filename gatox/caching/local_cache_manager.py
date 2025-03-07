@@ -22,7 +22,7 @@ from gatox.caching.cache_manager import CacheManager
 class LocalCacheFactory:
     """
     A factory class for managing local cache operations in Gato-X.
-    
+
     This class provides static methods to serialize and deserialize the cache
     to/from local files. The cache stores GitHub Actions metadata in a format
     of 'repo_slug:action_path:ref'.
@@ -56,7 +56,7 @@ class LocalCacheFactory:
         Raises:
             ValueError: If the cache key format is invalid or if repository
                        slug is not lowercase.
-                       
+
         Example cache key format:
             'owner/repo:actions/checkout:v2'
         """

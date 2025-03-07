@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from abc import abstractmethod
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
 
@@ -80,3 +81,7 @@ class AnalysisResult:
             str: The attack complexity score.
         """
         return self.__attack_complexity
+
+    @abstractmethod
+    def to_machine(self):
+        pass

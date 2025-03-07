@@ -40,3 +40,15 @@ class Complexity(str, Enum):
 
     def __repr__(self) -> str:
         return str(self.value)
+
+    def explain(self) -> str:
+        if self.value == Complexity.ZERO_CLICK:
+            return "Exploit requires no user interaction"
+        elif self.value == Complexity.PREVIOUS_CONTRIBUTOR:
+            return "Exploit requires a previous contributor to the repository, and the repository must use the default pull-request approval setting."
+        elif self.value == Complexity.FOLLOW_UP:
+            return "Exploit requires a maintainer to perform some state changing action, such as labeling a PR, at that point the attacker can follow up with their payload."
+        elif self.value == Complexity.TOCTOU:
+            return "Exploit requires updating pull request quickly after the maintainer performs an approval action."
+        elif self.value == Complexity.BROKEN_ACCESS:
+            return "Exploit requires the attacker to have some access, but the access control mechanism is not properly implemented."

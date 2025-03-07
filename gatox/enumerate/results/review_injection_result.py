@@ -52,6 +52,7 @@ class ReviewInjectionResult(AnalysisResult):
         return hash(
             (
                 str(self.__attack_path[0]),
+                str(self.__attack_path[-1]),
                 self.attack_complexity(),
                 self.confidence_score(),
             )
@@ -71,6 +72,7 @@ class ReviewInjectionResult(AnalysisResult):
             "initial_workflow": self.__attack_path[0].get_workflow_name(),
             "confidence": self.confidence_score(),
             "attack_complexity": self.attack_complexity(),
+            "explanation": self.attack_complexity().explain(),
             "path": [node for node in self.collect_steps(self.__attack_path)],
             "injectable_context": self.__attack_path[-1].contexts,
         }

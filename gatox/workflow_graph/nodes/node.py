@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+
 class Node:
     """
     A base class representing a generic node with a name.

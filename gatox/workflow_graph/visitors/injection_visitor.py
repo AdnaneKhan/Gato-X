@@ -218,7 +218,7 @@ class InjectionVisitor:
                                         results,
                                         IssueType.ACTIONS_INJECTION,
                                         confidence=conf,
-                                        complexity=complexity
+                                        complexity=complexity,
                                     )
                                     break
                     elif "WorkflowNode" in tags:
