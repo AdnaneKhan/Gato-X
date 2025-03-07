@@ -55,6 +55,7 @@ class AnalysisResult:
         """
         return self.__repository_name
 
+    @abstractmethod
     def issue_type(self):
         """
         Gets the issue type.

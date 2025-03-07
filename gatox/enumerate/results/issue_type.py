@@ -27,11 +27,11 @@ class IssueType(str, Enum):
         ENVIRONMENT_POLLUTION:
     """
 
-    PWN_REQUEST: str = "Pwn Request"
-    DISPATCH_TOCTOU: str = "Dispatch Time-of-Check to Time-of-Use"
-    ACTIONS_INJECTION: str = "Actions Injection"
-    PR_REVIEW_INJECTON: str = "Pull Request Review Injection"
-    ENVIRONMENT_POLLUTION: str = "Environment Pollution"
+    PWN_REQUEST: str = "PwnRequestResult"
+    DISPATCH_TOCTOU: str = "DispatchTOCTOUResult"
+    ACTIONS_INJECTION: str = "InjectionResult"
+    PR_REVIEW_INJECTON: str = "ReviewInjectionResult"
+    ENVIRONMENT_POLLUTION: str = "EnvironmentPollutionResult"
 
     def __str__(self) -> str:
         return str(self.value)
