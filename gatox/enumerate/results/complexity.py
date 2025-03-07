@@ -33,7 +33,6 @@ class Complexity(str, Enum):
     FOLLOW_UP = "Persistent Approval Gated"
     TOCTOU = "Time-of-Check to Time-of-Use"
     BROKEN_ACCESS = "Broken Access Control"
-    DEFAULT_DEPENDENT = "Default Configuration Dependent"
 
     def __str__(self) -> str:
         return str(self.value)

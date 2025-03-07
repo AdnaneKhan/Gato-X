@@ -124,7 +124,6 @@ def test_action_render(capsys, mock_api):
         test_flow, Confidence.HIGH, Complexity.ZERO_CLICK
     )
 
-    # print(flow.to_machine())
     ActionsReport.render_report(flow)
     captured = capsys.readouterr()
 
