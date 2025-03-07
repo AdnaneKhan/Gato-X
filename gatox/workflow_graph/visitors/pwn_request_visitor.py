@@ -1,3 +1,19 @@
+"""
+Copyright 2025, Adnan Khan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import logging
 
 from gatox.enumerate.results.confidence import Confidence
@@ -8,7 +24,6 @@ from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
 from gatox.github.api import Api
 from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.caching.cache_manager import CacheManager
-from gatox.enumerate.reports.actions import ActionsReport
 
 logger = logging.getLogger(__name__)
 
@@ -126,18 +141,15 @@ class PwnRequestVisitor:
                         if approval_gate:
                             complexity = Complexity.TOCTOU
                         elif "workflow_run" in path[0].get_tags():
-                            complexity = Complexity.CONTRIBUTION_REQUIRED
+                            complexity = Complexity.PREVIOUS_CONTRIBUTOR
 
-                        complexity = (
-                            Complexity.TOCTOU
-                            if approval_gate
-                            else Complexity.ZERO_CLICK
-                        )
+                        complexity = Complexity.TOCTOU if approval_gate else complexity
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
                             confidence = Confidence.HIGH
                         else:
                             confidence = Confidence.UNKNOWN
+
                         VisitorUtils._add_results(
                             path,
                             results,
@@ -145,6 +157,7 @@ class PwnRequestVisitor:
                             complexity=complexity,
                             confidence=confidence,
                         )
+                        break
 
                 if node.outputs:
                     for key, val in node.outputs.items():
@@ -242,6 +255,4 @@ class PwnRequestVisitor:
                 except Exception as e:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")
-
-        VisitorUtils.add_repo_results(results, api)
         return results

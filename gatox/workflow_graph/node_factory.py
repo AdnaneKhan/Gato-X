@@ -1,3 +1,19 @@
+"""
+Copyright 2025, Adnan Khan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
@@ -5,7 +21,6 @@ from gatox.workflow_graph.nodes.repo import RepoNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
-from gatox.caching.cache_manager import CacheManager
 from gatox.workflow_parser.utility import parse_github_path
 
 

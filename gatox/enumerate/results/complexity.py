@@ -1,3 +1,19 @@
+"""
+Copyright 2025, Adnan Khan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 from enum import Enum
 
 
@@ -12,15 +28,27 @@ class Complexity(str, Enum):
         DEFAULT_DEPENDENT: Vulnerability depends on default configuration
     """
 
-    ZERO_CLICK = "Zero Click"
+    ZERO_CLICK = "No Interaction"
+    PREVIOUS_CONTRIBUTOR = "Previous Contributor"
     FOLLOW_UP = "Persistent Approval Gated"
     TOCTOU = "Time-of-Check to Time-of-Use"
     BROKEN_ACCESS = "Broken Access Control"
     DEFAULT_DEPENDENT = "Default Configuration Dependent"
-    CONTRIBUTION_REQUIRED = "Workflow Run Triggered Issue"
 
     def __str__(self) -> str:
         return str(self.value)
 
     def __repr__(self) -> str:
         return str(self.value)
+
+    def explain(self) -> str:
+        if self.value == Complexity.ZERO_CLICK:
+            return "Exploit requires no user interaction"
+        elif self.value == Complexity.PREVIOUS_CONTRIBUTOR:
+            return "Exploit requires a previous contributor to the repository, and the repository must use the default pull-request approval setting."
+        elif self.value == Complexity.FOLLOW_UP:
+            return "Exploit requires a maintainer to perform some state changing action, such as labeling a PR, at that point the attacker can follow up with their payload."
+        elif self.value == Complexity.TOCTOU:
+            return "Exploit requires updating pull request quickly after the maintainer performs an approval action."
+        elif self.value == Complexity.BROKEN_ACCESS:
+            return "Exploit requires the attacker to have some access, but the access control mechanism is not properly implemented."

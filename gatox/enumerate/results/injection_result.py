@@ -1,5 +1,18 @@
-import json
+"""
+Copyright 2025, Adnan Khan
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
@@ -65,6 +78,7 @@ class InjectionResult(AnalysisResult):
             "initial_workflow": self.__attack_path[0].get_workflow_name(),
             "confidence": self.confidence_score(),
             "attack_complexity": self.attack_complexity(),
+            "explanation": self.attack_complexity().explain(),
             "path": [node for node in self.collect_steps(self.__attack_path)],
             "injectable_context": self.__attack_path[-1].contexts,
         }

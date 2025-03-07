@@ -35,6 +35,7 @@ class Report:
         Output.generic(f" Triggers: {Output.yellow(' '.join(details['triggers']))}")
         Output.generic(f" Confidence: {Output.red(details['confidence'])}")
         Output.generic(f" Complexity: {Output.blue(details['attack_complexity'])}")
+        Output.generic(f" Explanation: {Output.green(details['explanation'])}")
 
     @classmethod
     def print_divider(cls):
