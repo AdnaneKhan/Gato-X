@@ -32,7 +32,6 @@ def test_find_pwn_requests_no_nodes(mock_graph, mock_api, mock_cache_manager):
     mock_graph.get_nodes_for_tags.return_value = []
     with patch.object(VisitorUtils, "add_repo_results") as mock_add:
         result = PwnRequestVisitor.find_pwn_requests(mock_graph, mock_api)
-        
 
 
 def test_find_pwn_requests_with_nodes(mock_graph, mock_api, mock_cache_manager):
