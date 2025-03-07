@@ -98,7 +98,10 @@ class ActionsReport(Report):
             ]:
                 details.append(f"   ↪ Checkout: {Output.yellow(node['checkout_ref'])}")
 
-            if "contexts" in node and result.issue_type() == "InjectionResult":
+            if (
+                "contexts" in node
+                and result.issue_type() == IssueType.ACTIONS_INJECTION
+            ):
                 details.append(
                     f"   ↪ Context Vars: {Output.yellow(', '.join(node['contexts']))}"
                 )

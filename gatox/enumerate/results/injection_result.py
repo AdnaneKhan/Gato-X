@@ -17,6 +17,7 @@ limitations under the License.
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.analysis_result import AnalysisResult
+from gatox.enumerate.results.issue_type import IssueType
 
 
 class InjectionResult(AnalysisResult):
@@ -37,7 +38,7 @@ class InjectionResult(AnalysisResult):
 
         super().__init__(
             repository_name,
-            InjectionResult.__name__,
+            IssueType.ACTIONS_INJECTION,
             confidence_score,
             attack_complexity_score,
         )

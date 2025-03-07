@@ -17,6 +17,7 @@ limitations under the License.
 from gatox.enumerate.results.confidence import Confidence
 from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.analysis_result import AnalysisResult
+from gatox.enumerate.results.issue_type import IssueType
 
 
 class PwnRequestResult(AnalysisResult):
@@ -34,7 +35,7 @@ class PwnRequestResult(AnalysisResult):
 
         super().__init__(
             repository_name,
-            PwnRequestResult.__name__,
+            IssueType.PWN_REQUEST,
             confidence_score,
             attack_complexity_score,
         )

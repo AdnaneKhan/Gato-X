@@ -33,7 +33,6 @@ class Complexity(str, Enum):
     FOLLOW_UP = "Persistent Approval Gated"
     TOCTOU = "Time-of-Check to Time-of-Use"
     BROKEN_ACCESS = "Broken Access Control"
-    DEFAULT_DEPENDENT = "Default Configuration Dependent"
 
     def __str__(self) -> str:
         return str(self.value)
@@ -43,12 +42,12 @@ class Complexity(str, Enum):
 
     def explain(self) -> str:
         if self.value == Complexity.ZERO_CLICK:
-            return "Exploit requires no user interaction"
+            return "Exploit requires no user interaction, you must still confirm there are no custom permission checks that would prevent the attack."
         elif self.value == Complexity.PREVIOUS_CONTRIBUTOR:
             return "Exploit requires a previous contributor to the repository, and the repository must use the default pull-request approval setting."
         elif self.value == Complexity.FOLLOW_UP:
             return "Exploit requires a maintainer to perform some state changing action, such as labeling a PR, at that point the attacker can follow up with their payload."
         elif self.value == Complexity.TOCTOU:
-            return "Exploit requires updating pull request quickly after the maintainer performs an approval action."
+            return "Exploit requires updating pull request quickly after the maintainer performs an approval action, make sure the approval action runs on forks for this to be feasible."
         elif self.value == Complexity.BROKEN_ACCESS:
             return "Exploit requires the attacker to have some access, but the access control mechanism is not properly implemented."
