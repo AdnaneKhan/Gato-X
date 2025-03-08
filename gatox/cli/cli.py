@@ -95,8 +95,6 @@ def save_workflow_ymls(output_directory):
             with open(
                 os.path.join(output_directory, f"{repo}/{workflow.workflow_name}"), "w"
             ) as wf_out:
-                print(repo)
-                print(workflow.workflow_name)
                 wf_out.write(workflow.workflow_contents)
 
 
