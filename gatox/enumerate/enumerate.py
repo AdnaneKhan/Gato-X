@@ -117,7 +117,7 @@ class Enumerator:
 
         return True
 
-    def __query_graphql_workflows(self, queries):
+    async def __query_graphql_workflows(self, queries):
         """
         Query workflows using the GitHub GraphQL API.
 
@@ -344,7 +344,7 @@ class Enumerator:
 
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
-        self.__query_graphql_workflows(wf_queries)
+        async_wrap(self.__query_graphql_workflows, wf_queries)
         self.__finalize_caches(enum_list)
 
         if self.deep_dive:
@@ -441,7 +441,7 @@ class Enumerator:
             f"from {len(repo_names)} repositories!"
         )
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
-        self.__query_graphql_workflows(queries)
+        async_wrap(self.__query_graphql_workflows, queries)
         for repo in repo_names:
             self.__retrieve_missing_ymls(repo)
 
