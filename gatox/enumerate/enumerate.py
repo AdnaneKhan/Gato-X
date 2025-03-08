@@ -37,7 +37,6 @@ class Enumerator:
         pat: str,
         socks_proxy: str = None,
         http_proxy: str = None,
-        output_yaml: str = None,
         skip_log: bool = False,
         github_url: str = None,
         output_json: str = None,
@@ -52,8 +51,6 @@ class Enumerator:
             Defaults to None.
             http_proxy (str, optional): Proxy gettings for HTTP proxy.
             Defaults to None.
-            output_yaml (str, optional): If set, directory to save all yml
-            files to . Defaults to None.
             skip_log (bool, optional): If set, then run logs will not be
             downloaded.
             output_json (str, optional): JSON file to output enumeration
@@ -69,14 +66,13 @@ class Enumerator:
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.skip_log = skip_log
-        self.output_yaml = output_yaml
         self.user_perms = None
         self.github_url = github_url
         self.output_json = output_json
         self.deep_dive = deep_dive
         self.ignore_workflow_run = ignore_workflow_run
 
-        self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
+        self.repo_e = RepositoryEnum(self.api, skip_log)
         self.org_e = OrganizationEnum(self.api)
 
     def __setup_user_info(self):

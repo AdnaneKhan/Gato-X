@@ -25,7 +25,6 @@ class CacheManager:
     """
     Singleton class that manages an in-memory cache for workflows and reusable actions.
 
-    TODO: Integrate with Redis.
     """
 
     _instance = None
@@ -42,7 +41,16 @@ class CacheManager:
             cls._instance.action_cache = {}
         return cls._instance
 
-    def get_workflow(self, repo_slug: str, workflow_name: str):
+    def get_repos(self) -> list:
+        """
+        Get all repository names from the in-memory dictionary.
+
+        Returns:
+            list: A list of repository names.
+        """
+        return list(self.repo_store.keys())
+
+    def get_workflow(self, repo_slug: str, workflow_name: str) -> Workflow:
         """
         Get a workflow from the in-memory dictionary.
 
@@ -83,7 +91,7 @@ class CacheManager:
         key = f"{repo_slug.lower()}:{action_path}:{ref}"
         return key in self.action_cache
 
-    def get_workflows(self, repo_slug: str):
+    def get_workflows(self, repo_slug: str) -> list:
         """
         Get all workflows for a repository from the in-memory dictionary.
 
@@ -127,7 +135,7 @@ class CacheManager:
         key = repository.name.lower()
         self.repo_store[key] = repository
 
-    def get_repository(self, repo_slug: str):
+    def get_repository(self, repo_slug: str) -> Repository:
         """
         Get a repository from the in-memory dictionary.
 
