@@ -6,6 +6,7 @@ import string
 from gatox.github.api import Api
 from gatox.attack.cicd_attack import CICDAttack
 from gatox.cli.output import Output
+from gatox.util import async_wrap
 
 logger = logging.getLogger(__name__)
 logging.root.setLevel(logging.DEBUG)
@@ -45,7 +46,7 @@ class Attacker:
     def setup_user_info(self):
         """ """
         if not self.user_perms:
-            self.user_perms = self.api.check_user()
+            self.user_perms = async_wrap(self.api.check_user)
             if not self.user_perms:
                 logger.error("This token cannot be used for attacks!")
                 return False

@@ -1,17 +1,19 @@
+import asyncio
 import base64
 import copy
-import time
-import requests
 import logging
 import zipfile
 import re
 import io
+import httpx
+import urllib3
 
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
 from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.models.workflow import Workflow
 from gatox.github.gql_queries import GqlQueries
+from gatox.util import async_wrap
 
 logger = logging.getLogger(__name__)
 
@@ -71,23 +73,23 @@ class Api:
 
         if http_proxy:
             # We are likely using BURP, so disable SSL.
-            requests.packages.urllib3.disable_warnings()
+            urllib3.disable_warnings()
             self.verify_ssl = False
             self.proxies = {
-                "http": f"http://{http_proxy}",
-                "https": f"http://{http_proxy}",
+                "http://": httpx.AsyncHTTPTransport(proxy=f"http://{http_proxy}"),
+                "https://": httpx.AsyncHTTPTransport(proxy=f"http://{http_proxy}"),
             }
         elif socks_proxy:
             self.proxies = {
-                "http": f"socks5://{socks_proxy}",
-                "https": f"socks5://{socks_proxy}",
+                "http://": httpx.AsyncHTTPTransport(proxy=f"socks5://{socks_proxy}"),
+                "https://": httpx.AsyncHTTPTransport(proxy=f"socks5://{socks_proxy}"),
             }
 
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
-            requests.packages.urllib3.disable_warnings()
+            urllib3.disable_warnings()
 
-    def __check_rate_limit(self, headers):
+    async def __check_rate_limit(self, headers):
         """Checks the rate limit, and pauses Gato execution until the rate
         limit resets.
         """
@@ -117,7 +119,7 @@ class Api:
                 "to prevent rate limit exhaustion!"
             )
 
-            time.sleep(sleep_time + 1)
+            await asyncio.sleep(sleep_time + 1)
 
     def __process_run_log(self, log_content: bytes, run_info: dict):
         """Utility method to process a run log zip file.
@@ -240,26 +242,27 @@ class Api:
 
                         return content
 
-    def __get_raw_file(self, repo: str, file_path: str, ref: str):
+    async def get_raw_file_async(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
-        resp = requests.get(
-            f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
-            proxies=self.proxies,
-            verify=self.verify_ssl,
-        )
+        async with httpx.AsyncClient(
+            mounts=self.proxies, verify=self.verify_ssl
+        ) as client:
+            resp = await client.get(
+                f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
+            )
 
-        if resp.status_code == 404:
-            return None
-        elif resp.status_code == 200:
-            return resp.text
+            if resp.status_code == 404:
+                return None
+            elif resp.status_code == 200:
+                return resp.text
 
     @staticmethod
-    def __verify_result(response: requests.Response, expected_code: int):
+    def __verify_result(response: httpx.Response, expected_code: int):
         """Verifies that the response matches the expected code. If it does not
         match, then the response is logged and the program exits.
 
         Args:
-            response (requests.Response): Response object from a request.
+            response (httpx.Response): Response object from a request.
             expected_code (int): Expected status code from the request.
         """
         if response.status_code != expected_code:
@@ -289,32 +292,45 @@ class Api:
         Returns:
             Response: Returns the requests response object.
         """
+        return async_wrap(self.call_get_async, url, params, strip_auth)
+
+    async def call_get_async(self, url: str, params: dict = None, strip_auth=False):
         request_url = self.github_url + url
 
         get_header = copy.deepcopy(self.headers)
         if strip_auth:
             del get_header["Authorization"]
 
-        for i in range(0, 5):
-            try:
-                logger.debug(f"Making GET API request to {request_url}!")
-                api_response = requests.get(
-                    request_url,
-                    headers=get_header,
-                    proxies=self.proxies,
-                    params=params,
-                    verify=self.verify_ssl,
-                )
-                break
-            except Exception:
-                logger.warning("GET request failed due to transport error re-trying!")
-                continue
+        async with httpx.AsyncClient(
+            mounts=self.proxies, verify=self.verify_ssl
+        ) as client:
+            for i in range(0, 5):
+                try:
+                    logger.debug(f"Making GET API request to {request_url}!")
+                    api_response = await client.get(
+                        request_url,
+                        headers=get_header,
+                        params=params,
+                    )
+                    break
+                except Exception as e:
+                    logger.warning(
+                        "GET request failed due to transport error re-trying!",
+                        exc_info=True,
+                    )
+                    continue
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
     def call_post(self, url: str, params: dict = None):
+        """Internal method to wrap a POST request so that proxies and headers
+        do not need to be updated in each method.
+        """
+        return async_wrap(self.call_post_async, url, params)
+
+    async def call_post_async(self, url: str, params: dict = None):
         """Internal method to wrap a POST request so that proxies and headers
         do not need to be updated in each method.
 
@@ -328,19 +344,20 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making POST API request to {request_url}!")
 
-        api_response = requests.post(
-            request_url,
-            headers=self.headers,
-            proxies=self.proxies,
-            json=params,
-            verify=self.verify_ssl,
-        )
-        logger.debug(
-            f"The POST request to {request_url} returned a "
-            f"{api_response.status_code}!"
-        )
+        async with httpx.AsyncClient(
+            mounts=self.proxies, verify=self.verify_ssl
+        ) as client:
+            api_response = await client.post(
+                request_url,
+                headers=self.headers,
+                json=params,
+            )
+            logger.debug(
+                f"The POST request to {request_url} returned a "
+                f"{api_response.status_code}!"
+            )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
@@ -355,22 +372,27 @@ class Api:
         Returns:
             Response: Returns the requests response object.
         """
+        return async_wrap(self.call_patch_async, url, params)
+
+    async def call_patch_async(self, url: str, params: dict = None):
         request_url = self.github_url + url
         logger.debug(f"Making PATCH API request to {request_url}!")
 
-        api_response = requests.patch(
-            request_url,
-            headers=self.headers,
-            proxies=self.proxies,
-            json=params,
-            verify=self.verify_ssl,
-        )
+        async with httpx.AsyncClient(
+            mounts=self.proxies, verify=self.verify_ssl
+        ) as client:
+            api_response = await client.patch(
+                request_url,
+                headers=self.headers,
+                json=params,
+            )
+
         logger.debug(
             f"The PATCH request to {request_url} returned a "
             f"{api_response.status_code}!"
         )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
@@ -382,18 +404,23 @@ class Api:
             url (stre): _description_
             params (dict, optional): _description_. Defaults to None.
         """
+
+        return async_wrap(self.call_put_async, url, params)
+
+    async def call_put_async(self, url: str, params: dict = None):
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
-        api_response = requests.put(
-            request_url,
-            headers=self.headers,
-            proxies=self.proxies,
-            json=params,
-            verify=self.verify_ssl,
-        )
+        async with httpx.AsyncClient(
+            mounts=self.proxies, verify=self.verify_ssl
+        ) as client:
+            api_response = await client.put(
+                request_url,
+                headers=self.headers,
+                json=params,
+            )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
@@ -408,22 +435,28 @@ class Api:
         Returns:
             Response: Returns the requests response object.
         """
+
+        return async_wrap(self.call_delete_async, url, params)
+
+    async def call_delete_async(self, url: str, params: dict = None):
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        api_response = requests.delete(
-            request_url,
-            headers=self.headers,
-            proxies=self.proxies,
-            json=params,
-            verify=self.verify_ssl,
-        )
+        async with httpx.AsyncClient(
+            mounts=self.proxies, verify=self.verify_ssl
+        ) as client:
+            api_response = await client.delete(
+                request_url,
+                headers=self.headers,
+                json=params,
+            )
+
         logger.debug(
-            f"The POST request to {request_url} returned a "
+            f"The DELETE request to {request_url} returned a "
             f"{api_response.status_code}!"
         )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
@@ -558,7 +591,6 @@ class Api:
             str: The type of the user if the request is successful.
 
         Raises:
-            requests.exceptions.RequestException: If the request fails due to network issues or invalid responses.
             KeyError: If the 'type' key is not present in the response JSON.
         """
         result = self.call_get(f"/users/{username}")
@@ -790,7 +822,7 @@ class Api:
 
         return repos
 
-    def check_user(self):
+    async def check_user(self):
         """Gets the authenticated user associated with a GitHub PAT and returns
         the username and available scopes.
 
@@ -804,7 +836,7 @@ class Api:
         Returns:
             dict: User associated with the PAT, None otherwise.
         """
-        result = self.call_get("/user")
+        result = await self.call_get_async("/user")
 
         if result.status_code == 200:
             resp_headers = result.headers.get("x-oauth-scopes")
@@ -1257,7 +1289,7 @@ class Api:
 
         return ymls
 
-    def retrieve_repo_file(
+    async def retrieve_repo_file(
         self, repo_name: str, file_path: str, ref: str, public=False
     ):
         """Retrieves a single file from a GitHub repository.
@@ -1266,11 +1298,10 @@ class Api:
         endpoint to save on the API rate limit.
         """
         file_data = None
-
         if public:
-            file_data = self.__get_raw_file(repo_name, file_path, ref)
+            file_data = await self.get_raw_file_async(repo_name, file_path, ref)
         else:
-            resp = self.call_get(
+            resp = await self.call_get_async(
                 f"/repos/{repo_name}/contents/{file_path}", params={"ref": ref}
             )
             if resp.status_code == 200:
@@ -1422,7 +1453,7 @@ class Api:
 
         return commit_date, commit_author, commit_sha
 
-    def get_all_environment_protection_rules(self, repo_name: str):
+    async def get_all_environment_protection_rules(self, repo_name: str):
         """
         Query all environments for a GitHub repository and return the combined protection rules array.
 
@@ -1432,7 +1463,7 @@ class Api:
         Returns:
             list: The combined protection rules array from all environments.
         """
-        response = self.call_get(f"/repos/{repo_name}/environments")
+        response = await self.call_get_async(f"/repos/{repo_name}/environments")
 
         all_protection_rules = []
 
@@ -1713,11 +1744,13 @@ class Api:
         else:
             return False
 
-    def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
+    async def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
         """Retrieves a GitHub action yaml file from a public repository."""
         if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             file_path = file_path.replace("//", "/")
             paths = [file_path]
+        elif file_path == "":
+            paths = ["action.yml", "action.yaml"]
         else:
             if not file_path.endswith("/"):
                 file_path += "/"
@@ -1726,7 +1759,7 @@ class Api:
             paths = [f"{file_path}action.yml", f"{file_path}action.yaml"]
 
         for path in paths:
-            res = self.__get_raw_file(repo, path, ref)
+            res = await self.get_raw_file_async(repo, path, ref)
 
             if res:
                 return res
