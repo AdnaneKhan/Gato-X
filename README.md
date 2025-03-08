@@ -6,10 +6,6 @@
 Gato-X is a _FAST_ scanning and attack tool for GitHub Actions pipelines. You can use it to identify
 Pwn Requests, Actions Injection, TOCTOU Vulnerabilities, and Self-Hosted Runner takeover at scale using just a single API token. It will also analyze cross-repository workflows and reusable actions. This surfaces vulnerabilities that other scanners miss because they only scan workflows within a single repository.
 
-<p align="center">
-  <img src="demo.svg" width=600>
-</p>
-
 Gato-X is an operator focused tool that is tuned to avoid false negatives. It will have a higher false positive rate than SAST tools like CodeQL, but Gato-X will give you everything you need to quickly determine if something is a true positive or not!
 
 The `search` and `enumerate` modes are safe to run on all public repositories, and
@@ -51,11 +47,11 @@ Gato Extreme Edition is a tool designed to help security practitioners identify 
 
 Gato-X contains a powerful scanning engine for GitHub Actions Injection and
 Pwn Request vulnerabilities. As of writing, Gato-X is one of the fastest tools
-for the task. It is capable of scanning 35-40 *thousand* repositories in a few hours
+for the task. It is capable of scanning 35-40 *thousand* repositories in 1-2 hours
 using a single GitHub PAT. This is the most sophisticated feature in Gato-X and is the result of countless hours of development and iteration.
 
 * Reachability Analysis
-* Same and Cross-Repository Transitive Workflow Analysis
+* Same and Cross-Repository Transitive Workflow AND Reusable Action Analysis
 * Parsing and Simulation of "If Statements"
 * Gate Check Detection (permission checks, etc.)
 * Lightweight Source-Sink Analysis for Variables
@@ -90,9 +86,30 @@ If you ever encounter a GitHub PAT, you can use Gato-X to validate it and identi
 
 #### Automated Pwn Requests
 
-Gato-X currently only automates the self-hosted runner attack. It does not contain any features to automate the exploitation process for Pwn Requests and Injection. I plan to add a feature 
+Gato-X currently only automates the self-hosted runner attack. It does not contain any features to automate the exploitation process for Pwn Requests and Injection. I plan to add a feature that will perform automated exploitation of simple Pwn Requests and Injection vulnerabilities using flexible attack templates (defined in yaml)
 
 ## Quick Start
+
+### Search For GitHub Actions Vulnerabilities at GitHub Scale
+
+First, create a GitHub PAT with the `repo` scope. Set that PAT to the
+`GH_TOKEN` environment variable.
+
+Next, use the search feature to retrieve a list of candidate repositories:
+
+```
+gato-x s -sg -q 'count:75000 /(issue_comment|pull_request_target|issues:)/ file:.github/workflows/ lang:yaml' -oT checks.txt
+```
+
+Finally, run Gato-X on the list of repositories:
+
+```
+gato-x e -R checks.txt | tee gatox_output.txt
+```
+
+This will take some time depending on your computer and internet connection speed. Since the results are very long, use `tee` to save them to a file
+for later review. Gato-X also supports JSON output, but that is intended for further machine analysis.
+
 
 ### Perform Self Hosted Runner Takeover
 
@@ -118,25 +135,6 @@ self-hosted runner.
 If the target runner is non-ephemeral, use the `--keep-alive` flag. This will keep the workflow running. GitHub
 Actions allows workflow runs on self-hosted runners to run for up to **5 days** (as of writing, this might change - it was 30 days).
 
-### Search For GitHub Actions Vulnerabilities at GitHub Scale
-
-First, create a GitHub PAT with the `repo` scope. Set that PAT to the
-`GH_TOKEN` environment variable.
-
-Next, use the search feature to retrieve a list of candidate repositories:
-
-```
-gato-x s -sg -q 'count:75000 /(issue_comment|pull_request_target|issues:)/ file:.github/workflows/ lang:yaml' -oT checks.txt
-```
-
-Finally, run Gato-X on the list of repositories:
-
-```
-gato-x e -R checks.txt -sr | tee gatox_output.txt
-```
-
-This will take some time depending on your computer and internet connection speed. Since the results are very long, use `tee` to save them to a file
-for later review. Gato-X also supports JSON output, but that is intended for further machine analysis.
 
 ### Complex Attacks
 
