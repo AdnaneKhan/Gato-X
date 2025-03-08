@@ -1,11 +1,13 @@
 import argparse
 import os
+from pathlib import Path
 import re
 import logging
 
 from colorama import Fore, Style
 
 from gatox import util
+from gatox.caching.cache_manager import CacheManager
 from gatox.cli.colors import RED_DASH
 from gatox.cli.output import Output, SPLASH
 from gatox.caching.local_cache_manager import LocalCacheFactory
@@ -82,6 +84,20 @@ def cli(args):
     print(Output.blue(SPLASH))
 
     arguments.func(arguments, subparsers)
+
+
+def save_workflow_ymls(output_directory):
+    for repo in CacheManager().get_repos():
+        Path(os.path.join(output_directory, f"{repo}")).mkdir(
+            parents=True, exist_ok=True
+        )
+        for workflow in CacheManager().get_workflows(repo):
+            with open(
+                os.path.join(output_directory, f"{repo}/{workflow.workflow_name}"), "w"
+            ) as wf_out:
+                print(repo)
+                print(workflow.workflow_name)
+                wf_out.write(workflow.workflow_contents)
 
 
 def validate_arguments(args, parser):
@@ -341,6 +357,9 @@ def enumerate(args, parser):
             )
     elif args.repository:
         repos = gh_enumeration_runner.enumerate_repos([args.repository])
+
+    if args.output_yaml:
+        save_workflow_ymls(args.output_yaml)
 
     exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
     exec_wrapper.add_organizations(orgs)
