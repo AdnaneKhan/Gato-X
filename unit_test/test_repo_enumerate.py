@@ -36,7 +36,7 @@ def test_enumerate_repo():
     """Test constructor for enumerator."""
     mock_api = MagicMock()
 
-    gh_enumeration_runner = RepositoryEnum(mock_api, False, True)
+    gh_enumeration_runner = RepositoryEnum(mock_api, False)
 
     mock_api.check_user.return_value = {
         "user": "testUser",
@@ -70,7 +70,7 @@ def test_enumerate_repo_admin():
     """Test constructor for enumerator."""
     mock_api = MagicMock()
 
-    gh_enumeration_runner = RepositoryEnum(mock_api, False, True)
+    gh_enumeration_runner = RepositoryEnum(mock_api, False)
 
     mock_api.check_user.return_value = {
         "user": "testUser",
@@ -102,7 +102,7 @@ def test_enumerate_repo_secrets():
     """Test constructor for enumerator."""
     mock_api = MagicMock()
 
-    gh_enumeration_runner = RepositoryEnum(mock_api, False, True)
+    gh_enumeration_runner = RepositoryEnum(mock_api, False)
 
     mock_api.check_user.return_value = {
         "user": "testUser",

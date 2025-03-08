@@ -303,7 +303,6 @@ def enumerate(args, parser):
         args.gh_token,
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy,
-        output_yaml=args.output_yaml,
         skip_log=args.skip_runners,
         github_url=args.api_url,
         ignore_workflow_run=args.ignore_workflow_run,

@@ -72,7 +72,6 @@ def test_init(mock_api):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
-        output_yaml=True,
         skip_log=False,
     )
 
@@ -96,7 +95,6 @@ def test_self_enumerate(mock_api, capsys):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
-        output_yaml=True,
         skip_log=False,
     )
 
@@ -116,7 +114,6 @@ def test_enumerate_repo_admin(mock_api, capsys):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
-        output_yaml=True,
         skip_log=False,
     )
 
@@ -151,7 +148,6 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
-        output_yaml=True,
         skip_log=False,
     )
 
@@ -194,7 +190,6 @@ def test_enum_validate(mock_api, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -221,7 +216,6 @@ def test_enum_repo(mock_api, mock_time, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -295,7 +289,6 @@ def test_enum_org(mock_api, mock_time, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -354,7 +347,6 @@ def test_enum_repo_runner(mock_api, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -387,7 +379,6 @@ def test_enum_repos(mock_api, mock_time, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -413,7 +404,6 @@ def test_enum_repos_empty(mock_api, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -430,7 +420,6 @@ def test_bad_token(mock_api):
         "ghp_BADTOKEN",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -450,7 +439,6 @@ def test_unscoped_token(mock_api, capfd):
         "ghp_BADTOKEN",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
     )
 
@@ -473,7 +461,6 @@ def test_enum_self_no_repos(mock_api, capfd):
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
-        output_yaml=False,
         skip_log=True,
         output_json="test.json",
     )

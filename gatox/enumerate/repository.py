@@ -1,5 +1,6 @@
 import logging
 
+from gatox.caching.cache_manager import CacheManager
 from gatox.enumerate.reports.runners import RunnersReport
 from gatox.cli.output import Output
 from gatox.enumerate.reports.actions import ActionsReport
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 class RepositoryEnum:
     """Repository specific enumeration functionality."""
 
-    def __init__(self, api: Api, skip_log: bool, output_yaml):
+    def __init__(self, api: Api, skip_log: bool):
         """Initialize enumeration class with instantiated API wrapper and CLI
         parameters.
 
@@ -23,8 +24,6 @@ class RepositoryEnum:
         """
         self.api = api
         self.skip_log = skip_log
-        self.output_yaml = output_yaml
-        self.temp_wf_cache = {}
 
     def perform_runlog_enumeration(self, repository: Repository, workflows: list):
         """Enumerate for the presence of a self-hosted runner based on
