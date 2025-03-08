@@ -441,7 +441,7 @@ class Enumerator:
             f"from {len(repo_names)} repositories!"
         )
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
-        async_wrap(self.__query_graphql_workflows, queries)
+        await self.__query_graphql_workflows(queries)
         for repo in repo_names:
             self.__retrieve_missing_ymls(repo)
 
