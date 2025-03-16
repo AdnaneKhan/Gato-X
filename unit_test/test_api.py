@@ -391,12 +391,24 @@ def test_check_org(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get().status_code = 200
 
-    mock_get.return_value.json.return_value = [
-        {"login": "org1"},
-        {"login": "org2"},
-        {"login": "org3"},
-        {"login": "org4"},
-        {"login": "org5"},
+    # Mock the API response to return orgs on the first call and an empty list on the second call
+    mock_get.side_effect = [
+        MagicMock(
+            status_code=200,
+            json=MagicMock(
+                return_value=[
+                    {"login": "org1"},
+                    {"login": "org2"},
+                    {"login": "org3"},
+                    {"login": "org4"},
+                    {"login": "org5"},
+                ]
+            ),
+        ),
+        MagicMock(
+            status_code=200,
+            json=MagicMock(return_value=[]),
+        ),
     ]
 
     abstraction_layer = Api(test_pat, "2022-11-28")
@@ -405,6 +417,10 @@ def test_check_org(mock_get):
 
     assert len(result) == 5
     assert result[0] == "org1"
+    assert result[1] == "org2"
+    assert result[2] == "org3"
+    assert result[3] == "org4"
+    assert result[4] == "org5"
 
 
 @patch("gatox.github.api.requests.get")
