@@ -520,16 +520,27 @@ class Api:
             list(str): List of strings containing the organization names that
             the user is a member of.
         """
+        organizations = []
+        page = 1
+        per_page = 100
 
-        result = self.call_get("/user/orgs")
+        while True:
+            params = {"page": page, "per_page": per_page}
+            result = self.call_get("/user/orgs", params=params)
 
-        if result.status_code == 200:
+            if result.status_code == 200:
+                orgs = result.json()
+                if not orgs:
+                    break
+                
+                organizations.extend([org["login"] for org in orgs])
+                page += 1
+            elif result.status_code == 403:
+                break
+            else:
+                break
 
-            organizations = result.json()
-
-            return [org["login"] for org in organizations]
-        elif result.status_code == 403:
-            return []
+        return organizations
 
     def get_repository(self, repository: str):
         """Retrieve a repository using the GitHub API.
