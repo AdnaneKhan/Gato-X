@@ -532,7 +532,7 @@ class Api:
                 orgs = result.json()
                 if not orgs:
                     break
-                
+
                 organizations.extend([org["login"] for org in orgs])
                 page += 1
             elif result.status_code == 403:

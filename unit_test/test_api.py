@@ -422,6 +422,7 @@ def test_check_org(mock_get):
     assert result[3] == "org4"
     assert result[4] == "org5"
 
+
 @patch("gatox.github.api.requests.get")
 def test_retrieve_run_logs(mock_get):
     """Test retrieving run logs."""
