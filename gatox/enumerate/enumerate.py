@@ -19,6 +19,7 @@ from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOU
 from gatox.workflow_graph.visitors.review_injection_visitor import (
     ReviewInjectionVisitor,
 )
+from gatox.util import async_wrap
 
 from gatox.enumerate.deep_dive.ingest_non_default import IngestNonDefault
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
@@ -97,7 +98,7 @@ class Enumerator:
                     return False
 
         if not self.user_perms:
-            self.user_perms = self.api.check_user()
+            self.user_perms = async_wrap(self.api.check_user)
             if not self.user_perms:
                 Output.error("This token cannot be used for enumeration!")
                 return False
@@ -116,7 +117,7 @@ class Enumerator:
 
         return True
 
-    def __query_graphql_workflows(self, queries):
+    async def query_graphql_workflows(self, queries):
         """
         Query workflows using the GitHub GraphQL API.
 
@@ -263,7 +264,7 @@ class Enumerator:
         Output.info("Enumerating user owned repositories!")
 
         repos = self.api.get_own_repos()
-        repo_wrappers = self.enumerate_repos(repos)
+        repo_wrappers = async_wrap(self.enumerate_repos, repos)
         orgs = self.api.check_organizations()
 
         Output.info(
@@ -295,7 +296,7 @@ class Enumerator:
 
         Output.result(f"Enumerating the {Output.bright(user)} user!")
 
-        repo_wrappers = self.enumerate_repos(repos)
+        repo_wrappers = async_wrap(self.enumerate_repos, repos)
 
         return repo_wrappers
 
@@ -343,7 +344,7 @@ class Enumerator:
 
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
-        self.__query_graphql_workflows(wf_queries)
+        async_wrap(self.query_graphql_workflows, wf_queries)
         self.__finalize_caches(enum_list)
 
         if self.deep_dive:
@@ -363,7 +364,7 @@ class Enumerator:
             IngestNonDefault.pool_empty()
             Output.info("Deep dive ingestion complete!")
 
-        self.process_graph()
+        async_wrap(self.process_graph)
 
         try:
             for repo in enum_list:
@@ -388,7 +389,7 @@ class Enumerator:
 
         return organization
 
-    def process_graph(self):
+    async def process_graph(self):
         """Temporarily build new enumeration functionality
         alongside the old one and then will cut over.
         """
@@ -408,11 +409,11 @@ class Enumerator:
             visitor_func = getattr(visitor, visitor_method)  # Get the method
 
             if visitor_class == PwnRequestVisitor or visitor_class == InjectionVisitor:
-                results = visitor_func(
+                results = await visitor_func(
                     WorkflowGraphBuilder().graph, self.api, self.ignore_workflow_run
                 )
             else:
-                results = visitor_func(WorkflowGraphBuilder().graph, self.api)
+                results = await visitor_func(WorkflowGraphBuilder().graph, self.api)
 
             if results:
                 VisitorUtils.add_repo_results(results, self.api)
@@ -420,7 +421,7 @@ class Enumerator:
         if not self.skip_log:
             RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
 
-    def enumerate_repos(self, repo_names: list):
+    async def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
         format.
 
@@ -440,7 +441,7 @@ class Enumerator:
             f"from {len(repo_names)} repositories!"
         )
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
-        self.__query_graphql_workflows(queries)
+        await self.query_graphql_workflows(queries)
         for repo in repo_names:
             self.__retrieve_missing_ymls(repo)
 
@@ -453,7 +454,7 @@ class Enumerator:
                 IngestNonDefault.ingest(repo_obj, self.api)
 
         IngestNonDefault.pool_empty()
-        self.process_graph()
+        await self.process_graph()
 
         try:
             for repo in repo_names:

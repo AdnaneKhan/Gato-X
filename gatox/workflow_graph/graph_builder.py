@@ -70,7 +70,7 @@ class WorkflowGraphBuilder:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
 
-    def _initialize_action_node(self, node: ActionNode, api):
+    async def _initialize_action_node(self, node: ActionNode, api):
         """
         Initialize an ActionNode by retrieving and parsing its contents.
 
@@ -81,7 +81,7 @@ class WorkflowGraphBuilder:
         action_metadata = node.action_info
         node.initialized = True
 
-        def get_action_contents(repo, path, ref):
+        async def get_action_contents(repo, path, ref):
             """
             Retrieve and cache the action contents.
 
@@ -95,13 +95,13 @@ class WorkflowGraphBuilder:
             """
             contents = CacheManager().get_action(repo, path, ref)
             if not contents:
-                contents = api.retrieve_raw_action(repo, path, ref)
+                contents = await api.retrieve_raw_action(repo, path, ref)
                 if contents:
                     CacheManager().set_action(repo, path, ref, contents)
             return contents
 
         ref = node.caller_ref if action_metadata["local"] else action_metadata["ref"]
-        contents = get_action_contents(
+        contents = await get_action_contents(
             action_metadata["repo"], action_metadata["path"], ref
         )
 
@@ -136,13 +136,13 @@ class WorkflowGraphBuilder:
                 else:
                     self.graph.add_edge(node, step_node, relation="contains")
 
-    def _initialize_callee_node(self, workflow: WorkflowNode, api):
+    async def _initialize_callee_node(self, workflow: WorkflowNode, api):
         """Initialize a callee workflow with the workflow yaml"""
         if "uninitialized" in workflow.get_tags():
             slug, ref, path = workflow.get_parts()
             callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
             if not callee_wf:
-                callee_wf = api.retrieve_repo_file(slug, path, ref)
+                callee_wf = await api.retrieve_repo_file(slug, path, ref)
                 if callee_wf:
                     CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
                 else:
@@ -309,19 +309,19 @@ class WorkflowGraphBuilder:
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
 
-    def initialize_node(self, node, api):
+    async def initialize_node(self, node, api):
         tags = node.get_tags()
         if "uninitialized" in tags:
             if "ActionNode" in tags:
                 try:
-                    self._initialize_action_node(node, api)
+                    await self._initialize_action_node(node, api)
                 except ValueError as e:
                     logger.warning(f"Error initializing action node: {e}")
                     # Likely encountered a syntax error in the workflow
                     return
             elif "WorkflowNode" in tags:
                 try:
-                    self._initialize_callee_node(node, api)
+                    await self._initialize_callee_node(node, api)
                 except ValueError as e:
                     logger.warning(f"Error initializing callee node: {e}")
                     # Likely encountered a syntax error in the workflow
