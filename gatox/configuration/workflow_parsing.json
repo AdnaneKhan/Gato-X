@@ -51,6 +51,7 @@
             "github.event.comment.body"
         ],
        "UNSAFE_CONTEXTS": [
+            "github.head_ref",
             "github.event.issue.title",
             "github.event.pull_request.title",
             "github.event.discussion.title",
