@@ -19,7 +19,7 @@ class OrganizationEnum:
         """
         self.api = api
 
-    def __assemble_repo_list(
+    async def __assemble_repo_list(
         self, organization: str, visibilities: list
     ) -> List[Repository]:
         """Get a list of repositories that match the visibility types.
@@ -31,13 +31,15 @@ class OrganizationEnum:
 
         repos = []
         for visibility in visibilities:
-            raw_repos = self.api.check_org_repos(organization, visibility)
+            raw_repos = await self.api.check_org_repos(organization, visibility)
             if raw_repos:
                 repos.extend([Repository(repo) for repo in raw_repos])
 
         return repos
 
-    def construct_repo_enum_list(self, organization: Organization) -> List[Repository]:
+    async def construct_repo_enum_list(
+        self, organization: Organization
+    ) -> List[Repository]:
         """Constructs a list of repositories that a user has access to within
         an organization.
 
@@ -47,21 +49,23 @@ class OrganizationEnum:
         Returns:
             List[Repository]: List of repositories to enumerate.
         """
-        org_private_repos = self.__assemble_repo_list(
+        org_private_repos = await self.__assemble_repo_list(
             organization.name, ["private", "internal"]
         )
 
         # We might legitimately have no private repos despite being a
         # member.
         if org_private_repos:
-            sso_enabled = self.api.validate_sso(
+            sso_enabled = await self.api.validate_sso(
                 organization.name, org_private_repos[0].name
             )
             organization.sso_enabled = sso_enabled
         else:
             org_private_repos = []
 
-        org_public_repos = self.__assemble_repo_list(organization.name, ["public"])
+        org_public_repos = await self.__assemble_repo_list(
+            organization.name, ["public"]
+        )
 
         if organization.sso_enabled:
             return org_private_repos + org_public_repos

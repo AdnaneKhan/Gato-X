@@ -32,7 +32,7 @@ class PwnRequestVisitor:
     """Visits the graph to find potential Pwn Requests."""
 
     @staticmethod
-    def _process_single_path(path, graph, api, rule_cache, results):
+    async def _process_single_path(path, graph, api, rule_cache, results):
         """
         Process a single path for potential security issues.
 
@@ -73,7 +73,7 @@ class PwnRequestVisitor:
                     if node.repo_name() in rule_cache:
                         rules = rule_cache[node.repo_name()]
                     else:
-                        rules = api.get_all_environment_protection_rules(
+                        rules = await api.get_all_environment_protection_rules(
                             node.repo_name()
                         )
                         rule_cache[node.repo_name()] = rules
@@ -94,11 +94,11 @@ class PwnRequestVisitor:
                 # if not node.if_evaluation:
                 #     approval_gate = True
 
-                paths = graph.dfs_to_tag(node, "permission_blocker", api)
+                paths = await graph.dfs_to_tag(node, "permission_blocker", api)
                 if paths:
                     break
 
-                paths = graph.dfs_to_tag(node, "permission_check", api)
+                paths = await graph.dfs_to_tag(node, "permission_check", api)
                 if paths:
                     approval_gate = True
 
@@ -136,7 +136,7 @@ class PwnRequestVisitor:
                             checkout_ref, path[0].get_tags()
                         )
                     ) or not approval_gate:
-                        sinks = graph.dfs_to_tag(node, "sink", api)
+                        sinks = await graph.dfs_to_tag(node, "sink", api)
 
                         if approval_gate:
                             complexity = Complexity.TOCTOU
@@ -196,10 +196,12 @@ class PwnRequestVisitor:
                             env_lookup[key] = val
 
             elif "ActionNode" in tags:
-                VisitorUtils.initialize_action_node(graph, api, node)
+                await VisitorUtils.initialize_action_node(graph, api, node)
 
     @staticmethod
-    def find_pwn_requests(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
+    async def find_pwn_requests(
+        graph: TaggedGraph, api: Api, ignore_workflow_run=False
+    ):
         """
         Identify and process potential Pwn Requests within the workflow graph.
 
@@ -237,7 +239,7 @@ class PwnRequestVisitor:
 
         for cn in nodes:
             try:
-                paths = graph.dfs_to_tag(cn, "checkout", api)
+                paths = await graph.dfs_to_tag(cn, "checkout", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:
@@ -250,7 +252,7 @@ class PwnRequestVisitor:
         for path_set in all_paths:
             for path in path_set:
                 try:
-                    PwnRequestVisitor._process_single_path(
+                    await PwnRequestVisitor._process_single_path(
                         path, graph, api, rule_cache, results
                     )
                 # TODO: Make this more granular once all edge cases are handled.

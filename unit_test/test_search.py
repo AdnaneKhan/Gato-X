@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock
 from gatox.github.search import Search
 from gatox.search.search import Searcher
 from gatox.cli.output import Output
@@ -172,6 +172,7 @@ def test_search_api_iniitalrl(mock_api, mock_time, capfd):
 @patch("gatox.search.search.Api")
 def test_search(mock_api, mock_search):
     mock_search.return_value = ["candidate1", "candidate2"]
+    mock_api.return_value.check_user = AsyncMock()
     gh_search_runner = Searcher("ghp_AAAA")
 
     res = gh_search_runner.use_search_api("targetOrg")
@@ -183,6 +184,7 @@ def test_search(mock_api, mock_search):
 @patch("gatox.search.search.Api")
 def test_search_query(mock_api, mock_search, capfd):
     mock_search.return_value = ["candidate1", "candidate2"]
+    mock_api.return_value.check_user = AsyncMock()
     gh_search_runner = Searcher("ghp_AAAA")
 
     res = gh_search_runner.use_search_api(None, query="pull_request_target self-hosted")
@@ -191,7 +193,7 @@ def test_search_query(mock_api, mock_search, capfd):
     assert "GitHub with the following query: pull_request_target self-hosted" in out
 
 
-@patch("gatox.search.search.Api.check_user")
+@patch("gatox.search.search.Api.check_user", new_callable=AsyncMock)
 def test_search_bad_token(mock_api):
     mock_api.return_value = False
     gh_search_runner = Searcher("ghp_AAAA")

@@ -45,7 +45,7 @@ class DispatchTOCTOUVisitor:
     """
 
     @staticmethod
-    def find_dispatch_misconfigurations(graph: TaggedGraph, api: Api):
+    async def find_dispatch_misconfigurations(graph: TaggedGraph, api: Api):
         """
         Identifies TOCTOU vulnerabilities in workflows that are triggered by workflow dispatch
         events and handle pull request (PR) numbers without accompanying SHA references.
@@ -81,7 +81,7 @@ class DispatchTOCTOUVisitor:
         # Perform DFS from each "workflow_dispatch" node to find paths to "checkout" nodes
         for cn in nodes:
             try:
-                paths = graph.dfs_to_tag(cn, "checkout", api)
+                paths = await graph.dfs_to_tag(cn, "checkout", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:
@@ -92,7 +92,9 @@ class DispatchTOCTOUVisitor:
         for path_set in all_paths:
             for path in path_set:
                 try:
-                    DispatchTOCTOUVisitor.__process_path(path, graph, api, results)
+                    await DispatchTOCTOUVisitor.__process_path(
+                        path, graph, api, results
+                    )
                 except Exception as e:
                     logger.warning(f"Error processing path: {e}")
                     logger.warning(f"Path: {path}")
@@ -100,7 +102,7 @@ class DispatchTOCTOUVisitor:
         return results
 
     @staticmethod
-    def __process_path(path, graph: TaggedGraph, api: Api, results: dict):
+    async def __process_path(path, graph: TaggedGraph, api: Api, results: dict):
         """
         Processes a single path within the workflow graph to identify potential TOCTOU
         vulnerabilities.
@@ -206,7 +208,7 @@ class DispatchTOCTOUVisitor:
                             checkout_ref = input_lookup[processed_var]
 
                     if VisitorUtils.check_mutable_ref(checkout_ref):
-                        sinks = graph.dfs_to_tag(node, "sink", api)
+                        sinks = await graph.dfs_to_tag(node, "sink", api)
                         if sinks:
                             VisitorUtils.append_path(path, sinks[0])
                             VisitorUtils._add_results(
@@ -226,4 +228,4 @@ class DispatchTOCTOUVisitor:
                             )
 
             elif "ActionNode" in tags:
-                VisitorUtils.initialize_action_node(graph, api, node)
+                await VisitorUtils.initialize_action_node(graph, api, node)
