@@ -696,7 +696,7 @@ class Api:
                 " is a permission issue!"
             )
 
-    def validate_sso(self, org: str, repository: str):
+    async def validate_sso(self, org: str, repository: str):
         """Query a repository in the organization to determine if SSO has been
         enabled for this PAT.
 
@@ -712,17 +712,19 @@ class Api:
             not enabled, or if the PAT has been validated with SSO to that
             organization.
         """
-        org_repos = self.call_get(f"/orgs/{org}/repos")
+        org_repos = await self.call_get_async(f"/orgs/{org}/repos")
+
+        print(org_repos.status_code)
 
         if org_repos.status_code != 200:
             logger.warning(
                 "SSO does not seem to be enabled for this PAT!"
                 " Error message:"
-                f" {org_repos.json()['message']}"
+                f" {(org_repos.json())['message']}"
             )
             return False
 
-        result = self.call_get(f"/repos/{repository}")
+        result = await self.call_get_async(f"/repos/{repository}")
         if result.status_code == 403:
             logger.warning(
                 "SSO does not seem to be enabled for this PAT! However,"
@@ -792,7 +794,7 @@ class Api:
 
         return repo_names
 
-    def check_org_repos(self, org: str, repo_type: str):
+    async def check_org_repos(self, org: str, repo_type: str):
         """Check repositories present within an organization.
 
         Args:
@@ -816,17 +818,19 @@ class Api:
             raise ValueError("Unsupported type!")
         repos = []
 
-        org_details = self.call_get(f"/orgs/{org}")
+        org_details = await self.call_get_async(f"/orgs/{org}")
         # For public repos, Gato-X uses a fast GraphQL approach.
         if org_details.status_code == 200 and repo_type == "public":
             repo_count = org_details.json()["public_repos"]
-            pub_repos = DataIngestor.perform_parallel_repo_ingest(self, org, repo_count)
+            pub_repos = await DataIngestor.perform_parallel_repo_ingest(
+                self, org, repo_count
+            )
             repos.extend([repo for repo in pub_repos if not repo["archived"]])
             return repos
 
         get_params = {"type": repo_type, "per_page": 100, "page": 1}
 
-        org_repos = self.call_get(f"/orgs/{org}/repos", params=get_params)
+        org_repos = await self.call_get_async(f"/orgs/{org}/repos", params=get_params)
 
         if org_repos.status_code == 200:
             listing = org_repos.json()
@@ -835,7 +839,9 @@ class Api:
             # Check if there are more pages
             while len(listing) == 100:
                 get_params["page"] += 1
-                org_repos = self.call_get(f"/orgs/{org}/repos", params=get_params)
+                org_repos = await self.call_get_async(
+                    f"/orgs/{org}/repos", params=get_params
+                )
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
                     repos.extend([repo for repo in listing if not repo["archived"]])

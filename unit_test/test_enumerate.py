@@ -285,7 +285,11 @@ def test_enum_org(mock_api, mock_time, capfd):
         ],
     }
 
-    mock_api.return_value.check_org_repos.side_effect = [[TEST_REPO_DATA], [], []]
+    mock_api.return_value.validate_sso = AsyncMock(return_value=True)
+
+    mock_api.return_value.check_org_repos = AsyncMock(
+        side_effect=[[TEST_REPO_DATA], [], []]
+    )
 
     mock_api.return_value.get_secrets.return_value = [
         {

@@ -109,28 +109,29 @@ def test_socks_and_http(api_access):
         )
 
 
-@patch.object(Api, "call_get")
+@patch.object(Api, "call_get_async", new_callable=AsyncMock)
 def test_validate_sso(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api(test_pat, "2022-11-28")
 
-    mock_get().status_code = 200
+    mock_get.return_value.status_code = 200
 
-    res = abstraction_layer.validate_sso("testorg", "testRepo")
+    res = async_wrap(abstraction_layer.validate_sso, "testorg", "testRepo")
 
     assert res is True
 
 
-@patch.object(Api, "call_get")
+@patch.object(Api, "call_get_async", new_callable=AsyncMock)
 def test_validate_sso_fail(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api(test_pat, "2022-11-28")
 
-    mock_get().status_code = 403
+    mock_get.return_value.status_code = 403
+    mock_get.return_value.json = MagicMock(return_value={"message": "Forbidden"})
 
-    res = abstraction_layer.validate_sso("testorg", "testRepo")
+    res = async_wrap(abstraction_layer.validate_sso, "testorg", "testRepo")
 
     assert res is False
 
@@ -363,34 +364,35 @@ def test_check_repo_runners(mock_get):
     assert not result
 
 
-@patch.object(Api, "call_get")
-def test_check_org_repos_invalid(mock_get):
+def test_check_org_repos_invalid():
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api(test_pat, "2022-11-28")
 
     with pytest.raises(ValueError):
-        abstraction_layer.check_org_repos("testOrg", "invalid")
+        async_wrap(abstraction_layer.check_org_repos, "testOrg", "invalid")
 
 
-@patch.object(Api, "call_get")
+@patch.object(Api, "call_get_async", new_callable=AsyncMock)
 def test_check_org_repos(mock_get):
     """Test method to retrieve runners from org."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    mock_get().status_code = 200
+    mock_get.return_value.status_code = 200
 
-    mock_get.return_value.json.return_value = [
-        {"repo1": "fakerepodata", "archived": False},
-        {"repo2": "fakerepodata", "archived": False},
-        {"repo3": "fakerepodata", "archived": False},
-        {"repo4": "fakerepodata", "archived": False},
-        {"repo5": "fakerepodata", "archived": False},
-    ]
+    mock_get.return_value.json = MagicMock(
+        return_value=[
+            {"repo1": "fakerepodata", "archived": False},
+            {"repo2": "fakerepodata", "archived": False},
+            {"repo3": "fakerepodata", "archived": False},
+            {"repo4": "fakerepodata", "archived": False},
+            {"repo5": "fakerepodata", "archived": False},
+        ]
+    )
 
     abstraction_layer = Api(test_pat, "2022-11-28")
 
-    result = abstraction_layer.check_org_repos("testOrg", "internal")
+    result = async_wrap(abstraction_layer.check_org_repos, "testOrg", "internal")
 
     assert len(result) == 5
 

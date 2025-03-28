@@ -333,7 +333,7 @@ class Enumerator:
         Recommender.print_org_findings(self.user_perms["scopes"], organization)
 
         Output.info("Querying repository list!")
-        enum_list = self.org_e.construct_repo_enum_list(organization)
+        enum_list = async_wrap(self.org_e.construct_repo_enum_list, organization)
 
         Output.info(
             f"About to enumerate "

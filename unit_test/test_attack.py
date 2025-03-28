@@ -155,8 +155,6 @@ def test_init():
 def test_push_workflow_attack(mock_api, capsys):
     """Test the shell workflow attack."""
 
-    print(mock_api)
-
     mock_api.return_value.check_user = AsyncMock(
         return_value={
             "user": "testUser",
