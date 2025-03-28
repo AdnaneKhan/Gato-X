@@ -38,6 +38,7 @@ class Api:
         http_proxy: str = None,
         socks_proxy: str = None,
         github_url: str = "https://api.github.com",
+        timeout: int = 60,
     ):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
@@ -51,6 +52,10 @@ class Api:
             Defaults to None.
             socks_proxy (str, optional): SOCKS Proxy to use for API calls.
             Defaults to None.
+            github_url (str, optional): GitHub URL to use for API calls.
+            Defaults to "https://api.github.com".
+            timeout (int, optional): Timeout in seconds for API calls.
+            Defaults to 60.
         """
         self.pat = pat
         self.proxies = None
@@ -88,6 +93,8 @@ class Api:
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
             urllib3.disable_warnings()
+
+        self.timeout = timeout
 
     async def __check_rate_limit(self, headers):
         """Checks the rate limit, and pauses Gato execution until the rate
@@ -311,6 +318,7 @@ class Api:
                         request_url,
                         headers=get_header,
                         params=params,
+                        timeout=self.timeout,
                     )
                     break
                 except Exception as e:
@@ -351,6 +359,7 @@ class Api:
                 request_url,
                 headers=self.headers,
                 json=params,
+                timeout=self.timeout,
             )
             logger.debug(
                 f"The POST request to {request_url} returned a "
@@ -385,6 +394,7 @@ class Api:
                 request_url,
                 headers=self.headers,
                 json=params,
+                timeout=self.timeout,
             )
 
         logger.debug(
@@ -418,6 +428,7 @@ class Api:
                 request_url,
                 headers=self.headers,
                 json=params,
+                timeout=self.timeout,
             )
 
         await self.__check_rate_limit(api_response.headers)
@@ -449,6 +460,7 @@ class Api:
                 request_url,
                 headers=self.headers,
                 json=params,
+                timeout=self.timeout,
             )
 
         logger.debug(
