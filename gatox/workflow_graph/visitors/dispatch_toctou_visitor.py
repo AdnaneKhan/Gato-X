@@ -167,7 +167,7 @@ class DispatchTOCTOUVisitor:
                         if "sha" in key.lower():
                             break
                         elif re.search(
-                            r"\b(pr|pull|pull_request|pr_number)\b",
+                            r"(?:^|[\b_])(pr|pull|pull_request|pr_number)(?:[\b_]|$)",
                             key,
                             re.IGNORECASE,
                         ):
