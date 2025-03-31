@@ -3,10 +3,11 @@ import pathlib
 import pytest
 import json
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from gatox.models.organization import Organization
 from gatox.enumerate.organization import OrganizationEnum
+from gatox.util.async_utils import async_wrap
 
 TEST_ORG_DATA = None
 TEST_REPO_DATA = None
@@ -41,19 +42,21 @@ def test_assemble_repo_list():
     test_private_repodata["visibility"] = "private"
     test_private_repodata["private"] = True
 
-    mock_api.check_org_repos.side_effect = [
-        [test_private_repodata],
-        [],
-        [TEST_REPO_DATA],
-    ]
+    mock_api.check_org_repos = AsyncMock(
+        side_effect=[
+            [test_private_repodata],
+            [],
+            [TEST_REPO_DATA],
+        ]
+    )
 
-    mock_api.validate_sso.return_value = True
+    mock_api.validate_sso = AsyncMock(return_value=True)
 
     gh_enumeration_runner = OrganizationEnum(mock_api)
 
     organization = Organization(TEST_ORG_DATA, user_scopes=["repo", "workflow"])
 
-    repos = gh_enumeration_runner.construct_repo_enum_list(organization)
+    repos = async_wrap(gh_enumeration_runner.construct_repo_enum_list, organization)
 
     assert len(repos) == 2
     assert repos[0].is_public() is False

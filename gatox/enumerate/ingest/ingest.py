@@ -17,11 +17,11 @@ limitations under the License.
 import time
 import random
 import threading
+import asyncio
 import logging
 
 from requests.exceptions import RequestException
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
 
 from gatox.caching.cache_manager import CacheManager
 from gatox.models.workflow import Workflow
@@ -62,7 +62,7 @@ class DataIngestor:
         return cls.__counter
 
     @classmethod
-    def perform_parallel_repo_ingest(cls, api, org, repo_count):
+    async def perform_parallel_repo_ingest(cls, api, org, repo_count):
         """
         Perform a parallel query of repositories up to the count within a given organization.
 
@@ -76,7 +76,7 @@ class DataIngestor:
         """
         repos = []
 
-        def make_query(increment):
+        async def make_query(increment):
             """
             Makes a query to retrieve repositories for a given page.
             Attempts up to 5 times if the request fails.
@@ -91,24 +91,29 @@ class DataIngestor:
 
             sleep_timer = 4
             for _ in range(0, 5):
-                repos = api.call_get(f"/orgs/{org}/repos", params=get_params)
+                repos = await api.call_get_async(
+                    f"/orgs/{org}/repos", params=get_params
+                )
                 if repos.status_code == 200:
                     return repos.json()
                 else:
-                    time.sleep(sleep_timer)
+                    asyncio.sleep(sleep_timer)
                     sleep_timer = sleep_timer * 2
             Output.error("Unable to query. Will miss repositories.")
 
         batches = (repo_count // 100) + 1
 
         with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = []
-            for batch in range(1, batches + 1):
-                futures.append(executor.submit(make_query, batch))
-            for future in as_completed(futures):
-                listing = future.result()
-                if listing:
-                    repos.extend([repo for repo in listing if not repo["archived"]])
+            loop = asyncio.get_running_loop()
+            futures = [
+                loop.run_in_executor(executor, asyncio.run, make_query(batch))
+                for batch in range(1, batches + 1)
+            ]
+            listings = await asyncio.gather(*futures)
+
+        for listing in listings:
+            if listing:
+                repos.extend([repo for repo in listing if not repo["archived"]])
 
         return repos
 
@@ -161,11 +166,13 @@ class DataIngestor:
                 f"GraphQL attempts failed for batch {str(batch)}, will revert to REST for impacted repos."
             )
         except Exception as e:
+            breakpoint()
             Output.warn(
                 "Exception while running GraphQL query, will revert to REST "
                 "API workflow query for impacted repositories!"
             )
             logger.warning(f"{type(e)}: {str(e)}")
+            print(e)
 
     @staticmethod
     def construct_workflow_cache(yml_results):
