@@ -29,13 +29,11 @@ class Searcher:
             github_url=github_url,
         )
 
-        if self.api.proxies:
-            self.proxies = self.api.proxies
+        if self.api.transport:
+            self.transport = self.api.transport
         else:
-            self.proxies = None
+            self.transport = None
 
-        self.socks_proxy = socks_proxy
-        self.http_proxy = http_proxy
         self.user_perms = None
 
     def __setup_user_info(self):
@@ -102,7 +100,7 @@ class Searcher:
                 f"Searching SourceGraph with the default Gato query: {Output.bright(params['q'])}"
             )
         response = httpx.get(
-            url, headers=headers, params=params, stream=True, proxies=self.proxies
+            url, headers=headers, params=params, stream=True, proxy=self.transport
         )
         results = set()
         if response.status_code == 200:

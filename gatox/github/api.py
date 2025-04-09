@@ -51,7 +51,7 @@ class Api:
             Defaults to None.
         """
         self.pat = pat
-        self.proxies = None
+        self.transport = None
         self.verify_ssl = True
         self.headers = {
             "Accept": "application/vnd.github+json",
@@ -72,15 +72,9 @@ class Api:
         if http_proxy:
             # We are likely using BURP, so disable SSL.
             self.verify_ssl = False
-            self.proxies = {
-                "http": f"http://{http_proxy}",
-                "https": f"http://{http_proxy}",
-            }
+            self.transport = f"http://{http_proxy}"
         elif socks_proxy:
-            self.proxies = {
-                "http": f"socks5://{socks_proxy}",
-                "https": f"socks5://{socks_proxy}",
-            }
+            self.transport = f"socks5://{socks_proxy}"
 
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
@@ -241,7 +235,7 @@ class Api:
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
    
-        client = httpx.Client(proxies=self.proxies, verify=self.verify_ssl)
+        client = httpx.Client(proxy=self.transport, verify=self.verify_ssl)
         resp = client.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
             headers=self.headers,
@@ -294,7 +288,7 @@ class Api:
         if strip_auth:
             del get_header["Authorization"]
 
-        client = httpx.Client(verify=self.verify_ssl, headers=get_header)
+        client = httpx.Client(verify=self.verify_ssl, headers=get_header, proxy= self.transport)
         for _ in range(0, 5):
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
@@ -331,6 +325,7 @@ class Api:
         api_response = client.post(
             request_url,
             json=params,
+            timeout=30
         )
         logger.debug(
             f"The POST request to {request_url} returned a "
@@ -355,11 +350,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PATCH API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxies=self.proxies)
+        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxy=self.transport)
         api_response = client.patch(
             request_url,
-            json=params,
-            verify=self.verify_ssl,
+            json=params
         )
         logger.debug(
             f"The PATCH request to {request_url} returned a "
@@ -381,7 +375,7 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, proxies=self.proxies, verify=self.verify_ssl) 
+        client = httpx.Client(headers=self.headers, proxy=self.transport, verify=self.verify_ssl) 
         api_response = client.put(
             request_url,
             json=params
@@ -405,10 +399,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxies=self.proxies)
+        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxy=self.transport)
         api_response = client.delete(
             request_url,
-            json=params,
+            json=params
         )
         logger.debug(
             f"The POST request to {request_url} returned a "

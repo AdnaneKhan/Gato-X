@@ -44,8 +44,7 @@ def test_socks(api_access):
 
     abstraction_layer = Api(test_pat, "2022-11-28", socks_proxy="localhost:9090")
 
-    assert abstraction_layer.proxies["http"] == "socks5://localhost:9090"
-    assert abstraction_layer.proxies["https"] == "socks5://localhost:9090"
+    assert abstraction_layer.transport == "socks5://localhost:9090"
 
 
 def test_http_proxy(api_access):
@@ -55,8 +54,7 @@ def test_http_proxy(api_access):
 
     abstraction_layer = Api(test_pat, "2022-11-28", http_proxy="localhost:1080")
 
-    assert abstraction_layer.proxies["http"] == "http://localhost:1080"
-    assert abstraction_layer.proxies["https"] == "http://localhost:1080"
+    assert abstraction_layer.transport == "http://localhost:1080"
 
 
 @patch("gatox.github.api.httpx.Client")

@@ -156,7 +156,7 @@ class Enumerator:
                 CacheManager().set_repository(repo)
 
                 if repo:
-                    workflows = self.api.retrieve_workflow_ymls(repo)
+                    workflows = self.api.retrieve_workflow_ymls(repo.name)
 
                     for workflow in workflows:
                         CacheManager().set_workflow(

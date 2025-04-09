@@ -137,8 +137,8 @@ class DataIngestor:
                     time.sleep(0.1)
                 try:
                     result = api.call_post("/graphql", work_query)
-                except RequestError:
-                    logging.error("Request exception occurred, trying again.")
+                except RequestError as e:
+                    logger.error(f"Request error occurred: {e}, trying again.")
                     time.sleep(15 + random.randint(0, 3))
                     continue
 
