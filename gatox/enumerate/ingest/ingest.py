@@ -19,7 +19,7 @@ import random
 import threading
 import logging
 
-from requests.exceptions import RequestException
+from httpx import RequestError
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -137,7 +137,7 @@ class DataIngestor:
                     time.sleep(0.1)
                 try:
                     result = api.call_post("/graphql", work_query)
-                except RequestException:
+                except RequestError:
                     logging.error("Request exception occurred, trying again.")
                     time.sleep(15 + random.randint(0, 3))
                     continue

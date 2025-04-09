@@ -1,4 +1,4 @@
-import requests
+import httpx
 import os
 import sys
 
@@ -16,7 +16,7 @@ if sys.argv[1] == "remove":
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    response = requests.post(
+    response = httpx.post(
         "https://api.github.com/orgs/gatoxtest/actions/runners/remove-token",
         headers=headers,
     )
@@ -32,7 +32,7 @@ elif sys.argv[1] == "register":
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    response = requests.post(
+    response = httpx.post(
         "https://api.github.com/orgs/gatoxtest/actions/runners/registration-token",
         headers=headers,
     )
@@ -51,7 +51,7 @@ elif sys.argv[1] == "dispatch":
 
     data = {"ref": run_ref}
 
-    response = requests.post(
+    response = httpx.post(
         "https://api.github.com/repos/AdnaneKhan/gato-x/actions/workflows/integration_sh.yaml/dispatches",
         headers=headers,
         json=data,
@@ -68,7 +68,7 @@ elif sys.argv[1] == "force_remove":
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    response = requests.get(
+    response = httpx.get(
         "https://api.github.com/orgs/gatoxtest/actions/runners",
         headers=headers,
     )
@@ -84,7 +84,7 @@ elif sys.argv[1] == "force_remove":
 
         if runner:
             remove_id = runner[0]["id"]
-            resp = requests.delete(
+            resp = httpx.delete(
                 f"https://api.github.com/orgs/gatoxtest/actions/runners/{remove_id}",
                 headers=headers,
             )

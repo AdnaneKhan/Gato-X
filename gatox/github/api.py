@@ -1,7 +1,7 @@
 import base64
 import copy
 import time
-import requests
+import httpx
 import logging
 import zipfile
 import re
@@ -71,7 +71,6 @@ class Api:
 
         if http_proxy:
             # We are likely using BURP, so disable SSL.
-            requests.packages.urllib3.disable_warnings()
             self.verify_ssl = False
             self.proxies = {
                 "http": f"http://{http_proxy}",
@@ -85,7 +84,6 @@ class Api:
 
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
-            requests.packages.urllib3.disable_warnings()
 
     def __check_rate_limit(self, headers):
         """Checks the rate limit, and pauses Gato execution until the rate
@@ -242,10 +240,11 @@ class Api:
 
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
-        resp = requests.get(
+   
+        client = httpx.Client(proxies=self.proxies, verify=self.verify_ssl)
+        resp = client.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
-            proxies=self.proxies,
-            verify=self.verify_ssl,
+            headers=self.headers,
         )
 
         if resp.status_code == 404:
@@ -254,12 +253,12 @@ class Api:
             return resp.text
 
     @staticmethod
-    def __verify_result(response: requests.Response, expected_code: int):
+    def __verify_result(response: httpx.Response, expected_code: int):
         """Verifies that the response matches the expected code. If it does not
         match, then the response is logged and the program exits.
 
         Args:
-            response (requests.Response): Response object from a request.
+            response (httpx.Response): Response object from a request.
             expected_code (int): Expected status code from the request.
         """
         if response.status_code != expected_code:
@@ -295,18 +294,18 @@ class Api:
         if strip_auth:
             del get_header["Authorization"]
 
-        for i in range(0, 5):
+        client = httpx.Client(verify=self.verify_ssl, headers=get_header)
+        for _ in range(0, 5):
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
-                api_response = requests.get(
+                
+                api_response = client.get(
                     request_url,
-                    headers=get_header,
-                    proxies=self.proxies,
                     params=params,
-                    verify=self.verify_ssl,
                 )
+
                 break
-            except Exception:
+            except Exception as e:
                 logger.warning("GET request failed due to transport error re-trying!")
                 continue
 
@@ -328,12 +327,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making POST API request to {request_url}!")
 
-        api_response = requests.post(
+        client = httpx.Client(headers=self.headers, verify=self.verify_ssl)
+        api_response = client.post(
             request_url,
-            headers=self.headers,
-            proxies=self.proxies,
             json=params,
-            verify=self.verify_ssl,
         )
         logger.debug(
             f"The POST request to {request_url} returned a "
@@ -358,10 +355,9 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PATCH API request to {request_url}!")
 
-        api_response = requests.patch(
+        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxies=self.proxies)
+        api_response = client.patch(
             request_url,
-            headers=self.headers,
-            proxies=self.proxies,
             json=params,
             verify=self.verify_ssl,
         )
@@ -385,12 +381,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
-        api_response = requests.put(
+        client = httpx.Client(headers=self.headers, proxies=self.proxies, verify=self.verify_ssl) 
+        api_response = client.put(
             request_url,
-            headers=self.headers,
-            proxies=self.proxies,
-            json=params,
-            verify=self.verify_ssl,
+            json=params
         )
 
         self.__check_rate_limit(api_response.headers)
@@ -411,12 +405,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        api_response = requests.delete(
+        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxies=self.proxies)
+        api_response = client.delete(
             request_url,
-            headers=self.headers,
-            proxies=self.proxies,
             json=params,
-            verify=self.verify_ssl,
         )
         logger.debug(
             f"The POST request to {request_url} returned a "
@@ -569,7 +561,7 @@ class Api:
             str: The type of the user if the request is successful.
 
         Raises:
-            requests.exceptions.RequestException: If the request fails due to network issues or invalid responses.
+            httpx.RequestError: If the request fails due to network issues or invalid responses.
             KeyError: If the 'type' key is not present in the response JSON.
         """
         result = self.call_get(f"/users/{username}")
@@ -1234,8 +1226,8 @@ class Api:
             resp_json = resp.json()
             return resp_json["commit"]["sha"]
         else:
-            print(resp.status_code)
-            print(resp.text)
+            logger.debug(resp.status_code)
+            logger.debug(resp.text)
 
     def retrieve_workflow_ymls(self, repo_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.

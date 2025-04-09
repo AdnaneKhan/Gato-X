@@ -1,5 +1,5 @@
 import logging
-import requests
+import httpx
 import json
 
 from gatox.cli.output import Output
@@ -101,7 +101,7 @@ class Searcher:
             Output.info(
                 f"Searching SourceGraph with the default Gato query: {Output.bright(params['q'])}"
             )
-        response = requests.get(
+        response = httpx.get(
             url, headers=headers, params=params, stream=True, proxies=self.proxies
         )
         results = set()
