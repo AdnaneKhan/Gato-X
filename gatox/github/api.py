@@ -234,7 +234,7 @@ class Api:
 
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
-   
+
         client = httpx.Client(proxy=self.transport, verify=self.verify_ssl)
         resp = client.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
@@ -288,11 +288,13 @@ class Api:
         if strip_auth:
             del get_header["Authorization"]
 
-        client = httpx.Client(verify=self.verify_ssl, headers=get_header, proxy= self.transport)
+        client = httpx.Client(
+            verify=self.verify_ssl, headers=get_header, proxy=self.transport
+        )
         for _ in range(0, 5):
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
-                
+
                 api_response = client.get(
                     request_url,
                     params=params,
@@ -322,11 +324,7 @@ class Api:
         logger.debug(f"Making POST API request to {request_url}!")
 
         client = httpx.Client(headers=self.headers, verify=self.verify_ssl)
-        api_response = client.post(
-            request_url,
-            json=params,
-            timeout=30
-        )
+        api_response = client.post(request_url, json=params, timeout=30)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
@@ -350,11 +348,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PATCH API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxy=self.transport)
-        api_response = client.patch(
-            request_url,
-            json=params
+        client = httpx.Client(
+            headers=self.headers, verify=self.verify_ssl, proxy=self.transport
         )
+        api_response = client.patch(request_url, json=params)
         logger.debug(
             f"The PATCH request to {request_url} returned a "
             f"{api_response.status_code}!"
@@ -375,11 +372,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, proxy=self.transport, verify=self.verify_ssl) 
-        api_response = client.put(
-            request_url,
-            json=params
+        client = httpx.Client(
+            headers=self.headers, proxy=self.transport, verify=self.verify_ssl
         )
+        api_response = client.put(request_url, json=params)
 
         self.__check_rate_limit(api_response.headers)
 
@@ -399,11 +395,10 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, verify=self.verify_ssl, proxy=self.transport)
-        api_response = client.delete(
-            request_url,
-            json=params
+        client = httpx.Client(
+            headers=self.headers, verify=self.verify_ssl, proxy=self.transport
         )
+        api_response = client.delete(request_url, json=params)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
