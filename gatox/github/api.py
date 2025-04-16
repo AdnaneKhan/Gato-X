@@ -79,6 +79,10 @@ class Api:
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
 
+        self.client = httpx.Client(
+            headers=self.headers, proxy=self.transport, verify=self.verify_ssl
+        )
+
     def __check_rate_limit(self, headers):
         """Checks the rate limit, and pauses Gato execution until the rate
         limit resets.
@@ -234,9 +238,7 @@ class Api:
 
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
-
-        client = httpx.Client(proxy=self.transport, verify=self.verify_ssl)
-        resp = client.get(
+        resp = self.client.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
             headers=self.headers,
         )
@@ -288,16 +290,14 @@ class Api:
         if strip_auth:
             del get_header["Authorization"]
 
-        client = httpx.Client(
-            verify=self.verify_ssl, headers=get_header, proxy=self.transport
-        )
         for _ in range(0, 5):
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
 
-                api_response = client.get(
+                api_response = self.client.get(
                     request_url,
                     params=params,
+                    headers=get_header,
                 )
 
                 break
@@ -323,8 +323,7 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making POST API request to {request_url}!")
 
-        client = httpx.Client(headers=self.headers, verify=self.verify_ssl)
-        api_response = client.post(request_url, json=params, timeout=30)
+        api_response = self.client.post(request_url, json=params, timeout=30)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
@@ -348,10 +347,7 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PATCH API request to {request_url}!")
 
-        client = httpx.Client(
-            headers=self.headers, verify=self.verify_ssl, proxy=self.transport
-        )
-        api_response = client.patch(request_url, json=params)
+        api_response = self.client.patch(request_url, json=params)
         logger.debug(
             f"The PATCH request to {request_url} returned a "
             f"{api_response.status_code}!"
@@ -372,10 +368,7 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
-        client = httpx.Client(
-            headers=self.headers, proxy=self.transport, verify=self.verify_ssl
-        )
-        api_response = client.put(request_url, json=params)
+        api_response = self.client.put(request_url, json=params)
 
         self.__check_rate_limit(api_response.headers)
 
@@ -395,10 +388,7 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        client = httpx.Client(
-            headers=self.headers, verify=self.verify_ssl, proxy=self.transport
-        )
-        api_response = client.delete(request_url, json=params)
+        api_response = self.client.delete(request_url, json=params)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
@@ -1493,7 +1483,6 @@ class Api:
         if self.__verify_result(r, 200) is False:
             return None
         tree_sha = r.json()["tree"]["sha"]
-
         # Step 3: Get the tree of the .github/workflows directory
         r = self.call_get(
             f"/repos/{repo_name}/git/trees/{tree_sha}", params={"recursive": "1"}
@@ -1501,8 +1490,9 @@ class Api:
         if self.__verify_result(r, 200) is False:
             return None
 
-        base_sha = r.json()["sha"]
-        tree = r.json()["tree"]
+        tree_info = r.json()
+        base_sha = tree_info["sha"]
+        tree = tree_info["tree"]
 
         existing_files = (
             item
@@ -1553,7 +1543,6 @@ class Api:
         if self.__verify_result(r, 201) is False:
             return None
         new_tree_sha = r.json()["sha"]
-
         # Step 5: Create new commit on new branch
         r = self.call_post(
             f"/repos/{repo_name}/git/commits",

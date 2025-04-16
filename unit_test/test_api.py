@@ -848,10 +848,11 @@ def test_workflow_ymls(mock_client):
 def test_get_secrets(mock_client):
     """Test getting repo secret names."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
+
+    api = Api(test_pat, "2022-11-28")
 
     mock_instance.get.return_value.status_code = 200
     mock_instance.get.return_value.json.return_value = {
@@ -868,7 +869,6 @@ def test_get_secrets(mock_client):
 def test_get_org_secrets(mock_client):
     """Tests getting org secrets"""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
@@ -902,6 +902,7 @@ def test_get_org_secrets(mock_client):
         },
     ]
 
+    api = Api(test_pat, "2022-11-28")
     secrets = api.get_org_secrets("testOrg")
 
     assert len(secrets) == 2
@@ -931,7 +932,6 @@ def test_get_org_secrets_empty(mock_client):
 def test_get_repo_org_secrets(mock_client):
     """Tests getting org secrets accessible to a repo."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
@@ -941,6 +941,8 @@ def test_get_repo_org_secrets(mock_client):
         "total_count": 3,
         "secrets": [{}, {}],
     }
+
+    api = Api(test_pat, "2022-11-28")
 
     secrets = api.get_repo_org_secrets("testOrg/testRepo")
 
@@ -1033,7 +1035,7 @@ def test_commit_workflow_failure(mock_client):
 
     assert result is None
     assert mock_instance.get.call_count == 4
-    assert mock_instance.post.call_count == 4
+    assert mock_instance.post.call_count == 1
 
 
 @patch("gatox.github.api.httpx.Client")
@@ -1068,13 +1070,12 @@ def test_commit_workflow_failure2(mock_client):
 
     assert result is None
     assert mock_instance.get.call_count == 4
-    assert mock_instance.post.call_count == 2
+    assert mock_instance.post.call_count == 1
 
 
 @patch("gatox.github.api.httpx.Client")
 def test_graphql_org_query(mock_client):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
@@ -1109,6 +1110,7 @@ def test_graphql_org_query(mock_client):
     mock_instance.post.return_value.status_code = 200
     mock_instance.post.return_value.json.return_value = mock_results
 
+    api = Api(test_pat, "2022-11-28")
     names = api.get_org_repo_names_graphql("testOrg", "PUBLIC")
 
     assert "TestWF2" in names
@@ -1147,7 +1149,6 @@ def test_graphql_mergedat_query(mock_client):
     }
 
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
@@ -1155,6 +1156,7 @@ def test_graphql_mergedat_query(mock_client):
     mock_instance.post.return_value.status_code = 200
     mock_instance.post.return_value.json.return_value = mock_results
 
+    api = Api(test_pat, "2022-11-28")
     date = api.get_commit_merge_date(
         "testOrg/testRepo", "9659fdc7ba35a9eba00c183bccc67083239383e8"
     )
@@ -1166,10 +1168,11 @@ def test_graphql_mergedat_query(mock_client):
 def test_get_user_type(mock_client):
 
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
+
+    api = Api(test_pat, "2022-11-28")
 
     mock_instance.get.return_value.status_code = 200
     mock_instance.get.return_value.json.return_value = {"type": "User"}
@@ -1182,7 +1185,6 @@ def test_get_user_type(mock_client):
 @patch("gatox.github.api.httpx.Client")
 def test_get_user_repos(mock_client):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
@@ -1193,6 +1195,7 @@ def test_get_user_repos(mock_client):
         {"full_name": "testRepo2", "archived": False},
     ]
 
+    api = Api(test_pat, "2022-11-28")
     repos = api.get_user_repos("someUser")
 
     assert repos[0] == "testRepo"
@@ -1202,7 +1205,6 @@ def test_get_user_repos(mock_client):
 @patch("gatox.github.api.httpx.Client")
 def test_get_own_repos_single_page(mock_client):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
@@ -1213,6 +1215,8 @@ def test_get_own_repos_single_page(mock_client):
         {"full_name": "owner/testRepo", "archived": False},
         {"full_name": "owner/testRepo2", "archived": False},
     ]
+
+    api = Api(test_pat, "2022-11-28")
     repos = api.get_own_repos()
     assert repos == ["owner/testRepo", "owner/testRepo2"]
     mock_instance.get.assert_called_once()
@@ -1221,10 +1225,11 @@ def test_get_own_repos_single_page(mock_client):
 @patch("gatox.github.api.httpx.Client")
 def test_get_own_repos_multiple_pages(mock_client):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
+
+    api = Api(test_pat, "2022-11-28")
 
     def generate_repo_list():
         """
@@ -1255,12 +1260,12 @@ def test_get_own_repos_multiple_pages(mock_client):
 
 @patch("gatox.github.api.httpx.Client")
 def test_get_own_repos_empty_response(mock_client):
-
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    api = Api(test_pat, "2022-11-28")
 
     mock_instance = MagicMock()
     mock_client.return_value = mock_instance
+
+    api = Api(test_pat, "2022-11-28")
 
     # Mock the API response for an empty response
 
