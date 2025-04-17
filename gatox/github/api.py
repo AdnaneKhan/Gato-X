@@ -80,7 +80,7 @@ class Api:
             self.verify_ssl = False
 
         self.client = httpx.Client(
-            headers=self.headers, proxy=self.transport, verify=self.verify_ssl
+            headers=self.headers, proxy=self.transport, verify=self.verify_ssl, follow_redirects=True
         )
 
     def __check_rate_limit(self, headers):
@@ -238,9 +238,13 @@ class Api:
 
     def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
+
         resp = self.client.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
-            headers=self.headers,
+            headers={
+                "Authorization": "None",
+                "Accept": "text/plain",
+            }
         )
 
         if resp.status_code == 404:
@@ -1700,7 +1704,7 @@ class Api:
             file_path = file_path.replace("//", "/")
             paths = [file_path]
         else:
-            if not file_path.endswith("/"):
+            if file_path and not file_path.endswith("/"):
                 file_path += "/"
             elif file_path.endswith("//"):
                 file_path = file_path.replace("//", "/")
