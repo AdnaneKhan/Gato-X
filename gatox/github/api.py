@@ -387,7 +387,7 @@ class Api:
 
         Args:
             url (str): URL path to make POST request to.
-         
+
         Returns:
             Response: Returns the requests response object.
         """
