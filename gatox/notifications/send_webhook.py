@@ -1,4 +1,4 @@
-import requests
+import httpx
 import json
 
 from gatox.configuration.configuration_manager import ConfigurationManager
@@ -11,7 +11,7 @@ def send_slack_webhook(message):
 
     for webhook in hooks:
         # Send the request
-        response = requests.post(webhook, json=payload)
+        response = httpx.post(webhook, json=payload)
         # Check the response
         if response.status_code != 200:
             raise ValueError(

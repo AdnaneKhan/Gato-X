@@ -1,7 +1,7 @@
 import pytest
 import os
 import pathlib
-import requests  # If using the requests library
+import httpx
 
 from unittest import mock
 from unittest.mock import patch
@@ -20,7 +20,8 @@ def block_network_calls(monkeypatch):
     def mock_request(*args, **kwargs):
         raise RuntimeError("Blocked a real network call during tests.")
 
-    monkeypatch.setattr(requests.sessions.Session, "request", mock_request)
+    monkeypatch.setattr(httpx.Client, "send", mock_request)
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_request)
 
 
 @pytest.fixture(autouse=True)
