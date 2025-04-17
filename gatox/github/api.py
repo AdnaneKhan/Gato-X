@@ -381,21 +381,20 @@ class Api:
 
         return api_response
 
-    def call_delete(self, url: str, params: dict = None):
+    def call_delete(self, url: str):
         """Internal method to wrap a POST request so that proxies and headers
         do not need to be updated in each method.
 
         Args:
             url (str): URL path to make POST request to.
-            params (dict, optional): Parameters to send as part of the request.
-            Defaults to None.
+         
         Returns:
             Response: Returns the requests response object.
         """
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        api_response = self.client.delete(request_url, json=params)
+        api_response = self.client.delete(request_url)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
