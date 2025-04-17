@@ -80,7 +80,10 @@ class Api:
             self.verify_ssl = False
 
         self.client = httpx.Client(
-            headers=self.headers, proxy=self.transport, verify=self.verify_ssl, follow_redirects=True
+            headers=self.headers,
+            proxy=self.transport,
+            verify=self.verify_ssl,
+            follow_redirects=True,
         )
 
     def __check_rate_limit(self, headers):
@@ -244,7 +247,7 @@ class Api:
             headers={
                 "Authorization": "None",
                 "Accept": "text/plain",
-            }
+            },
         )
 
         if resp.status_code == 404:
