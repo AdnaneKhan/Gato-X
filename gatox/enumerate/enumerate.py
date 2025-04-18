@@ -160,7 +160,7 @@ class Enumerator:
 
                     for workflow in workflows:
                         CacheManager().set_workflow(
-                            repo, workflow.workflow_name, workflow
+                            repo.name, workflow.workflow_name, workflow
                         )
             else:
                 Output.warn(
