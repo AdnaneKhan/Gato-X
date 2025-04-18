@@ -99,31 +99,39 @@ class Searcher:
             Output.info(
                 f"Searching SourceGraph with the default Gato query: {Output.bright(params['q'])}"
             )
-        response = httpx.get(
-            url, headers=headers, params=params, stream=True, proxy=self.transport
-        )
+
         results = set()
-        if response.status_code == 200:
-            for line in response.iter_lines():
-                if line and line.decode().startswith("data:"):
-                    json_line = line.decode().replace("data:", "").strip()
-                    event = json.loads(json_line)
+        try:
+            with httpx.stream(
+                "GET",
+                url,
+                headers=headers,
+                params=params,
+                proxy=self.transport,
+                timeout=60,
+            ) as response:
+                for line in response.iter_lines():
+                    if line and line.startswith("data:"):
+                        json_line = line.replace("data:", "").strip()
+                        event = json.loads(json_line)
 
-                    if "title" in event and event["title"] == "Unable To Process Query":
-                        Output.error("SourceGraph was unable to process the query!")
-                        Output.error(f"Error: {Output.bright(event['description'])}")
-                        return False
-
-                    for element in event:
-                        if "repository" in element:
-                            results.add(
-                                element["repository"].replace("github.com/", "")
+                        if (
+                            "title" in event
+                            and event["title"] == "Unable To Process Query"
+                        ):
+                            Output.error("SourceGraph was unable to process the query!")
+                            Output.error(
+                                f"Error: {Output.bright(event['description'])}"
                             )
-        else:
-            Output.error(
-                f"SourceGraph returned an error: {Output.bright(response.status_code)}"
-            )
-            return False
+                            return False
+
+                        for element in event:
+                            if "repository" in element:
+                                results.add(
+                                    element["repository"].replace("github.com/", "")
+                                )
+        except httpx.ReadTimeout as e:
+            pass
 
         return sorted(results)
 
