@@ -6,6 +6,8 @@ import logging
 import zipfile
 import re
 import io
+import asyncio
+from typing import Optional, Dict, Any
 
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
@@ -79,14 +81,26 @@ class Api:
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
 
-        self.client = httpx.Client(
+        # Initialize async client
+        self.client = httpx.AsyncClient(
             headers=self.headers,
             proxy=self.transport,
             verify=self.verify_ssl,
             follow_redirects=True,
+            timeout=30.0,
         )
 
-    def __check_rate_limit(self, headers):
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
+    async def close(self):
+        """Close the async client"""
+        await self.client.aclose()
+
+    async def __check_rate_limit(self, headers):
         """Checks the rate limit, and pauses Gato execution until the rate
         limit resets.
         """
@@ -116,9 +130,9 @@ class Api:
                 "to prevent rate limit exhaustion!"
             )
 
-            time.sleep(sleep_time + 1)
+            await asyncio.sleep(sleep_time + 1)
 
-    def __process_run_log(self, log_content: bytes, run_info: dict):
+    async def __process_run_log(self, log_content: bytes, run_info: dict):
         """Utility method to process a run log zip file.
 
         Args:
@@ -220,7 +234,7 @@ class Api:
 
                     return log_package
 
-    def __get_full_runlog(self, log_content: bytes, run_name: str):
+    async def __get_full_runlog(self, log_content: bytes, run_name: str):
         """Gets the full text of the runlog from the zip file by matching the
          filename.
 
@@ -239,10 +253,10 @@ class Api:
 
                         return content
 
-    def __get_raw_file(self, repo: str, file_path: str, ref: str):
+    async def __get_raw_file(self, repo: str, file_path: str, ref: str):
         """Get a raw file with a web request."""
 
-        resp = self.client.get(
+        resp = await self.client.get(
             f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
             headers={
                 "Authorization": "None",
@@ -277,7 +291,7 @@ class Api:
         """Returns if the API is using a GitHub App installation token."""
         return self.pat.startswith("ghs_")
 
-    def call_get(self, url: str, params: dict = None, strip_auth=False):
+    async def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
 
@@ -301,7 +315,7 @@ class Api:
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
 
-                api_response = self.client.get(
+                api_response = await self.client.get(
                     request_url,
                     params=params,
                     headers=get_header,
@@ -312,11 +326,11 @@ class Api:
                 logger.warning("GET request failed due to transport error re-trying!")
                 continue
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
-    def call_post(self, url: str, params: dict = None):
+    async def call_post(self, url: str, params: dict = None):
         """Internal method to wrap a POST request so that proxies and headers
         do not need to be updated in each method.
 
@@ -330,17 +344,17 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making POST API request to {request_url}!")
 
-        api_response = self.client.post(request_url, json=params, timeout=30)
+        api_response = await self.client.post(request_url, json=params, timeout=30)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
         )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
-    def call_patch(self, url: str, params: dict = None):
+    async def call_patch(self, url: str, params: dict = None):
         """Internal method to wrap a PATCH request so that proxies and headers
         do not need to be updated in each method.
 
@@ -354,17 +368,17 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PATCH API request to {request_url}!")
 
-        api_response = self.client.patch(request_url, json=params)
+        api_response = await self.client.patch(request_url, json=params)
         logger.debug(
             f"The PATCH request to {request_url} returned a "
             f"{api_response.status_code}!"
         )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
-    def call_put(self, url: str, params: dict = None):
+    async def call_put(self, url: str, params: dict = None):
         """Internal method to wrap a PUT request so that proxies and headers
         do not need to be updated in each method.
 
@@ -375,13 +389,13 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making PUT API request to {request_url}!")
 
-        api_response = self.client.put(request_url, json=params)
+        api_response = await self.client.put(request_url, json=params)
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
-    def call_delete(self, url: str):
+    async def call_delete(self, url: str):
         """Internal method to wrap a POST request so that proxies and headers
         do not need to be updated in each method.
 
@@ -394,17 +408,17 @@ class Api:
         request_url = self.github_url + url
         logger.debug(f"Making DELETE API request to {request_url}!")
 
-        api_response = self.client.delete(request_url)
+        api_response = await self.client.delete(request_url)
         logger.debug(
             f"The POST request to {request_url} returned a "
             f"{api_response.status_code}!"
         )
 
-        self.__check_rate_limit(api_response.headers)
+        await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
-    def delete_repository(self, repo_name: str):
+    async def delete_repository(self, repo_name: str):
         """Deletes the provided repository, if the user has administrative
         permissions on that repository.
 
@@ -413,7 +427,7 @@ class Api:
         Returns:
             bool: True if the repository was deleted, False otherwise.
         """
-        result = self.call_delete(f"/repos/{repo_name}")
+        result = await self.call_delete(f"/repos/{repo_name}")
 
         if result.status_code == 204:
             logger.info(f"Successfully deleted {repo_name}!")
@@ -423,7 +437,7 @@ class Api:
 
         return True
 
-    def fork_repository(self, repo_name: str):
+    async def fork_repository(self, repo_name: str):
         """Creates a fork of a public repository and returns the name of
         the newly created fork.
 
@@ -436,7 +450,7 @@ class Api:
         """
         post_params = {"default_branch_only": True}
 
-        result = self.call_post(f"/repos/{repo_name}/forks", params=post_params)
+        result = await self.call_post(f"/repos/{repo_name}/forks", params=post_params)
 
         if result.status_code == 202:
             fork_info = result.json()
@@ -452,7 +466,7 @@ class Api:
             logger.warning("Repository fork failed!")
             return False
 
-    def create_fork_pr(
+    async def create_fork_pr(
         self,
         target_repo: str,
         source_user: str,
@@ -478,7 +492,7 @@ class Api:
             "draft": True,
         }
 
-        result = self.call_post(f"/repos/{target_repo}/pulls", params=pr_params)
+        result = await self.call_post(f"/repos/{target_repo}/pulls", params=pr_params)
 
         if result.status_code == 201:
             details = result.json()
@@ -490,7 +504,7 @@ class Api:
             )
             return None
 
-    def check_organizations(self):
+    async def check_organizations(self):
         """Check organizations that the authenticated user belongs to.
 
         Returns:
@@ -503,7 +517,7 @@ class Api:
 
         while True:
             params = {"page": page, "per_page": per_page}
-            result = self.call_get("/user/orgs", params=params)
+            result = await self.call_get("/user/orgs", params=params)
 
             if result.status_code == 200:
                 orgs = result.json()
@@ -519,7 +533,7 @@ class Api:
 
         return organizations
 
-    def get_repository(self, repository: str):
+    async def get_repository(self, repository: str):
         """Retrieve a repository using the GitHub API.
 
         Args:
@@ -527,12 +541,12 @@ class Api:
         Returns:
             dict: Dictionary containing repository info from the GitHub API.
         """
-        result = self.call_get(f"/repos/{repository}")
+        result = await self.call_get(f"/repos/{repository}")
 
         if result.status_code == 200:
             return result.json()
 
-    def get_user_type(self, username: str):
+    async def get_user_type(self, username: str):
         """
         Retrieve the type of a user from the API.
 
@@ -549,19 +563,19 @@ class Api:
             httpx.RequestError: If the request fails due to network issues or invalid responses.
             KeyError: If the 'type' key is not present in the response JSON.
         """
-        result = self.call_get(f"/users/{username}")
+        result = await self.call_get(f"/users/{username}")
 
         if result.status_code == 200:
             return result.json()["type"]
 
-    def get_own_repos(self):
+    async def get_own_repos(self):
         """Retrieve all repositories where the user is the owner or a collaborator."""
 
         repos = []
 
         get_params = {"affiliation": "collaborator,owner", "per_page": 100, "page": 1}
 
-        result = self.call_get("/user/repos", params=get_params)
+        result = await self.call_get("/user/repos", params=get_params)
         if result.status_code == 200:
             listing = result.json()
             repos.extend(
@@ -571,7 +585,7 @@ class Api:
             # Check if there are more pages
             while len(listing) == 100:
                 get_params["page"] += 1
-                result = self.call_get("/user/repos", params=get_params)
+                result = await self.call_get("/user/repos", params=get_params)
                 if result.status_code == 200:
                     listing = result.json()
                     repos.extend(
@@ -579,14 +593,14 @@ class Api:
                     )
         return repos
 
-    def get_user_repos(self, username: str):
+    async def get_user_repos(self, username: str):
         """Retrieve all repositories belonging to the user."""
 
         repos = []
 
         get_params = {"type": "owner", "per_page": 100, "page": 1}
 
-        result = self.call_get(f"/users/{username}/repos", params=get_params)
+        result = await self.call_get(f"/users/{username}/repos", params=get_params)
         if result.status_code == 200:
             listing = result.json()
             repos.extend(
@@ -596,7 +610,9 @@ class Api:
             # Check if there are more pages
             while len(listing) == 100:
                 get_params["page"] += 1
-                result = self.call_get(f"/users/{username}/repos", params=get_params)
+                result = await self.call_get(
+                    f"/users/{username}/repos", params=get_params
+                )
                 if result.status_code == 200:
                     listing = result.json()
                     repos.extend(
@@ -604,7 +620,7 @@ class Api:
                     )
         return repos
 
-    def get_organization_details(self, org: str):
+    async def get_organization_details(self, org: str):
         """Query the GitHub API for details about the specific organization.
 
         If the token has an org admin scope, then this will reveal additional
@@ -616,7 +632,7 @@ class Api:
             dict: Dictionary containing the organization's details from the
             GitHub API.
         """
-        result = self.call_get(f"/orgs/{org}")
+        result = await self.call_get(f"/orgs/{org}")
 
         if result.status_code == 200:
             org_info = result.json()
@@ -629,7 +645,7 @@ class Api:
                 " is a permission issue!"
             )
 
-    def validate_sso(self, org: str, repository: str):
+    async def validate_sso(self, org: str, repository: str):
         """Query a repository in the organization to determine if SSO has been
         enabled for this PAT.
 
@@ -645,7 +661,7 @@ class Api:
             not enabled, or if the PAT has been validated with SSO to that
             organization.
         """
-        org_repos = self.call_get(f"/orgs/{org}/repos")
+        org_repos = await self.call_get(f"/orgs/{org}/repos")
 
         if org_repos.status_code != 200:
             logger.warning(
@@ -655,7 +671,7 @@ class Api:
             )
             return False
 
-        result = self.call_get(f"/repos/{repository}")
+        result = await self.call_get(f"/repos/{repository}")
         if result.status_code == 403:
             logger.warning(
                 "SSO does not seem to be enabled for this PAT! However,"
@@ -666,7 +682,7 @@ class Api:
         else:
             return True
 
-    def check_org_runners(self, org: str):
+    async def check_org_runners(self, org: str):
         """Checks runners associated with an organization.
 
         This requires a token with the `admin:org` scope.
@@ -677,7 +693,7 @@ class Api:
         Returns:
             dict: Dictionary containing information about the runners.
         """
-        result = self.call_get(f"/orgs/{org}/actions/runners")
+        result = await self.call_get(f"/orgs/{org}/actions/runners")
 
         if result.status_code == 200:
 
@@ -690,7 +706,7 @@ class Api:
                 " PAT permission level!"
             )
 
-    def get_org_repo_names_graphql(self, org: str, type: str):
+    async def get_org_repo_names_graphql(self, org: str, type: str):
         """Retrieve repositories within an organization using GraphQL."""
         repo_names = []
         if type not in ["PUBLIC", "PRIVATE"]:
@@ -704,7 +720,7 @@ class Api:
                 "variables": {"orgName": org, "repoTypes": type, "cursor": cursor},
             }
 
-            response = self.call_post("/graphql", query)
+            response = await self.call_post("/graphql", query)
             if response.status_code == 200:
                 response = response.json()
                 repos = [
@@ -725,7 +741,7 @@ class Api:
 
         return repo_names
 
-    def check_org_repos(self, org: str, repo_type: str):
+    async def check_org_repos(self, org: str, repo_type: str):
         """Check repositories present within an organization.
 
         Args:
@@ -749,17 +765,19 @@ class Api:
             raise ValueError("Unsupported type!")
         repos = []
 
-        org_details = self.call_get(f"/orgs/{org}")
+        org_details = await self.call_get(f"/orgs/{org}")
         # For public repos, Gato-X uses a fast GraphQL approach.
         if org_details.status_code == 200 and repo_type == "public":
             repo_count = org_details.json()["public_repos"]
-            pub_repos = DataIngestor.perform_parallel_repo_ingest(self, org, repo_count)
+            pub_repos = await DataIngestor.perform_parallel_repo_ingest(
+                self, org, repo_count
+            )
             repos.extend([repo for repo in pub_repos if not repo["archived"]])
             return repos
 
         get_params = {"type": repo_type, "per_page": 100, "page": 1}
 
-        org_repos = self.call_get(f"/orgs/{org}/repos", params=get_params)
+        org_repos = await self.call_get(f"/orgs/{org}/repos", params=get_params)
 
         if org_repos.status_code == 200:
             listing = org_repos.json()
@@ -768,7 +786,7 @@ class Api:
             # Check if there are more pages
             while len(listing) == 100:
                 get_params["page"] += 1
-                org_repos = self.call_get(f"/orgs/{org}/repos", params=get_params)
+                org_repos = await self.call_get(f"/orgs/{org}/repos", params=get_params)
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
                     repos.extend([repo for repo in listing if not repo["archived"]])
@@ -778,7 +796,7 @@ class Api:
 
         return repos
 
-    def check_user(self):
+    async def check_user(self):
         """Gets the authenticated user associated with a GitHub PAT and returns
         the username and available scopes.
 
@@ -792,7 +810,7 @@ class Api:
         Returns:
             dict: User associated with the PAT, None otherwise.
         """
-        result = self.call_get("/user")
+        result = await self.call_get("/user")
 
         if result.status_code == 200:
             resp_headers = result.headers.get("x-oauth-scopes")
@@ -813,7 +831,7 @@ class Api:
 
         return None
 
-    def get_repo_branch(self, repo: str, branch: str):
+    async def get_repo_branch(self, repo: str, branch: str):
         """Check whether a specific branch exists on a remote.
 
         Args:
@@ -824,7 +842,7 @@ class Api:
             int: Returns 1 upon success, 0 if the branch was not found, and -1
             if there was a failure retrieving the branch.
         """
-        res = self.call_get(f"/repos/{repo}/branches/{branch}")
+        res = await self.call_get(f"/repos/{repo}/branches/{branch}")
         if res.status_code == 200:
             return 1
         elif res.status_code == 404:
@@ -833,7 +851,7 @@ class Api:
             logger.warning("Failed to check repo for branch! " f"({res.status_code}")
             return -1
 
-    def get_repo_runners(self, full_name: str):
+    async def get_repo_runners(self, full_name: str):
         """Get self-hosted runners associated with the repository.
 
         Args:
@@ -842,7 +860,7 @@ class Api:
         Returns:
             list: List of self hosted runners from the repository.
         """
-        runners = self.call_get(f"/repos/{full_name}/actions/runners")
+        runners = await self.call_get(f"/repos/{full_name}/actions/runners")
 
         if runners.status_code == 200:
             runner_list = runners.json()["runners"]
@@ -850,7 +868,7 @@ class Api:
 
         return []
 
-    def retrieve_run_logs(self, repo_name: str, workflows: list = []):
+    async def retrieve_run_logs(self, repo_name: str, workflows: list = []):
         """Retrieve the most recent run log associated with a repository.
 
         Args:
@@ -867,7 +885,7 @@ class Api:
 
         for workflow in workflows:
             # Get workflow runs for workflows we think have a sh runner.
-            run_result = self.call_get(
+            run_result = await self.call_get(
                 f"/repos/{repo_name}/actions/workflows/{workflow}/runs",
                 params={
                     "per_page": "3",
@@ -906,14 +924,14 @@ class Api:
             if workflow_key in names:
                 continue
             names.add(workflow_key)
-            run_log = self.call_get(
+            run_log = await self.call_get(
                 f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                 f'attempts/{run["run_attempt"]}/logs'
             )
 
             if run_log.status_code == 200:
                 try:
-                    run_log = self.__process_run_log(run_log.content, run)
+                    run_log = await self.__process_run_log(run_log.content, run)
                     if run_log:
                         key = f"{run_log['machine_name']}:{run_log['runner_name']}"
                         run_logs[key] = run_log
@@ -938,7 +956,7 @@ class Api:
 
         return run_logs.values()
 
-    def parse_workflow_runs(self, repo_name: str):
+    async def parse_workflow_runs(self, repo_name: str):
         """Returns the number of workflow runs associated with the repository.
 
         Args:
@@ -949,7 +967,7 @@ class Api:
             int: Number of workflow runs associated with the repository, None
             if there was a failure.
         """
-        runs = self.call_get(f"/repos/{repo_name}/actions/runs")
+        runs = await self.call_get(f"/repos/{repo_name}/actions/runs")
 
         if runs.status_code == 200:
 
@@ -959,7 +977,7 @@ class Api:
 
         return None
 
-    def get_recent_workflow(
+    async def get_recent_workflow(
         self, repo_name: str, sha: str, file_name: str, time_after=None
     ) -> int:
         """
@@ -990,7 +1008,7 @@ class Api:
         if time_after:
             params["created"] = time_after
 
-        req = self.call_get(f"/repos/{repo_name}/actions/runs", params=params)
+        req = await self.call_get(f"/repos/{repo_name}/actions/runs", params=params)
 
         if req.status_code != 200:
             logger.warning("Unable to query workflow runs.")
@@ -1008,7 +1026,7 @@ class Api:
 
         return 0
 
-    def get_workflow_status(self, repo_name: str, workflow_id: int):
+    async def get_workflow_status(self, repo_name: str, workflow_id: int):
         """Returns the status if the workflow by id.
 
         Args:
@@ -1019,7 +1037,7 @@ class Api:
             int: 1 if the workflow has completed, 0 if it is pending, and -1 if
             there was a failure.
         """
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/{workflow_id}")
+        req = await self.call_get(f"/repos/{repo_name}/actions/runs/{workflow_id}")
 
         if req.status_code != 200:
             logger.warning("Unable to query the workflow.")
@@ -1031,7 +1049,7 @@ class Api:
             return 0
         return 1 if data.get("conclusion", "failure") == "success" else -1
 
-    def delete_workflow_run(self, repo_name: str, workflow_id: int):
+    async def delete_workflow_run(self, repo_name: str, workflow_id: int):
         """Deletes a previous workflow run.
 
         Args:
@@ -1041,11 +1059,13 @@ class Api:
         Returns:
             bool: True if the workflow was deleted, false otherwise.
         """
-        req = self.call_delete(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}")
+        req = await self.call_delete(
+            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}"
+        )
 
         return req.status_code == 204
 
-    def download_workflow_logs(self, repo_name: str, workflow_id: int):
+    async def download_workflow_logs(self, repo_name: str, workflow_id: int):
         """Download worfklow run logs and saves them to a zip file under the
         workflow ID.
 
@@ -1056,7 +1076,9 @@ class Api:
         Returns:
             bool: True of the workflow log was downloaded, false otherwise.
         """
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs")
+        req = await self.call_get(
+            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs"
+        )
 
         if req.status_code != 200:
             return False
@@ -1065,7 +1087,9 @@ class Api:
             f.write(req.content)
         return True
 
-    def retrieve_workflow_log(self, repo_name: str, workflow_id: int, job_name: str):
+    async def retrieve_workflow_log(
+        self, repo_name: str, workflow_id: int, job_name: str
+    ):
         """Download single run log and returns the text output from the zip.
 
         Args:
@@ -1075,14 +1099,16 @@ class Api:
         Returns:
             str: String content of the run log matching the job name, if found.
         """
-        req = self.call_get(f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs")
+        req = await self.call_get(
+            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs"
+        )
 
         if req.status_code != 200:
             return False
 
-        return self.__get_full_runlog(req.content, job_name)
+        return await self.__get_full_runlog(req.content, job_name)
 
-    def retrieve_workflow_artifact(self, repo_name: str, workflow_id: int):
+    async def retrieve_workflow_artifact(self, repo_name: str, workflow_id: int):
         """Download workflow artifacts and return the files. Only use this for
         small artifacts, as this extracts the zip in memory.
 
@@ -1094,7 +1120,7 @@ class Api:
         """
         files = {}
 
-        req = self.call_get(
+        req = await self.call_get(
             f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/artifacts"
         )
         if req.status_code != 200:
@@ -1105,7 +1131,9 @@ class Api:
         if artifacts:
             download_url = artifacts[0]["archive_download_url"]
 
-            archive = self.call_get(download_url.replace("https://api.github.com", ""))
+            archive = await self.call_get(
+                download_url.replace("https://api.github.com", "")
+            )
 
             with zipfile.ZipFile(io.BytesIO(archive.content)) as artifact:
                 for zipinfo in artifact.infolist():
@@ -1115,12 +1143,12 @@ class Api:
 
         return files
 
-    def download_workflow_artifact(
+    async def download_workflow_artifact(
         self, repo_name: str, workflow_id: int, destination: str
     ):
         """Download a workflow artifact and save it to the destination."""
 
-        req = self.call_get(
+        req = await self.call_get(
             f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/artifacts"
         )
         if req.status_code != 200:
@@ -1129,7 +1157,9 @@ class Api:
         artifacts = req.json().get("artifacts", [])
         download_url = artifacts[0]["archive_download_url"]
 
-        archive = self.call_get(download_url.replace("https://api.github.com", ""))
+        archive = await self.call_get(
+            download_url.replace("https://api.github.com", "")
+        )
 
         with open(destination, "wb") as f:
             f.write(archive.content)
@@ -1138,42 +1168,44 @@ class Api:
 
         return False
 
-    def create_branch(self, repo_name: str, branch_name: str):
+    async def create_branch(self, repo_name: str, branch_name: str):
         """Create a branch with the provided name.
 
         Args:
             repo_name (str): Name of repository in Org/Repo format.
             branch_name (str): Name of branch to create.
         """
-        resp = self.call_get(f"/repos/{repo_name}")
+        resp = await self.call_get(f"/repos/{repo_name}")
         default_branch = resp.json()["default_branch"]
-        resp = self.call_get(f"/repos/{repo_name}/git/ref/heads/{default_branch}")
+        resp = await self.call_get(f"/repos/{repo_name}/git/ref/heads/{default_branch}")
 
         json_resp = resp.json()
         sha = json_resp["object"]["sha"]
 
         branch_data = {"ref": f"refs/heads/{branch_name}", "sha": sha}
 
-        resp = self.call_post(f"/repos/{repo_name}/git/refs", params=branch_data)
+        resp = await self.call_post(f"/repos/{repo_name}/git/refs", params=branch_data)
 
         if resp.status_code == 201:
             return True
         else:
             return False
 
-    def delete_branch(self, repo_name: str, branch_name: str):
+    async def delete_branch(self, repo_name: str, branch_name: str):
         """Deletes the specified branch within the repository.
 
         Args:
             repo_name (str): Name of the repository in Owner/Repo format.
             branch_name (str): Name of the branch to delete.
         """
-        resp = self.call_delete(f"/repos/{repo_name}/git/refs/heads/{branch_name}")
+        resp = await self.call_delete(
+            f"/repos/{repo_name}/git/refs/heads/{branch_name}"
+        )
 
         if resp.status_code == 204:
             return True
 
-    def commit_file(
+    async def commit_file(
         self,
         repo_name: str,
         branch_name: str,
@@ -1203,7 +1235,7 @@ class Api:
             "committer": {"name": commit_author, "email": commit_email},
         }
 
-        resp = self.call_put(
+        resp = await self.call_put(
             f"/repos/{repo_name}/contents/{file_path}", params=commit_data
         )
 
@@ -1214,7 +1246,7 @@ class Api:
             logger.debug(resp.status_code)
             logger.debug(resp.text)
 
-    def retrieve_workflow_ymls(self, repo_name: str):
+    async def retrieve_workflow_ymls(self, repo_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.
         Utilizes the GitHub Repository contents API.
 
@@ -1226,7 +1258,7 @@ class Api:
         """
         ymls = []
 
-        resp = self.call_get(f"/repos/{repo_name}/contents/.github/workflows/")
+        resp = await self.call_get(f"/repos/{repo_name}/contents/.github/workflows/")
 
         if resp.status_code == 200:
             objects = resp.json()
@@ -1236,7 +1268,9 @@ class Api:
                     file["name"].endswith(".yml") or file["name"].endswith(".yaml")
                 ):
 
-                    resp = self.call_get(f'/repos/{repo_name}/contents/{file["path"]}')
+                    resp = await self.call_get(
+                        f'/repos/{repo_name}/contents/{file["path"]}'
+                    )
                     if resp.status_code == 200:
                         resp_data = resp.json()
                         if "content" in resp_data:
@@ -1245,7 +1279,7 @@ class Api:
 
         return ymls
 
-    def retrieve_repo_file(
+    async def retrieve_repo_file(
         self, repo_name: str, file_path: str, ref: str, public=False
     ):
         """Retrieves a single file from a GitHub repository.
@@ -1256,9 +1290,9 @@ class Api:
         file_data = None
 
         if public:
-            file_data = self.__get_raw_file(repo_name, file_path, ref)
+            file_data = await self.__get_raw_file(repo_name, file_path, ref)
         else:
-            resp = self.call_get(
+            resp = await self.call_get(
                 f"/repos/{repo_name}/contents/{file_path}", params={"ref": ref}
             )
             if resp.status_code == 200:
@@ -1275,7 +1309,7 @@ class Api:
                 special_path=file_path,
             )
 
-    def retrieve_workflow_yml(self, repo_name: str, workflow_name: str):
+    async def retrieve_workflow_yml(self, repo_name: str, workflow_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.
         Utilizes the GitHub Repository contents API.
 
@@ -1286,7 +1320,7 @@ class Api:
         Returns:
             (list): List of yml files in text format.
         """
-        resp = self.call_get(
+        resp = await self.call_get(
             f"/repos/{repo_name}/contents/.github/workflows/{workflow_name}"
         )
 
@@ -1301,7 +1335,7 @@ class Api:
                 f"Failed to retrieve workflow {workflow_name} from {repo_name}!"
             )
 
-    def get_secrets(self, repo_name: str):
+    async def get_secrets(self, repo_name: str):
         """Issues an API call to the GitHub API to list secrets for a
         repository. This will succeed as long as the token has the repo scope
         and the user has write access to the repository.
@@ -1313,7 +1347,7 @@ class Api:
         """
         secrets = []
 
-        resp = self.call_get(f"/repos/{repo_name}/actions/secrets")
+        resp = await self.call_get(f"/repos/{repo_name}/actions/secrets")
         if resp.status_code == 200:
             secrets_response = resp.json()
 
@@ -1322,7 +1356,7 @@ class Api:
 
         return secrets
 
-    def get_environment_secrets(self, repo_name: str, environment_name: str):
+    async def get_environment_secrets(self, repo_name: str, environment_name: str):
         """Issues an API call to the GitHub API to list secrets for a specific
         environment within a repository. This requires the token to have the repo
         scope and the user to have write access to the repository and environment.
@@ -1337,7 +1371,7 @@ class Api:
         secrets = []
 
         environment_name = environment_name.replace("/", "%2F")
-        resp = self.call_get(
+        resp = await self.call_get(
             f"/repos/{repo_name}/environments/{environment_name}/secrets"
         )
         if resp.status_code == 200:
@@ -1348,10 +1382,10 @@ class Api:
 
         return secrets
 
-    def get_org_secrets(self, org_name: str):
+    async def get_org_secrets(self, org_name: str):
         secrets = []
 
-        resp = self.call_get(f"/orgs/{org_name}/actions/secrets")
+        resp = await self.call_get(f"/orgs/{org_name}/actions/secrets")
         if resp.status_code == 200:
             secrets_response = resp.json()
 
@@ -1360,7 +1394,7 @@ class Api:
 
                     if secret["visibility"] == "selected":
 
-                        repos_resp = self.call_get(
+                        repos_resp = await self.call_get(
                             f"/orgs/{org_name}/actions/secrets/"
                             f'{secret["name"]}/repositories'
                         )
@@ -1377,7 +1411,7 @@ class Api:
 
         return secrets
 
-    def get_repo_org_secrets(self, repo_name: str):
+    async def get_repo_org_secrets(self, repo_name: str):
         """Issues an API call to the GitHub API to list org secrets for a
         repository. This will succeed as long as the token has the repo scope
         and the user has write access to the repository.
@@ -1389,7 +1423,7 @@ class Api:
             (list): List of org secrets that can be read via a workflow in this
             repository.
         """
-        resp = self.call_get(f"/repos/{repo_name}/actions/organization-secrets")
+        resp = await self.call_get(f"/repos/{repo_name}/actions/organization-secrets")
         secrets = []
         if resp.status_code == 200:
             secrets_response = resp.json()
@@ -1399,8 +1433,8 @@ class Api:
 
         return secrets
 
-    def get_file_last_updated(self, repo_name: str, file_path: str):
-        resp = self.call_get(
+    async def get_file_last_updated(self, repo_name: str, file_path: str):
+        resp = await self.call_get(
             f"/repos/{repo_name}/commits", params={"path": file_path, "per_page": 1}
         )
 
@@ -1410,7 +1444,7 @@ class Api:
 
         return commit_date, commit_author, commit_sha
 
-    def get_all_environment_protection_rules(self, repo_name: str):
+    async def get_all_environment_protection_rules(self, repo_name: str):
         """
         Query all environments for a GitHub repository and return the combined protection rules array.
 
@@ -1420,7 +1454,7 @@ class Api:
         Returns:
             list: The combined protection rules array from all environments.
         """
-        response = self.call_get(f"/repos/{repo_name}/environments")
+        response = await self.call_get(f"/repos/{repo_name}/environments")
 
         all_protection_rules = []
 
@@ -1439,7 +1473,7 @@ class Api:
 
         return all_protection_rules
 
-    def commit_workflow(
+    async def commit_workflow(
         self,
         repo_name: str,
         target_branch: str,
@@ -1474,23 +1508,23 @@ class Api:
             str: The SHA of the new commit if the commit was successful, None otherwise.
         """
         # Step 1: Get latest commit SHA of target branch
-        r = self.call_get(f"/repos/{repo_name}")
+        r = await self.call_get(f"/repos/{repo_name}")
         if self.__verify_result(r, 200) is False:
             return None
         default_branch = r.json()["default_branch"]
 
-        r = self.call_get(f"/repos/{repo_name}/commits/{default_branch}")
+        r = await self.call_get(f"/repos/{repo_name}/commits/{default_branch}")
         if self.__verify_result(r, 200) is False:
             return None
         latest_commit_sha = r.json()["sha"]
 
         # Step 2: Get tree SHA of latest commit of default
-        r = self.call_get(f"/repos/{repo_name}/git/commits/{latest_commit_sha}")
+        r = await self.call_get(f"/repos/{repo_name}/git/commits/{latest_commit_sha}")
         if self.__verify_result(r, 200) is False:
             return None
         tree_sha = r.json()["tree"]["sha"]
         # Step 3: Get the tree of the .github/workflows directory
-        r = self.call_get(
+        r = await self.call_get(
             f"/repos/{repo_name}/git/trees/{tree_sha}", params={"recursive": "1"}
         )
         if self.__verify_result(r, 200) is False:
@@ -1510,7 +1544,7 @@ class Api:
         # tree are removed
         new_workflow_file_content = base64.b64encode(workflow_contents).decode()
 
-        r = self.call_post(
+        r = await self.call_post(
             f"/repos/{repo_name}/git/blobs",
             params={"content": new_workflow_file_content, "encoding": "base64"},
         )
@@ -1542,7 +1576,7 @@ class Api:
                 }
             )
 
-        r = self.call_post(
+        r = await self.call_post(
             f"/repos/{repo_name}/git/trees",
             params={"base_tree": base_sha, "tree": new_tree},
         )
@@ -1550,7 +1584,7 @@ class Api:
             return None
         new_tree_sha = r.json()["sha"]
         # Step 5: Create new commit on new branch
-        r = self.call_post(
+        r = await self.call_post(
             f"/repos/{repo_name}/git/commits",
             params={
                 "message": message,
@@ -1562,7 +1596,7 @@ class Api:
         new_commit_sha = r.json()["sha"]
 
         # Step 6: Update the new branch to point to the new commit
-        r = self.call_post(
+        r = await self.call_post(
             f"/repos/{repo_name}/git/refs",
             params={"sha": new_commit_sha, "ref": f"refs/heads/{target_branch}"},
         )
@@ -1571,7 +1605,7 @@ class Api:
 
         return new_commit_sha
 
-    def backtrack_head(self, repo_name, ref_name, commit_depth):
+    async def backtrack_head(self, repo_name, ref_name, commit_depth):
         """Uses the Git database API to revert a number of commits back from head.
 
         This essentially does:
@@ -1585,7 +1619,7 @@ class Api:
 
         params = {"sha": ref_name, "per_page": commit_depth + 1}
 
-        resp = self.call_get(f"/repos/{repo_name}/commits", params=params)
+        resp = await self.call_get(f"/repos/{repo_name}/commits", params=params)
 
         if resp.status_code == 200:
             commits = resp.json()
@@ -1593,7 +1627,7 @@ class Api:
         else:
             return False
 
-        resp = self.call_patch(
+        resp = await self.call_patch(
             f"/repos/{repo_name}/git/refs/heads/{ref_name}",
             params={"sha": target, "force": True},
         )
@@ -1603,7 +1637,7 @@ class Api:
         else:
             return False
 
-    def issue_dispatch(
+    async def issue_dispatch(
         self, repo_name, target_workflow, target_branch, dispatch_inputs
     ):
         """Issues a workflow dispatch event to trigger a workflow.
@@ -1612,14 +1646,14 @@ class Api:
             repo_name (str): Name of the repository in Org/Repo format.
             target_workflow (str): Name of the workflow to trigger.
         """
-        r = self.call_post(
+        r = await self.call_post(
             f"/repos/{repo_name}/actions/workflows/{target_workflow}/dispatches",
             params={"ref": target_branch, "inputs": dispatch_inputs},
         )
 
         return r.status_code == 204
 
-    def get_issue_comments(self, repo_name, target_pr):
+    async def get_issue_comments(self, repo_name, target_pr):
         """Receives the last 5 comments on the PR within the last minute.
 
         Args:
@@ -1634,25 +1668,25 @@ class Api:
         )
         params = {"per_page": 5, "since": since + "Z"}
 
-        r = self.call_get(
+        r = await self.call_get(
             f"/repos/{repo_name}/issues/{target_pr}/comments", params=params
         )
 
         return r.json()
 
-    def create_repository(self, repository_name: str):
+    async def create_repository(self, repository_name: str):
         """Creates a private repository for the authenticated user."""
 
         params = {"private": True, "name": repository_name}
 
-        response = self.call_post(f"/user/repos", params=params)
+        response = await self.call_post(f"/user/repos", params=params)
 
         if response.status_code == 201:
             return response.json()["full_name"]
         else:
             return False
 
-    def create_pull_request(
+    async def create_pull_request(
         self,
         source_repo: str,
         source_branch: str,
@@ -1693,14 +1727,14 @@ class Api:
             "draft": draft,
         }
 
-        response = self.call_post(f"/repos/{target_repo}/pulls", params=params)
+        response = await self.call_post(f"/repos/{target_repo}/pulls", params=params)
 
         if response.status_code == 201:
             return response.json()["html_url"]
         else:
             return False
 
-    def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
+    async def retrieve_raw_action(self, repo: str, file_path: str, ref: str):
         """Retrieves a GitHub action yaml file from a public repository."""
         if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             file_path = file_path.replace("//", "/")
@@ -1713,20 +1747,20 @@ class Api:
             paths = [f"{file_path}action.yml", f"{file_path}action.yaml"]
 
         for path in paths:
-            res = self.__get_raw_file(repo, path, ref)
+            res = await self.__get_raw_file(repo, path, ref)
 
             if res:
                 return res
 
         return None
 
-    def get_installation_repos(self):
+    async def get_installation_repos(self):
         """ """
-        response = self.call_get("/installation/repositories")
+        response = await self.call_get("/installation/repositories")
         if response.status_code == 200:
             return response.json()
 
-    def get_commit_merge_date(self, repo: str, sha: str):
+    async def get_commit_merge_date(self, repo: str, sha: str):
         """Gets the date of the merge commit."""
 
         query = {
@@ -1738,7 +1772,7 @@ class Api:
             },
         }
 
-        r = self.call_post("/graphql", params=query)
+        r = await self.call_post("/graphql", params=query)
         if r.status_code == 200:
             response = r.json()
 

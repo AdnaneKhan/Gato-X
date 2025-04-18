@@ -27,7 +27,7 @@ def ArtifactPoisoningVisitor():
     """
 
     @staticmethod
-    def find_artifact_poisoning(graph: TaggedGraph, api: Api):
+    async def find_artifact_poisoning(graph: TaggedGraph, api: Api):
         # Unlike pwn requests, we are looking specifically
         # for cases of improper aritfact validation,
         # so we follow different logic focused on that.
@@ -37,6 +37,6 @@ def ArtifactPoisoningVisitor():
         all_paths = []
 
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "artifact", api)
+            paths = await graph.dfs_to_tag(cn, "artifact", api)
             if paths:
                 all_paths.append(paths)

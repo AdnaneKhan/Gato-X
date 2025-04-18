@@ -62,7 +62,7 @@ class VisitorUtils:
         results[repo_name].append(result)
 
     @staticmethod
-    def initialize_action_node(graph, api, node):
+    async def initialize_action_node(graph, api, node):
         """
         Initialize an action node by removing the 'uninitialized' tag and setting it up.
 
@@ -82,7 +82,7 @@ class VisitorUtils:
         """
         tags = node.get_tags()
         if "uninitialized" in tags:
-            WorkflowGraphBuilder()._initialize_action_node(node, api)
+            await WorkflowGraphBuilder()._(node, api)
             graph.remove_tags_from_node(node, ["uninitialized"])
 
     @staticmethod
@@ -162,7 +162,7 @@ class VisitorUtils:
         return head
 
     @staticmethod
-    def add_repo_results(data: dict, api: Api):
+    async def add_repo_results(data: dict, api: Api):
         """Add results to the repository data."""
         seen = set()
         for _, flows in data.items():
@@ -179,18 +179,18 @@ class VisitorUtils:
                 if (
                     ConfigurationManager().NOTIFICATIONS["SLACK_WEBHOOKS"]
                     and repo
-                    and is_within_last_day(repo.repo_data["pushed_at"])
+                    and await is_within_last_day(repo.repo_data["pushed_at"])
                 ):
                     value = flow.to_machine()
-                    commit_date, author, sha = api.get_file_last_updated(
+                    commit_date, author, sha = await api.get_file_last_updated(
                         flow.repo_name(),
                         ".github/workflows/" + value.get("initial_workflow"),
                     )
 
-                    merge_date = api.get_commit_merge_date(flow.repo_name(), sha)
+                    merge_date = await api.get_commit_merge_date(flow.repo_name(), sha)
                     if merge_date:
                         # If there is a PR merged, get the most recent.
-                        commit_date = return_recent(commit_date, merge_date)
+                        commit_date = await return_recent(commit_date, merge_date)
 
                     if is_within_last_day(commit_date) and "[bot]" not in author:
                         send_slack_webhook(value)
