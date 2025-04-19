@@ -38,6 +38,7 @@ class Api:
         http_proxy: str = None,
         socks_proxy: str = None,
         github_url: str = "https://api.github.com",
+        client: httpx.AsyncClient = None,  # Optional, mostly for unit tests.
     ):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
@@ -82,13 +83,16 @@ class Api:
             self.verify_ssl = False
 
         # Initialize async client
-        self.client = httpx.AsyncClient(
-            headers=self.headers,
-            proxy=self.transport,
-            verify=self.verify_ssl,
-            follow_redirects=True,
-            timeout=30.0,
-        )
+        if client:
+            self.client = client
+        else:
+            self.client = httpx.AsyncClient(
+                headers=self.headers,
+                proxy=self.transport,
+                verify=self.verify_ssl,
+                follow_redirects=True,
+                timeout=30.0,
+            )
 
     async def __aenter__(self):
         return self
@@ -811,7 +815,6 @@ class Api:
             dict: User associated with the PAT, None otherwise.
         """
         result = await self.call_get("/user")
-
         if result.status_code == 200:
             resp_headers = result.headers.get("x-oauth-scopes")
             if resp_headers:
