@@ -33,6 +33,28 @@ class PwnRequestVisitor:
 
     @staticmethod
     async def _process_single_path(path, graph, api, rule_cache, results):
+        """
+        Process a single path for potential security issues.
+        This method analyzes a given path within the workflow graph to identify and flag
+        potential security vulnerabilities related to Pwn (Privilege Escalation) requests.
+        It inspects each node for specific tags, evaluates deployment environment rules,
+        and determines if approval gates are required based on the analysis.
+        Args:
+            path (List[Node]):
+                The sequence of nodes representing a potential security path to process.
+            graph (TaggedGraph):
+                The workflow graph containing all nodes and their relationships.
+            api (Api):
+                An instance of the API wrapper to interact with external services.
+            rule_cache (dict):
+                A cache storing environment protection rules for repositories to avoid redundant API calls.
+            results (dict):
+                A dictionary aggregating the detected security issues, organized by repository.
+        Returns:
+            None
+        Raises:
+            None
+        """
         input_lookup = {}
         env_lookup = {}
         flexible_lookup = {}
