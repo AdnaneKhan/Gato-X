@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
@@ -26,7 +26,7 @@ def mock_repo():
 
 @pytest.fixture
 def mock_workflow():
-    workflow = Mock(spec=Workflow)
+    workflow = AsyncMock(spec=Workflow)
     workflow.repo_name = "test/repo"
     workflow.branch = "main"
     workflow.getPath.return_value = ".github/workflows/test.yml"
@@ -44,7 +44,7 @@ def mock_workflow():
 
 @pytest.fixture
 def mock_workflow2():
-    workflow = Mock(spec=Workflow)
+    workflow = AsyncMock(spec=Workflow)
     workflow.repo_name = "test/repo"
     workflow.branch = "main"
     workflow.getPath.return_value = ".github/workflows/test.yml"
@@ -74,8 +74,8 @@ def test_build_lone_repo_graph(builder, mock_repo):
     assert node.name == "test/repo"
 
 
-def test_build_graph_from_yaml(builder, mock_workflow, mock_repo):
-    builder.build_graph_from_yaml(mock_workflow, mock_repo)
+async def test_build_graph_from_yaml(builder, mock_workflow, mock_repo):
+    await builder.build_graph_from_yaml(mock_workflow, mock_repo)
     assert len(builder.graph.nodes) > 0
 
     # Should have repo node
@@ -87,8 +87,8 @@ def test_build_graph_from_yaml(builder, mock_workflow, mock_repo):
     assert len(wf_nodes) == 1
 
 
-def test_build_graph_from_yaml2(builder, mock_workflow2, mock_repo):
-    builder.build_graph_from_yaml(mock_workflow2, mock_repo)
+async def test_build_graph_from_yaml2(builder, mock_workflow2, mock_repo):
+    await builder.build_graph_from_yaml(mock_workflow2, mock_repo)
     assert len(builder.graph.nodes) > 0
 
     # Should have repo node
@@ -100,7 +100,7 @@ def test_build_graph_from_yaml2(builder, mock_workflow2, mock_repo):
     assert len(wf_nodes) == 1
 
 
-def test_build_graph_from_yaml_invalid(builder, mock_repo):
+async def test_build_graph_from_yaml_invalid(builder, mock_repo):
 
     workflow = Mock(spec=Workflow)
     workflow.repo_name = "test/repo"
@@ -117,26 +117,26 @@ def test_build_graph_from_yaml_invalid(builder, mock_repo):
         ]
     }
 
-    assert builder.build_graph_from_yaml(workflow, mock_repo) == False
+    assert await builder.build_graph_from_yaml(workflow, mock_repo) == False
 
 
-def test_build_workflow_jobs(builder, mock_workflow):
+async def test_build_workflow_jobs(builder, mock_workflow):
     wf_node = WorkflowNode("main", "test/repo", ".github/workflows/test.yml")
-    builder.build_workflow_jobs(mock_workflow, wf_node)
+    await builder.build_workflow_jobs(mock_workflow, wf_node)
 
     # Should create job node
     job_nodes = [n for n in builder.graph.nodes if "JobNode" in n.get_tags()]
     assert len(job_nodes) == 1
 
 
-def test_invalid_workflow(builder, mock_workflow, mock_repo):
+async def test_invalid_workflow(builder, mock_workflow, mock_repo):
     mock_workflow.isInvalid.return_value = True
-    builder.build_graph_from_yaml(mock_workflow, mock_repo)
+    await builder.build_graph_from_yaml(mock_workflow, mock_repo)
     assert len(builder.graph.nodes) == 0
 
 
 @patch("gatox.workflow_graph.graph_builder.CacheManager")
-def test_initialize_action_node(mock_cache, builder):
+async def test_initialize_action_node(mock_cache, builder):
     action_node = ActionNode(
         "actions/checkout@v2", "main", "workflow.yml", "test/repo", {}
     )
@@ -148,5 +148,5 @@ def test_initialize_action_node(mock_cache, builder):
         - run: echo test
     """
 
-    builder._initialize_action_node(action_node, api)
+    await builder._initialize_action_node(action_node, api)
     assert action_node.initialized
