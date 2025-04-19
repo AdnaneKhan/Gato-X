@@ -1,7 +1,7 @@
 import logging
-import time
 import random
 import string
+import asyncio
 
 from gatox.github.api import Api
 from gatox.attack.cicd_attack import CICDAttack
@@ -148,7 +148,7 @@ class Attacker:
             if ret:
                 break
             else:
-                time.sleep(1)
+                asyncio.sleep(1)
 
         if ret:
             Output.result("Malicious branch deleted.")
@@ -167,7 +167,7 @@ class Attacker:
             elif workflow_id > 0:
                 break
             else:
-                time.sleep(1)
+                asyncio.sleep(1)
         else:
             Output.error("Failed to find the created workflow!")
             return
@@ -183,7 +183,7 @@ class Attacker:
                 Output.result("The malicious workflow executed succesfully!")
                 break
             else:
-                time.sleep(1)
+                asyncio.sleep(1)
         else:
             Output.error("The workflow is incomplete but hit the timeout!")
 

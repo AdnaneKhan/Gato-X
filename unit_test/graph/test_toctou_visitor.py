@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
 
 
@@ -65,10 +65,11 @@ async def test_dispatch_multiple_nodes_and_paths(mock_graph, mock_api):
 
 
 @patch.object(DispatchTOCTOUVisitor, "_DispatchTOCTOUVisitor__process_path")
-async def test_exceptions_in_process_path(mock_process, mock_graph, mock_api):
+async def test_exceptions_in_process_path(mock_process, mock_api):
     """
     Test that exceptions in __process_path are caught and handled.
     """
+    mock_graph = AsyncMock()
     mock_node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [mock_node]
     mock_graph.dfs_to_tag.return_value = [[MagicMock(), MagicMock()]]

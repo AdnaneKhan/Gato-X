@@ -343,7 +343,9 @@ async def test_enum_self(mock_enumerate):
 @mock.patch("gatox.models.execution.Execution.add_repositories")
 @mock.patch("gatox.models.execution.Execution.add_organizations")
 @mock.patch("gatox.enumerate.enumerate.Enumerator.self_enumeration")
-async def test_enum_self_json_empty(mock_enumerate, mock_executor_org, mock_executor_repo):
+async def test_enum_self_json_empty(
+    mock_enumerate, mock_executor_org, mock_executor_repo
+):
     """Test enum command using the self enumerattion."""
 
     mock_enumerate.return_value = ([], ["repo1", "repo2"])
@@ -361,7 +363,6 @@ async def test_enum_org(mock_enumerate):
 
     mock_instance = mock_enumerate.return_value
     mock_api = AsyncMock()
-
 
     mock_api.check_user.return_value = {
         "user": "testUser",

@@ -1,11 +1,12 @@
 import re
+import httpx
+import pytest
 
 from unittest.mock import patch
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 from gatox.attack.attack import Attacker
 from gatox.cli.output import Output
-
-output = Output(True)
+from gatox.github.api import Api
 
 
 # From https://stackoverflow.com/questions/14693701/
@@ -13,6 +14,21 @@ output = Output(True)
 def escape_ansi(line):
     ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", line)
+
+
+@pytest.fixture(autouse=True)
+def block_network_calls(monkeypatch):
+    """
+    Fixture to block real network calls during tests,
+    raising an error if any attempt to send a request is made.
+    """
+    Output(True)
+
+    def mock_request(*args, **kwargs):
+        raise RuntimeError("Blocked a real network call during tests.")
+
+    monkeypatch.setattr(httpx.Client, "send", mock_request)
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_request)
 
 
 def test_init():
@@ -151,9 +167,9 @@ def test_init():
 #         escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.time.sleep")
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack(mock_api, mock_time, capsys):
+@patch("gatox.attack.attack.asyncio.sleep")
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
     mock_api.return_value.check_user.return_value = {
@@ -178,7 +194,7 @@ def test_push_workflow_attack(mock_api, mock_time, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", True
     )
 
@@ -190,8 +206,8 @@ def test_push_workflow_attack(mock_api, mock_time, capsys):
     assert "Workflow still incomplete but hit timeout!" not in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack_perm(mock_api, capsys):
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack_perm(mock_api, capsys):
     """Test executing shell workflow attack with invalid permissions."""
 
     mock_api.return_value.check_user.return_value = {
@@ -208,7 +224,7 @@ def test_push_workflow_attack_perm(mock_api, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", False
     )
 
@@ -219,9 +235,9 @@ def test_push_workflow_attack_perm(mock_api, capsys):
     assert " The user does not have the necessary scopes" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.time.sleep")
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack_fail_wf(mock_api, mock_time, capsys):
+@patch("gatox.attack.attack.asyncio.sleep")
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack_fail_wf(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
     mock_api.return_value.check_user.return_value = {
@@ -246,7 +262,7 @@ def test_push_workflow_attack_fail_wf(mock_api, mock_time, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", True
     )
 
@@ -257,9 +273,9 @@ def test_push_workflow_attack_fail_wf(mock_api, mock_time, capsys):
     assert "Failed to find the created workflow!" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.time.sleep")
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
+@patch("gatox.attack.attack.asyncio.sleep")
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
     mock_api.return_value.check_user.return_value = {
@@ -284,7 +300,7 @@ def test_push_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", True
     )
 
@@ -295,9 +311,9 @@ def test_push_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
     assert "Failed to find the created workflow!" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.time.sleep")
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
+@patch("gatox.attack.attack.asyncio.sleep")
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
     mock_api.return_value.check_user.return_value = {
@@ -322,7 +338,7 @@ def test_push_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", True
     )
 
@@ -333,9 +349,9 @@ def test_push_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
     assert "The workflow is incomplete but hit the timeout" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.time.sleep")
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack_fail_branch(mock_api, mock_time, capsys):
+@patch("gatox.attack.attack.asyncio.sleep")
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack_fail_branch(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
     mock_api.return_value.check_user.return_value = {
@@ -354,7 +370,7 @@ def test_push_workflow_attack_fail_branch(mock_api, mock_time, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", True
     )
 
@@ -365,9 +381,9 @@ def test_push_workflow_attack_fail_branch(mock_api, mock_time, capsys):
     assert "Failed to check for remote branch!" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.time.sleep")
-@patch("gatox.attack.attack.Api")
-def test_push_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
+@patch("gatox.attack.attack.asyncio.sleep")
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_push_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
     """Test the shell workflow attack."""
 
     mock_api.return_value.check_user.return_value = {
@@ -386,7 +402,7 @@ def test_push_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.push_workflow_attack(
+    await gh_attacker.push_workflow_attack(
         "targetRepo", "whoami", None, None, "message", True
     )
 
