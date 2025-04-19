@@ -22,7 +22,7 @@ from gatox.search.search import Searcher
 from gatox.models.execution import Execution
 
 
-def cli(args):
+async def cli(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=(
@@ -83,7 +83,7 @@ def cli(args):
     validate_arguments(arguments, parser)
     print(Output.blue(SPLASH))
 
-    arguments.func(arguments, subparsers)
+    await arguments.func(arguments, subparsers)
 
 
 def save_workflow_ymls(output_directory):
@@ -140,7 +140,7 @@ def validate_arguments(args, parser):
         )
 
 
-def attack(args, parser):
+async def attack(args, parser):
     parser = parser.choices["attack"]
 
     if not args.target and not (args.interact or args.payload_only):
@@ -214,7 +214,7 @@ def attack(args, parser):
 
         if args.payload_only:
 
-            gh_attack_runner.payload_only(
+            await gh_attack_runner.payload_only(
                 args.target_os,
                 args.target_arch,
                 args.labels,
@@ -222,7 +222,7 @@ def attack(args, parser):
                 keep_alive=args.keep_alive,
             )
         elif args.runner_on_runner:
-            gh_attack_runner.runner_on_runner(
+            await gh_attack_runner.runner_on_runner(
                 args.target,
                 args.branch,
                 args.pr_title,
@@ -239,7 +239,7 @@ def attack(args, parser):
             )
         elif args.interact:
             if args.c2_repo:
-                gh_attack_runner.interact_webshell(args.c2_repo)
+                await gh_attack_runner.interact_webshell(args.c2_repo)
             else:
                 parser.error(
                     f"{Fore.RED}[!] You must specify a C2 repo to interact with!"
@@ -255,7 +255,7 @@ def attack(args, parser):
             timeout=timeout,
             github_url=args.api_url,
         )
-        gh_attack_runner.push_workflow_attack(
+        await gh_attack_runner.push_workflow_attack(
             args.target,
             args.command,
             args.custom_file,
@@ -276,12 +276,12 @@ def attack(args, parser):
             github_url=args.api_url,
         )
 
-        gh_attack_runner.secrets_dump(
+        await gh_attack_runner.secrets_dump(
             args.target, args.branch, args.message, args.delete_run, args.file_name
         )
 
 
-def enumerate(args, parser):
+async def enumerate(args, parser):
     parser = parser.choices["enumerate"]
 
     if not (
@@ -332,29 +332,29 @@ def enumerate(args, parser):
         Output.info(f"Cache restored from file:{args.cache_restore_file}")
 
     if args.validate:
-        orgs = gh_enumeration_runner.validate_only()
+        orgs = await gh_enumeration_runner.validate_only()
     elif args.self_enumeration:
-        orgs, repos = gh_enumeration_runner.self_enumeration()
+        orgs, repos = await gh_enumeration_runner.self_enumeration()
     elif args.target:
         # First, determine if the target is an organization or a repository.
-        if gh_enumeration_runner.api.get_user_type(args.target) == "Organization":
-            orgs = [gh_enumeration_runner.enumerate_organization(args.target)]
+        if await gh_enumeration_runner.api.get_user_type(args.target) == "Organization":
+            orgs = [await gh_enumeration_runner.enumerate_organization(args.target)]
         else:
             # Otherwise, simply enumerate all repositories belonging to the user.
-            repos = gh_enumeration_runner.enumerate_user(args.target)
+            repos = await gh_enumeration_runner.enumerate_user(args.target)
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(
                 args.repositories, r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
-            repos = gh_enumeration_runner.enumerate_repos(repo_list)
+            repos = await gh_enumeration_runner.enumerate_repos(repo_list)
         except argparse.ArgumentError as e:
             parser.error(
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
     elif args.repository:
-        repos = gh_enumeration_runner.enumerate_repos([args.repository])
+        repos = await gh_enumeration_runner.enumerate_repos([args.repository])
 
     if args.output_yaml:
         save_workflow_ymls(args.output_yaml)
@@ -377,7 +377,7 @@ def enumerate(args, parser):
         Output.info(f"Cache saved to file:{args.cache_save_file}")
 
 
-def search(args, parser):
+async def search(args, parser):
     parser = parser.choices["search"]
 
     gh_search_runner = Searcher(
@@ -393,7 +393,7 @@ def search(args, parser):
                 "with a custom query!"
             )
 
-        results = gh_search_runner.use_sourcegraph_api(
+        results = await gh_search_runner.use_sourcegraph_api(
             organization=args.target, query=args.query
         )
     else:
@@ -403,11 +403,11 @@ def search(args, parser):
                 "or pass a custom query!."
             )
         if args.query:
-            results = gh_search_runner.use_search_api(
+            results = await gh_search_runner.use_search_api(
                 organization=args.target, query=args.query
             )
         else:
-            results = gh_search_runner.use_search_api(organization=args.target)
+            results = await gh_search_runner.use_search_api(organization=args.target)
 
     if results:
         gh_search_runner.present_results(results, args.output_text)

@@ -37,7 +37,7 @@ class TaggedGraph(nx.DiGraph):
         self.builder = builder
         self.tags = {}  # Dictionary to map tags to sets of nodes
 
-    def dfs_to_tag(self, start_node, target_tag, api):
+    async def dfs_to_tag(self, start_node, target_tag, api):
         """
         Perform a Depth-First Search (DFS) from the start node to find all paths
         that lead to nodes with the specified target tag.
@@ -54,11 +54,11 @@ class TaggedGraph(nx.DiGraph):
         all_paths = list()
         visited = set()
 
-        self._dfs(start_node, target_tag, path, all_paths, visited, api)
+        await self._dfs(start_node, target_tag, path, all_paths, visited, api)
 
         return all_paths
 
-    def _dfs(self, current_node, target_tag, path, all_paths, visited, api):
+    async def _dfs(self, current_node, target_tag, path, all_paths, visited, api):
         """
         Helper method to recursively perform DFS.
 
@@ -80,14 +80,14 @@ class TaggedGraph(nx.DiGraph):
         visited.add(current_node)
 
         if "uninitialized" in current_node.get_tags():
-            self.builder.initialize_node(current_node, api)
+            await self.builder.initialize_node(current_node, api)
 
         if target_tag in current_node.get_tags():
             all_paths.append(list(path))
         else:
             for neighbor in self.neighbors(current_node):
                 if neighbor not in visited:
-                    self._dfs(neighbor, target_tag, path, all_paths, visited, api)
+                    await self._dfs(neighbor, target_tag, path, all_paths, visited, api)
 
         path.pop()
         visited.remove(current_node)

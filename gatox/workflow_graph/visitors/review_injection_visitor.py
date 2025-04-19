@@ -33,11 +33,11 @@ class ReviewInjectionVisitor:
     """
     This class implements a graph visitor tasked with identifying
     injection issues on the pull_request_review and
-    pull_request_review comment triggers..
+    pull_request_review comment triggers.
     """
 
     @staticmethod
-    def find_injections(graph: TaggedGraph, api: Api):
+    async def find_injections(graph: TaggedGraph, api: Api):
         """
         Identify potential injection vulnerabilities within GitHub workflows.
 
@@ -78,7 +78,7 @@ class ReviewInjectionVisitor:
         rule_cache = {}
 
         for cn in nodes:
-            paths = graph.dfs_to_tag(cn, "injectable", api)
+            paths = await graph.dfs_to_tag(cn, "injectable", api)
             if paths:
                 all_paths.append(paths)
 
@@ -98,7 +98,7 @@ class ReviewInjectionVisitor:
                             if node.repo_name() in rule_cache:
                                 rules = rule_cache[node.repo_name()]
                             else:
-                                rules = api.get_all_environment_protection_rules(
+                                rules = await api.get_all_environment_protection_rules(
                                     node.repo_name()
                                 )
                                 rule_cache[node.repo_name()] = rules
@@ -112,7 +112,7 @@ class ReviewInjectionVisitor:
                                 if deployment in rules:
                                     approval_gate = True
 
-                        paths = graph.dfs_to_tag(node, "permission_check", api)
+                        paths = await graph.dfs_to_tag(node, "permission_check", api)
                         if paths:
                             approval_gate = True
 
@@ -208,7 +208,7 @@ class ReviewInjectionVisitor:
                                     if "github." in val:
                                         env_lookup[key] = val
                     elif "ActionNode" in tags:
-                        VisitorUtils.initialize_action_node(graph, api, node)
+                        await VisitorUtils.initialize_action_node(graph, api, node)
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps

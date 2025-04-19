@@ -4,7 +4,8 @@ import pytest
 import json
 import httpx
 
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
+from gatox.github.api import Api
 
 from gatox.models.repository import Repository
 from gatox.enumerate.enumerate import Enumerator
@@ -65,7 +66,7 @@ def load_test_files(request):
         TEST_WORKFLOW_YML = wf_data.read()
 
 
-@patch("gatox.enumerate.enumerate.Api")
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 def test_init(mock_api):
     """Test constructor for enumerator."""
 
@@ -79,8 +80,8 @@ def test_init(mock_api):
     assert gh_enumeration_runner.http_proxy == "localhost:8080"
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_self_enumerate(mock_api, capsys):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_self_enumerate(mock_api, capsys):
     """Test constructor for enumerator."""
 
     mock_api.return_value.is_app_token.return_value = False
@@ -89,7 +90,6 @@ def test_self_enumerate(mock_api, capsys):
         "user": "testUser",
         "scopes": ["repo", "workflow"],
     }
-
     mock_api.return_value.check_organizations.return_value = []
 
     gh_enumeration_runner = Enumerator(
@@ -99,7 +99,7 @@ def test_self_enumerate(mock_api, capsys):
         skip_log=False,
     )
 
-    gh_enumeration_runner.self_enumeration()
+    await gh_enumeration_runner.self_enumeration()
 
     captured = capsys.readouterr()
 
@@ -107,8 +107,8 @@ def test_self_enumerate(mock_api, capsys):
     assert "The user testUser belongs to 0 organizations!" in escape_ansi(print_output)
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_enumerate_repo_admin(mock_api, capsys):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enumerate_repo_admin(mock_api, capsys):
     """Test constructor for enumerator."""
 
     gh_enumeration_runner = Enumerator(
@@ -132,7 +132,7 @@ def test_enumerate_repo_admin(mock_api, capsys):
 
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
+    await gh_enumeration_runner.enumerate_repo(repo_data["full_name"])
 
     captured = capsys.readouterr()
 
@@ -141,8 +141,8 @@ def test_enumerate_repo_admin(mock_api, capsys):
     assert "The user is an administrator on the" in escape_ansi(print_output)
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_enumerate_repo_admin_no_wf(mock_api, capsys):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     """Test constructor for enumerator."""
 
     gh_enumeration_runner = Enumerator(
@@ -166,7 +166,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
 
     mock_api.return_value.get_repository.return_value = repo_data
 
-    gh_enumeration_runner._Enumerator__enumerate_repo_only(repo_data["full_name"])
+    await gh_enumeration_runner.enumerate_repo(repo_data["full_name"])
 
     captured = capsys.readouterr()
 
@@ -175,8 +175,8 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     assert " is public this token can be used to approve a" in escape_ansi(print_output)
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_validate(mock_api, capfd):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_validate(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -194,15 +194,15 @@ def test_enum_validate(mock_api, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.validate_only()
+    await gh_enumeration_runner.validate_only()
     out, err = capfd.readouterr()
     assert "authenticated user is: testUser" in escape_ansi(out)
     assert "The user testUser belongs to 0 organizations!" in escape_ansi(out)
 
 
-@patch("gatox.enumerate.ingest.ingest.time")
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_repo(mock_api, mock_time, capfd):
+@patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_repo(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -220,15 +220,15 @@ def test_enum_repo(mock_api, mock_time, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner._Enumerator__enumerate_repo_only("octocat/Hello-World")
+    await gh_enumeration_runner.enumerate_repo("octocat/Hello-World")
     out, err = capfd.readouterr()
     assert "Checking repository: octocat/Hello-World" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_called_once_with("octocat/Hello-World")
 
 
-@patch("gatox.enumerate.ingest.ingest.time")
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_org(mock_api, mock_time, capfd):
+@patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_org(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -293,7 +293,7 @@ def test_enum_org(mock_api, mock_time, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_organization("github")
+    await gh_enumeration_runner.enumerate_organization("github")
 
     out, err = capfd.readouterr()
 
@@ -305,8 +305,8 @@ def test_enum_org(mock_api, mock_time, capfd):
     assert "ghrunner-test" in escaped_output
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_repo_runner(mock_api, capfd):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_repo_runner(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -351,7 +351,7 @@ def test_enum_repo_runner(mock_api, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner._Enumerator__enumerate_repo_only("octocat/Hello-World")
+    await gh_enumeration_runner.enumerate_repo("octocat/Hello-World")
     out, err = capfd.readouterr()
 
     escaped_output = escape_ansi(out)
@@ -363,9 +363,9 @@ def test_enum_repo_runner(mock_api, capfd):
     assert "Labels: self-hosted, Linux, X64" in escaped_output
 
 
-@patch("gatox.enumerate.ingest.ingest.time")
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_repos(mock_api, mock_time, capfd):
+@patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_repos(mock_api, mock_time, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -383,14 +383,14 @@ def test_enum_repos(mock_api, mock_time, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_repos(["octocat/Hello-World"])
+    await gh_enumeration_runner.enumerate_repos(["octocat/Hello-World"])
     out, _ = capfd.readouterr()
     assert "Checking repository: octocat/Hello-World" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_called_once_with("octocat/Hello-World")
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_repos_empty(mock_api, capfd):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_repos_empty(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -408,14 +408,14 @@ def test_enum_repos_empty(mock_api, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_repos([])
+    await gh_enumeration_runner.enumerate_repos([])
     out, _ = capfd.readouterr()
     assert "The list of repositories was empty!" in escape_ansi(out)
     mock_api.return_value.get_repository.assert_not_called()
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_bad_token(mock_api):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_bad_token(mock_api):
 
     gh_enumeration_runner = Enumerator(
         "ghp_BADTOKEN",
@@ -428,13 +428,13 @@ def test_bad_token(mock_api):
 
     mock_api.return_value.check_user.return_value = None
 
-    val = gh_enumeration_runner.self_enumeration()
+    val = await gh_enumeration_runner.self_enumeration()
 
     assert val is False
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_unscoped_token(mock_api, capfd):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_unscoped_token(mock_api, capfd):
 
     gh_enumeration_runner = Enumerator(
         "ghp_BADTOKEN",
@@ -449,15 +449,15 @@ def test_unscoped_token(mock_api, capfd):
         "scopes": ["public_repo"],
     }
 
-    status = gh_enumeration_runner.self_enumeration()
+    status = await gh_enumeration_runner.self_enumeration()
 
     out, _ = capfd.readouterr()
     assert "Self-enumeration requires the repo scope!" in escape_ansi(out)
     assert status is False
 
 
-@patch("gatox.enumerate.enumerate.Api")
-def test_enum_self_no_repos(mock_api, capfd):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enum_self_no_repos(mock_api, capfd):
     gh_enumeration_runner = Enumerator(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
@@ -472,7 +472,7 @@ def test_enum_self_no_repos(mock_api, capfd):
         "scopes": ["repo"],
     }
 
-    orgs, repos = gh_enumeration_runner.self_enumeration()
+    orgs, repos = await gh_enumeration_runner.self_enumeration()
 
     assert orgs == []
     assert repos == []

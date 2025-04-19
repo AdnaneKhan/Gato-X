@@ -28,7 +28,7 @@ class RunnerVisitor:
     """
 
     @staticmethod
-    def find_runner_workflows(graph: TaggedGraph):
+    async def find_runner_workflows(graph: TaggedGraph):
         """Graph visitor to find workflows that are likely
         to use self-hosted runners.
         """

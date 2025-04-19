@@ -21,11 +21,11 @@ def mock_graph():
     return Mock(spec=TaggedGraph)
 
 
-def test_find_injections_no_nodes(mock_graph, mock_api, capsys):
+async def test_find_injections_no_nodes(mock_graph, mock_api, capsys):
     """Test when no nodes are found with injection tags"""
     mock_graph.get_nodes_for_tags.return_value = []
 
-    results = InjectionVisitor.find_injections(mock_graph, mock_api)
+    results = await InjectionVisitor.find_injections(mock_graph, mock_api)
     assert results == {}
     # captured = capsys.readouterr()
     # assert "INJECT:" in captured.out
@@ -97,7 +97,7 @@ def test_find_injections_no_nodes(mock_graph, mock_api, capsys):
 #     mock_api.get_all_environment_protection_rules.assert_called_with("test/repo")
 
 
-def test_find_injections_with_action_node(mock_graph, mock_api):
+async def test_find_injections_with_action_node(mock_graph, mock_api):
     """Test path analysis with action node"""
     action_node = Mock(spec=ActionNode)
     action_node.get_tags.return_value = ["ActionNode"]
@@ -105,6 +105,6 @@ def test_find_injections_with_action_node(mock_graph, mock_api):
     mock_graph.get_nodes_for_tags.return_value = [action_node]
     mock_graph.dfs_to_tag.return_value = [[action_node]]
 
-    InjectionVisitor.find_injections(mock_graph, mock_api)
+    await InjectionVisitor.find_injections(mock_graph, mock_api)
 
     mock_graph.get_nodes_for_tags.assert_called_once()

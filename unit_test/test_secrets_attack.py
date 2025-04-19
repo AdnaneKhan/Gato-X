@@ -1,9 +1,28 @@
 import re
+import pytest
+import httpx
 
 from unittest.mock import patch
-from unittest.mock import MagicMock
+from gatox.cli.output import Output
+from unittest.mock import MagicMock, AsyncMock
+from gatox.github.api import Api
 
 from gatox.attack.secrets.secrets_attack import SecretsAttack
+
+
+@pytest.fixture(autouse=True)
+def block_network_calls(monkeypatch):
+    """
+    Fixture to block real network calls during tests,
+    raising an error if any attempt to send a request is made.
+    """
+    Output(True)
+
+    def mock_request(*args, **kwargs):
+        raise RuntimeError("Blocked a real network call during tests.")
+
+    monkeypatch.setattr(httpx.Client, "send", mock_request)
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_request)
 
 
 # From https://stackoverflow.com/questions/14693701/
@@ -26,8 +45,6 @@ def test_create_secret_exil_yaml():
 
     yaml = attacker.create_exfil_yaml(pub, "evilBranch")
 
-    print(yaml)
-
     assert "${{ toJSON(secrets)}}" in yaml
     assert "actions/upload-artifact@v4" in yaml
 
@@ -38,8 +55,8 @@ def test_create_secret_exil_yaml():
 @patch(
     "gatox.attack.secrets.secrets_attack.SecretsAttack._SecretsAttack__create_private_key"
 )
-@patch("gatox.attack.attack.Api")
-def test_secrets_dump(mock_api, mock_privkey, mock_dec, capsys):
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_secrets_dump(mock_api, mock_privkey, mock_dec, capsys):
     """Test secrets dump functionality."""
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -74,7 +91,7 @@ w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
     mock_api.return_value.get_workflow_status.return_value = 1
     mock_priv = MagicMock()
     mock_priv.decrypt.return_value = "TestSymKey"
-    mock_privkey.return_value = (mock_priv, "pub_mock")
+    mock_privkey.return_value = (mock_priv, pub_mock)
     mock_dec.return_value = b'{"TEST_SECRET":"TEST_VALUE"}'
 
     gh_attacker = SecretsAttack(
@@ -83,7 +100,7 @@ w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
+    await gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
 
     captured = capsys.readouterr()
 
@@ -92,8 +109,8 @@ w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
     assert "Decrypted and Decoded Secrets:" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.Api")
-def test_secrets_dump_baduser(mock_api, capsys):
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_secrets_dump_baduser(mock_api, capsys):
     """Test secrets dump functionality with bad permissions."""
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
@@ -107,7 +124,7 @@ def test_secrets_dump_baduser(mock_api, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
+    await gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
 
     captured = capsys.readouterr()
 
@@ -118,8 +135,8 @@ def test_secrets_dump_baduser(mock_api, capsys):
     )
 
 
-@patch("gatox.attack.attack.Api")
-def test_secrets_dump_nosecret(mock_api, capsys):
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_secrets_dump_nosecret(mock_api, capsys):
     """Test secrets dump where repo has no secrets."""
 
     mock_api.return_value.check_user.return_value = {
@@ -137,7 +154,7 @@ def test_secrets_dump_nosecret(mock_api, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
+    await gh_attacker.secrets_dump("targetRepo", None, None, True, "exfil")
 
     captured = capsys.readouterr()
     print_output = captured.out
@@ -147,8 +164,8 @@ def test_secrets_dump_nosecret(mock_api, capsys):
     )
 
 
-@patch("gatox.attack.attack.Api")
-def test_secrets_dump_branchexist(mock_api, capsys):
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_secrets_dump_branchexist(mock_api, capsys):
     """Test secrets dump where exfil branch already exists."""
 
     mock_api.return_value.check_user.return_value = {
@@ -167,7 +184,7 @@ def test_secrets_dump_branchexist(mock_api, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump("targetRepo", "exfilbranch", None, True, "exfil")
+    await gh_attacker.secrets_dump("targetRepo", "exfilbranch", None, True, "exfil")
 
     captured = capsys.readouterr()
     print_output = captured.out
@@ -175,8 +192,8 @@ def test_secrets_dump_branchexist(mock_api, capsys):
     assert "Remote branch, exfilbranch, already exists!" in escape_ansi(print_output)
 
 
-@patch("gatox.attack.attack.Api")
-def test_secrets_dump_branchfail(mock_api, capsys):
+@patch("gatox.attack.attack.Api", return_value=AsyncMock(Api))
+async def test_secrets_dump_branchfail(mock_api, capsys):
     """Test secrets dump where branch check fails."""
 
     mock_api.return_value.check_user.return_value = {
@@ -195,7 +212,7 @@ def test_secrets_dump_branchfail(mock_api, capsys):
         http_proxy="localhost:8080",
     )
 
-    gh_attacker.secrets_dump("targetRepo", "exfilbranch", None, True, "exfil")
+    await gh_attacker.secrets_dump("targetRepo", "exfilbranch", None, True, "exfil")
 
     captured = capsys.readouterr()
     print_output = captured.out

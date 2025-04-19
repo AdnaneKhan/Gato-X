@@ -10,7 +10,7 @@ def AttackUtilities():
     @staticmethod
     def create_gist(self, gist_name: str, gist_contents: str):
         """Create a Gist with the specified contents and return the raw URL."""
-        self.__setup_user_info()
+        await self.__setup_user_info()
 
         if "gist" not in self.user_perms["scopes"]:
             Output.error("Unable to create Gist without gist scope!")

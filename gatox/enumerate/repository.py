@@ -25,7 +25,7 @@ class RepositoryEnum:
         self.api = api
         self.skip_log = skip_log
 
-    def perform_runlog_enumeration(self, repository: Repository, workflows: list):
+    async def perform_runlog_enumeration(self, repository: Repository, workflows: list):
         """Enumerate for the presence of a self-hosted runner based on
         downloading historical runlogs.
 
@@ -39,7 +39,7 @@ class RepositoryEnum:
         runner_detected = False
         wf_runs = []
 
-        wf_runs = self.api.retrieve_run_logs(repository.name, workflows=workflows)
+        wf_runs = await self.api.retrieve_run_logs(repository.name, workflows=workflows)
 
         if wf_runs:
             for wf_run in wf_runs:
@@ -58,7 +58,7 @@ class RepositoryEnum:
 
         return runner_detected
 
-    def enumerate_repository(self, repository: Repository):
+    async def enumerate_repository(self, repository: Repository):
         """Enumerate a repository, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
 
@@ -77,7 +77,7 @@ class RepositoryEnum:
                 ActionsReport.report_actions_risk(risk)
 
         if repository.is_admin():
-            runners = self.api.get_repo_runners(repository.name)
+            runners = await self.api.get_repo_runners(repository.name)
 
             if runners:
                 repo_runners = [
@@ -98,13 +98,13 @@ class RepositoryEnum:
             runner_wfs = repository.get_sh_workflow_names()
             if runner_wfs:
                 Output.info(f"Analyizing run logs for {repository.name}")
-                runner_detected = self.perform_runlog_enumeration(
+                runner_detected = await self.perform_runlog_enumeration(
                     repository, runner_wfs
                 )
                 if runner_detected:
                     RunnersReport.report_runners(repository)
 
-    def enumerate_repository_secrets(self, repository: Repository):
+    async def enumerate_repository_secrets(self, repository: Repository):
         """Enumerate secrets accessible to a repository.
 
         Args:
@@ -112,10 +112,10 @@ class RepositoryEnum:
             API and retrieving a repository.
         """
         if repository.can_push():
-            secrets = self.api.get_secrets(repository.name)
+            secrets = await self.api.get_secrets(repository.name)
             wrapped_env_secrets = []
             for environment in repository.repo_data["environments"]:
-                env_secrets = self.api.get_environment_secrets(
+                env_secrets = await self.api.get_environment_secrets(
                     repository.name, environment
                 )
                 for secret in env_secrets:
@@ -128,7 +128,7 @@ class RepositoryEnum:
             repo_secrets.extend(wrapped_env_secrets)
             repository.set_secrets(repo_secrets)
 
-            org_secrets = self.api.get_repo_org_secrets(repository.name)
+            org_secrets = await self.api.get_repo_org_secrets(repository.name)
             org_secrets = [
                 Secret(secret, repository.org_name) for secret in org_secrets
             ]

