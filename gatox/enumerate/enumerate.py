@@ -1,6 +1,5 @@
 import logging
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from gatox.caching.cache_manager import CacheManager
 from gatox.cli.output import Output
