@@ -1269,7 +1269,9 @@ class Api:
 
             async def fetch_file(file):
                 async with semaphore:
-                    resp_file = await self.call_get(f'/repos/{repo_name}/contents/{file["path"]}')
+                    resp_file = await self.call_get(
+                        f'/repos/{repo_name}/contents/{file["path"]}'
+                    )
                     if resp_file.status_code == 200:
                         resp_data = resp_file.json()
                         if "content" in resp_data:
@@ -1280,7 +1282,8 @@ class Api:
             tasks = [
                 asyncio.create_task(fetch_file(file))
                 for file in objects
-                if file["type"] == "file" and (file["name"].endswith(".yml") or file["name"].endswith(".yaml"))
+                if file["type"] == "file"
+                and (file["name"].endswith(".yml") or file["name"].endswith(".yaml"))
             ]
             results = await asyncio.gather(*tasks)
             ymls = [wf for wf in results if wf is not None]
