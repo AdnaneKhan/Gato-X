@@ -4,7 +4,7 @@ import pathlib
 import httpx
 
 from unittest import mock
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 
 from gatox.cli import cli
 from gatox.util.arg_utils import read_file_and_validate_lines, is_valid_directory
@@ -79,23 +79,23 @@ async def test_cli_s2s_token_no_machine(capfd):
     assert "not support App tokens without machine flag" in err
 
 
-@patch("gatox.enumerate.enumerate.Api.call_get")
-@patch("gatox.enumerate.enumerate.Api.call_post")
-async def test_cli_s2s_token_machine(mock_post, mock_get, capfd):
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock())
+async def test_cli_s2s_token_machine(mock_api, capfd):
     """Test case where a service-to-service token is provided."""
     import os
     from gatox.cli import cli  # [gatox/cli/cli.py](gatox/cli/cli.py)
 
     os.environ["GH_TOKEN"] = "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
+    mock_api.return_value.is_app_token.return_value = True
     # Mock out the enumerator’s HTTP calls here as needed
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.json.return_value = {"total_count": 0}
-    mock_post.return_value.status_code = 200
+    mock_api.return_value.get_installation_repos.return_value = {"total_count": 1}
+    mock_api.return_value.call_post.return_value = AsyncMock(status_code=200)
 
     await cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
     out, _ = capfd.readouterr()
     assert "Allowing the use of a GitHub App token for single repo enumeration" in out
+    assert "Gato-X is using valid a GitHub App installation token" in out
 
 
 async def test_cli_u2s_token(capfd):
@@ -109,43 +109,63 @@ async def test_cli_u2s_token(capfd):
 
 
 @mock.patch("gatox.cli.cli.Enumerator")
-async def test_cli_oauth_token(mock_enumerate, capfd):
+async def test_cli_oauth_token(mock_enumerator, capfd):
     """Test case where a GitHub oauth token is provided."""
     os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    mock_instance = mock_enumerate.return_value
-    mock_api = mock.MagicMock()
-    mock_api.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo", "workflow"],
-    }
-    mock_api.get_user_type.return_value = "Organization"
-    mock_instance.api = mock_api
+    # Setup mock enumerator instance
+    mock_instance = mock_enumerator.return_value
+    mock_instance.api = mock.MagicMock()  # Use regular MagicMock for sync methods
+    mock_instance.api.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "scopes": ["repo", "workflow"],
+        }
+    )
+    mock_instance.api.get_user_type = AsyncMock(return_value="Organization")
+    mock_instance.enumerate_organization = AsyncMock(return_value={"testOrg": "data"})
+    mock_instance.user_perms = {"user": "testUser", "scopes": ["repo", "workflow"]}
 
     await cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
 
-    mock_enumerate.return_value.enumerate_organization.assert_called_once()
+    mock_instance.enumerate_organization.assert_called_once_with("test")
 
 
 @mock.patch("gatox.cli.cli.Enumerator")
-async def test_cli_old_token(mock_enumerate, capfd):
+async def test_cli_old_token(mock_enumerator, capfd):
     """Test case where an old, but still potentially valid GitHub token is provided."""
     os.environ["GH_TOKEN"] = "43255147468edf32a206441ad296ce648f44ee32"
 
-    mock_instance = mock_enumerate.return_value
-    mock_api = AsyncMock()
-    mock_api.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo", "workflow"],
-    }
-    mock_api.get_user_type.return_value = "Organization"
-    mock_instance.api = mock_api
+    # Setup mock enumerator instance
+    mock_instance = mock_enumerator.return_value
+    mock_instance.api = mock.MagicMock()  # Use regular MagicMock for sync methods
+    mock_instance.api.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "scopes": ["repo", "workflow"],
+        }
+    )
+    mock_instance.api.get_user_type = AsyncMock(return_value="Organization")
+    mock_instance.enumerate_organization = AsyncMock(return_value={"testOrg": "data"})
+    mock_instance.user_perms = {"user": "testUser", "scopes": ["repo", "workflow"]}
 
     await cli.cli(["enumerate", "-t", "test"])
-    out, err = capfd.readouterr()
 
-    mock_instance.enumerate_organization.assert_called_once()
+    # Verify enumerator was created with correct params
+    mock_enumerator.assert_called_once_with(
+        "43255147468edf32a206441ad296ce648f44ee32",
+        socks_proxy=None,
+        http_proxy=None,
+        skip_log=False,
+        github_url=None,
+        ignore_workflow_run=False,
+        deep_dive=False,
+    )
+
+    # Verify the enumerate_organization method was called
+    mock_instance.api.get_user_type.assert_called_once_with("test")
+    mock_instance.enumerate_organization.assert_called_once_with("test")
 
 
 async def test_cli_invalid_pat(capfd):
@@ -357,42 +377,50 @@ async def test_enum_self_json_empty(
     mock_executor_repo.assert_called_with(["repo1", "repo2"])
 
 
-@mock.patch("gatox.cli.cli.Enumerator", new_callable=AsyncMock)
-async def test_enum_org(mock_enumerate):
+@mock.patch("gatox.cli.cli.Enumerator")
+async def test_enum_org(mock_enumerator):
     """Test enum command using the organization enumerattion."""
+    os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    mock_instance = mock_enumerate.return_value
-    mock_api = AsyncMock()
-
-    mock_api.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo", "workflow"],
-    }
-    mock_api.get_user_type.return_value = "Organization"
-    mock_instance.api = mock_api
+    # Setup mock enumerator instance
+    mock_instance = mock_enumerator.return_value
+    mock_instance.api = mock.MagicMock()  # Use regular MagicMock for sync methods
+    mock_instance.api.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "scopes": ["repo", "workflow"],
+        }
+    )
+    mock_instance.api.get_user_type = AsyncMock(return_value="Organization")
+    mock_instance.enumerate_organization = AsyncMock(return_value={"testOrg": "data"})
+    mock_instance.user_perms = {"user": "testUser", "scopes": ["repo", "workflow"]}
 
     await cli.cli(["enum", "-t", "test"])
 
-    mock_instance.enumerate_organization.assert_called_once()
+    mock_instance.enumerate_organization.assert_called_once_with("test")
 
 
 @mock.patch("gatox.cli.cli.Enumerator")
-async def test_enum_user(mock_enumerate):
+async def test_enum_user(mock_enumerator):
     """Test enum command using the organization enumeration."""
+    os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    mock_instance = mock_enumerate.return_value
-    mock_api = mock.MagicMock()
+    # Setup mock enumerator instance
+    mock_instance = mock_enumerator.return_value
+    mock_instance.api = mock.MagicMock()  # Use regular MagicMock for sync methods
+    mock_instance.api.check_user = AsyncMock(
+        return_value={
+            "user": "testUser",
+            "scopes": ["repo", "workflow"],
+        }
+    )
+    mock_instance.api.get_user_type = AsyncMock(return_value="User")
+    mock_instance.enumerate_user = AsyncMock(return_value={"testUser": "data"})
+    mock_instance.user_perms = {"user": "testUser", "scopes": ["repo", "workflow"]}
 
-    mock_api.check_user.return_value = {
-        "user": "testUser",
-        "scopes": ["repo", "workflow"],
-    }
-    mock_api.get_user_type.return_value = "User"
-    mock_instance.api = mock_api
+    await cli.cli(["enum", "-t", "test"])
 
-    await cli.cli(["enum", "-t", "testUser"])
-
-    mock_instance.enumerate_user.assert_called_once()
+    mock_instance.enumerate_user.assert_called_once_with("test")
 
 
 @mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repos")
