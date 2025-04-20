@@ -14,62 +14,50 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
-
+import asyncio
 from gatox.models.repository import Repository
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 from gatox.git.git import Git
 
 
 class IngestNonDefault:
-    """Class to handle ingesting non-default branches with a thread pool."""
+    """Class to handle ingesting non-default branches asynchronously."""
 
-    _executor = None
+    _tasks = []
     _api = None
-    _futures = []
 
     @classmethod
-    def ingest(cls, repo: Repository, api):
+    async def ingest(cls, repo: Repository, api):
         """
-        Enqueue a repository ingest task into the worker pool.
-        If the pool and API haven't been initialized, initialize them.
+        Enqueue a repository ingest task.
+        If the API hasn't been initialized, initialize it.
         """
-        if cls._executor is None:
-            cls._executor = ThreadPoolExecutor(max_workers=8)
         if cls._api is None:
             cls._api = api
 
-        # Submit a repository processing job
-        future = cls._executor.submit(cls._process_repo, repo)
-        cls._futures.append(future)
-        return future
+        # Create and store the task
+        task = asyncio.create_task(cls._process_repo(repo))
+        cls._tasks.append(task)
+        return task
 
     @classmethod
-    def _process_repo(cls, repo: Repository):
+    async def _process_repo(cls, repo: Repository):
         """Actual processing of a repository's non-default workflows."""
         git_client = Git(cls._api.pat, repo.name)
-        workflows = git_client.get_non_default()
+        workflows = await git_client.get_non_default()
         for workflow in workflows:
-            WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
+            await WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
 
     @classmethod
-    def pool_empty(cls):
+    async def pool_empty(cls):
         """
         Returns a Future that completes once all currently-enqueued tasks finish.
-        This method blocks until all tasks are done, then returns a completed Future.
         """
-        if cls._executor is None:
+        if not cls._tasks:
             # No work was ever queued
-            from concurrent.futures import Future
+            return None
 
-            f = Future()
-            f.set_result(None)
-            return f
-
-        done, not_done = wait(cls._futures, return_when=ALL_COMPLETED)
-        # Create a new completed Future to return
-        from concurrent.futures import Future
-
-        final_future = Future()
-        final_future.set_result(None)
-        return final_future
+        # Wait for all tasks to complete
+        await asyncio.gather(*cls._tasks)
+        cls._tasks = []  # Clear the tasks list
+        return None

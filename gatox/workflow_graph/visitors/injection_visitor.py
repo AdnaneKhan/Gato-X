@@ -37,7 +37,7 @@ class InjectionVisitor:
     """
 
     @staticmethod
-    def find_injections(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
+    async def find_injections(graph: TaggedGraph, api: Api, ignore_workflow_run=False):
         """
         Identify potential injection vulnerabilities within GitHub workflows.
 
@@ -90,7 +90,7 @@ class InjectionVisitor:
 
         for cn in nodes:
             try:
-                paths = graph.dfs_to_tag(cn, "injectable", api)
+                paths = await graph.dfs_to_tag(cn, "injectable", api)
                 if paths:
                     all_paths.append(paths)
             except Exception as e:
@@ -114,7 +114,7 @@ class InjectionVisitor:
                             if node.repo_name() in rule_cache:
                                 rules = rule_cache[node.repo_name()]
                             else:
-                                rules = api.get_all_environment_protection_rules(
+                                rules = await api.get_all_environment_protection_rules(
                                     node.repo_name()
                                 )
                                 rule_cache[node.repo_name()] = rules
@@ -128,11 +128,11 @@ class InjectionVisitor:
                                 if deployment in rules:
                                     approval_gate = True
 
-                        paths = graph.dfs_to_tag(node, "permission_check", api)
+                        paths = await graph.dfs_to_tag(node, "permission_check", api)
                         if paths:
                             approval_gate = True
 
-                        paths = graph.dfs_to_tag(node, "permission_blocker", api)
+                        paths = await graph.dfs_to_tag(node, "permission_blocker", api)
                         if paths:
                             break
 
@@ -243,7 +243,7 @@ class InjectionVisitor:
                                     if "github." in val:
                                         env_lookup[key] = val
                     elif "ActionNode" in tags:
-                        VisitorUtils.initialize_action_node(graph, api, node)
+                        await VisitorUtils.initialize_action_node(graph, api, node)
 
                 # Goal here is to start from the top and keep track
                 # of any variables that come out of steps

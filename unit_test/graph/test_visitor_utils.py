@@ -68,13 +68,13 @@ def test_append_path():
 
 
 @patch("gatox.enumerate.enumerate.Api")
-def test_initialize_action_node(mock_api):
+async def test_initialize_action_node(mock_api):
     graph = WorkflowGraphBuilder().graph
     api = mock_api  # Mock API if needed
     node = ActionNode("someorg/testaction@v4", "main", "action.yml", "testOrg/repo", {})
 
     try:
-        VisitorUtils.initialize_action_node(graph, api, node)
+        await VisitorUtils.initialize_action_node(graph, api, node)
     except:
         pass  # Expected to fail without proper mocking
 

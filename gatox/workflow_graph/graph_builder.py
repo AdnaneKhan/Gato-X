@@ -70,7 +70,7 @@ class WorkflowGraphBuilder:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
 
-    def _initialize_action_node(self, node: ActionNode, api):
+    async def _initialize_action_node(self, node: ActionNode, api):
         """
         Initialize an ActionNode by retrieving and parsing its contents.
 
@@ -81,7 +81,7 @@ class WorkflowGraphBuilder:
         action_metadata = node.action_info
         node.initialized = True
 
-        def get_action_contents(repo, path, ref):
+        async def get_action_contents(repo, path, ref):
             """
             Retrieve and cache the action contents.
 
@@ -95,13 +95,13 @@ class WorkflowGraphBuilder:
             """
             contents = CacheManager().get_action(repo, path, ref)
             if not contents:
-                contents = api.retrieve_raw_action(repo, path, ref)
+                contents = await api.retrieve_raw_action(repo, path, ref)
                 if contents:
                     CacheManager().set_action(repo, path, ref, contents)
             return contents
 
         ref = node.caller_ref if action_metadata["local"] else action_metadata["ref"]
-        contents = get_action_contents(
+        contents = await get_action_contents(
             action_metadata["repo"], action_metadata["path"], ref
         )
 
@@ -136,13 +136,13 @@ class WorkflowGraphBuilder:
                 else:
                     self.graph.add_edge(node, step_node, relation="contains")
 
-    def _initialize_callee_node(self, workflow: WorkflowNode, api):
+    async def _initialize_callee_node(self, workflow: WorkflowNode, api):
         """Initialize a callee workflow with the workflow yaml"""
         if "uninitialized" in workflow.get_tags():
             slug, ref, path = workflow.get_parts()
             callee_wf = CacheManager().get_workflow(slug, f"{path}:{ref}")
             if not callee_wf:
-                callee_wf = api.retrieve_repo_file(slug, path, ref)
+                callee_wf = await api.retrieve_repo_file(slug, path, ref)
                 if callee_wf:
                     CacheManager().set_workflow(slug, f"{path}:{ref}", callee_wf)
                 else:
@@ -155,7 +155,7 @@ class WorkflowGraphBuilder:
 
             self.graph.remove_tags_from_node(workflow, ["uninitialized"])
 
-            self.build_workflow_jobs(callee_wf, workflow)
+            await self.build_workflow_jobs(callee_wf, workflow)
 
     def __transform_list_job(self, jobs: list):
         """Transforms a list job into a dictionary job."""
@@ -171,7 +171,7 @@ class WorkflowGraphBuilder:
 
         return jobs
 
-    def build_graph_from_yaml(
+    async def build_graph_from_yaml(
         self, workflow_wrapper: Workflow, repo_wrapper: Repository
     ):
         """
@@ -183,7 +183,6 @@ class WorkflowGraphBuilder:
         repo, added = NodeFactory.create_repo_node(repo_wrapper)
         if added:
             self.graph.add_node(repo, **repo.get_attrs())
-
         try:
             wf_node = NodeFactory.create_workflow_node(
                 workflow_wrapper,
@@ -196,8 +195,7 @@ class WorkflowGraphBuilder:
 
             self.graph.add_node(wf_node, **wf_node.get_attrs())
             self.graph.add_edge(repo, wf_node, relation="contains")
-
-            self.build_workflow_jobs(workflow_wrapper, wf_node)
+            await self.build_workflow_jobs(workflow_wrapper, wf_node)
 
             return True
         except ValueError as e:
@@ -210,16 +208,17 @@ class WorkflowGraphBuilder:
             logger.error(
                 f"Exception building graph from workflow, likely Gato-X bug: {workflow_wrapper.getPath()}"
             )
-            logger.debug(str(e))
-            logger.debug(traceback.format_exc())
+            logger.error(str(e))
+            logger.error(traceback.format_exc())
             # Likely gato-x bug
             return False
 
-    def build_workflow_jobs(self, workflow_wrapper: Workflow, wf_node: WorkflowNode):
+    async def build_workflow_jobs(
+        self, workflow_wrapper: Workflow, wf_node: WorkflowNode
+    ):
         """Build workflow jobs from the parsed yaml file."""
         workflow = workflow_wrapper.parsed_yml
         jobs = workflow.get("jobs", {})
-
         if not jobs:
             raise ValueError(
                 f"No jobs found in workflow: {workflow_wrapper.workflow_name}"
@@ -309,19 +308,19 @@ class WorkflowGraphBuilder:
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
 
-    def initialize_node(self, node, api):
+    async def initialize_node(self, node, api):
         tags = node.get_tags()
         if "uninitialized" in tags:
             if "ActionNode" in tags:
                 try:
-                    self._initialize_action_node(node, api)
+                    await self._initialize_action_node(node, api)
                 except ValueError as e:
                     logger.warning(f"Error initializing action node: {e}")
                     # Likely encountered a syntax error in the workflow
                     return
             elif "WorkflowNode" in tags:
                 try:
-                    self._initialize_callee_node(node, api)
+                    await self._initialize_callee_node(node, api)
                 except ValueError as e:
                     logger.warning(f"Error initializing callee node: {e}")
                     # Likely encountered a syntax error in the workflow
