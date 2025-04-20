@@ -220,8 +220,14 @@ class Enumerator:
         Args:
             repos (list): List of Repository objects.
         """
-        for repo in repos:
-            await self.__retrieve_missing_ymls(repo.name)
+        semaphore = asyncio.Semaphore(25)
+
+        async def sem_retrieve(repo):
+            async with semaphore:
+                await self.__retrieve_missing_ymls(repo.name)
+
+        tasks = [asyncio.create_task(sem_retrieve(repo)) for repo in repos]
+        await asyncio.gather(*tasks)
 
     async def validate_only(self):
         """Validates the PAT access and exits."""

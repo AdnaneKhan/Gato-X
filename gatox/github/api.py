@@ -1265,20 +1265,25 @@ class Api:
 
         if resp.status_code == 200:
             objects = resp.json()
+            semaphore = asyncio.Semaphore(50)
 
-            for file in objects:
-                if file["type"] == "file" and (
-                    file["name"].endswith(".yml") or file["name"].endswith(".yaml")
-                ):
-
-                    resp = await self.call_get(
-                        f'/repos/{repo_name}/contents/{file["path"]}'
-                    )
-                    if resp.status_code == 200:
-                        resp_data = resp.json()
+            async def fetch_file(file):
+                async with semaphore:
+                    resp_file = await self.call_get(f'/repos/{repo_name}/contents/{file["path"]}')
+                    if resp_file.status_code == 200:
+                        resp_data = resp_file.json()
                         if "content" in resp_data:
                             file_data = base64.b64decode(resp_data["content"])
-                            ymls.append(Workflow(repo_name, file_data, file["name"]))
+                            return Workflow(repo_name, file_data, file["name"])
+                    return None
+
+            tasks = [
+                asyncio.create_task(fetch_file(file))
+                for file in objects
+                if file["type"] == "file" and (file["name"].endswith(".yml") or file["name"].endswith(".yaml"))
+            ]
+            results = await asyncio.gather(*tasks)
+            ymls = [wf for wf in results if wf is not None]
 
         return ymls
 
