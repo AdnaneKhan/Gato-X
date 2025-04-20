@@ -66,7 +66,7 @@ class WebShell(Attacker):
         - tuple: A tuple containing the Gist ID and the URL of the created Gist.
         """
 
-        ror_gist = self.format_ror_gist(
+        ror_gist = await self.format_ror_gist(
             c2_repo, target_os, target_arch, keep_alive=keep_alive
         )
 

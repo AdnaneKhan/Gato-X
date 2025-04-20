@@ -143,7 +143,7 @@ class Attacker:
 
         Output.result("Succesfully pushed the malicious workflow!")
 
-        for i in range(self.timeout):
+        for _ in range(self.timeout):
             ret = await self.api.delete_branch(target_repo, branch)
             if ret:
                 break
@@ -174,7 +174,7 @@ class Attacker:
 
         Output.tabbed("Waiting for the workflow to execute...")
 
-        for i in range(self.timeout):
+        for _ in range(self.timeout):
             status = await self.api.get_workflow_status(target_repo, workflow_id)
             if status == -1:
                 Output.error("The workflow failed!")

@@ -87,6 +87,7 @@ class Api:
         else:
             self.client = httpx.AsyncClient(
                 headers=self.headers,
+                http2=True,
                 proxy=self.transport,
                 verify=self.verify_ssl,
                 follow_redirects=True,
