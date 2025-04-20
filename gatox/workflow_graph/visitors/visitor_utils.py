@@ -190,7 +190,7 @@ class VisitorUtils:
                     merge_date = await api.get_commit_merge_date(flow.repo_name(), sha)
                     if merge_date:
                         # If there is a PR merged, get the most recent.
-                        commit_date = await return_recent(commit_date, merge_date)
+                        commit_date = return_recent(commit_date, merge_date)
 
                     if is_within_last_day(commit_date) and "[bot]" not in author:
                         send_slack_webhook(value)
