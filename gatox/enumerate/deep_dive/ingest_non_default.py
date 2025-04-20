@@ -44,9 +44,9 @@ class IngestNonDefault:
     async def _process_repo(cls, repo: Repository):
         """Actual processing of a repository's non-default workflows."""
         git_client = Git(cls._api.pat, repo.name)
-        workflows = git_client.get_non_default()
+        workflows = await git_client.get_non_default()
         for workflow in workflows:
-            WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
+            await WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
 
     @classmethod
     async def pool_empty(cls):

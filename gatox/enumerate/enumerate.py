@@ -361,9 +361,9 @@ class Enumerator:
 
                 cached_repo = CacheManager().get_repository(repo.name)
                 if self.deep_dive and not cached_repo.is_fork():
-                    IngestNonDefault.ingest(cached_repo, self.api)
+                    await IngestNonDefault.ingest(cached_repo, self.api)
 
-            IngestNonDefault.pool_empty()
+            await IngestNonDefault.pool_empty()
             Output.info("Deep dive ingestion complete!")
 
         await self.process_graph()
