@@ -179,7 +179,7 @@ class VisitorUtils:
                 if (
                     ConfigurationManager().NOTIFICATIONS["SLACK_WEBHOOKS"]
                     and repo
-                    and await is_within_last_day(repo.repo_data["pushed_at"])
+                    and is_within_last_day(repo.repo_data["pushed_at"])
                 ):
                     value = flow.to_machine()
                     commit_date, author, sha = await api.get_file_last_updated(
