@@ -4,7 +4,7 @@ from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.caching.cache_manager import CacheManager
 
 
-class TestConstructWorkflowCache(unittest.TestCase):
+class TestConstructWorkflowCache(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         self.workflow = MagicMock()
@@ -40,7 +40,7 @@ class TestConstructWorkflowCache(unittest.TestCase):
 
     async def test_construct_workflow_cache_none(self):
         # Test with None input
-        assert DataIngestor.construct_workflow_cache(None) is None
+        assert await DataIngestor.construct_workflow_cache(None) is None
 
     async def test_construct_workflow_cache_empty_list(self):
         # Test with empty list input

@@ -444,7 +444,7 @@ class Enumerator:
             repo_names (list): Repository name in {Org/Owner}/Repo format.
         """
         repo_wrappers = []
-        if not self.__setup_user_info():
+        if not await self.__setup_user_info():
             return repo_wrappers
 
         if len(repo_names) == 0:
@@ -468,7 +468,7 @@ class Enumerator:
                 repo_obj = CacheManager().get_repository(repo)
                 await IngestNonDefault.ingest(repo_obj, self.api)
 
-        IngestNonDefault.pool_empty()
+        await IngestNonDefault.pool_empty()
         await self.process_graph()
 
         try:

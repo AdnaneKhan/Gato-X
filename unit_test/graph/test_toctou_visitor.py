@@ -69,11 +69,18 @@ async def test_exceptions_in_process_path(mock_process, mock_api):
     """
     Test that exceptions in __process_path are caught and handled.
     """
-    mock_graph = AsyncMock()
+    # Use a synchronous MagicMock for get_nodes_for_tags...
+    mock_graph = MagicMock()
     mock_node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [mock_node]
-    mock_graph.dfs_to_tag.return_value = [[MagicMock(), MagicMock()]]
+    # ...but make dfs_to_tag async so that it can be properly awaited.
+    from unittest.mock import AsyncMock
+
+    mock_graph.dfs_to_tag = AsyncMock(return_value=[[MagicMock(), MagicMock()]])
+
+    # Configure process_path mock to raise an exception when awaited.
     mock_process.side_effect = Exception("Test error")
 
+    # Execute and verify.
     await DispatchTOCTOUVisitor.find_dispatch_misconfigurations(mock_graph, mock_api)
     assert mock_process.called

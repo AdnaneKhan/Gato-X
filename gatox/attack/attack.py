@@ -148,7 +148,7 @@ class Attacker:
             if ret:
                 break
             else:
-                asyncio.sleep(1)
+                await asyncio.sleep(1)
 
         if ret:
             Output.result("Malicious branch deleted.")
@@ -167,7 +167,7 @@ class Attacker:
             elif workflow_id > 0:
                 break
             else:
-                asyncio.sleep(1)
+                await asyncio.sleep(1)
         else:
             Output.error("Failed to find the created workflow!")
             return
@@ -183,7 +183,7 @@ class Attacker:
                 Output.result("The malicious workflow executed succesfully!")
                 break
             else:
-                asyncio.sleep(1)
+                await asyncio.sleep(1)
         else:
             Output.error("The workflow is incomplete but hit the timeout!")
 
