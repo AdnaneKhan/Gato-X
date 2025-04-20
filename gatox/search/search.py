@@ -1,7 +1,6 @@
 import logging
 import httpx
 import json
-import asyncio
 from typing import Optional, Set
 
 from gatox.cli.output import Output
