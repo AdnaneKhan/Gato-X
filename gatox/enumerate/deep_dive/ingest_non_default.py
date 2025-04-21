@@ -58,6 +58,6 @@ class IngestNonDefault:
             return None
 
         # Wait for all tasks to complete
-        await asyncio.gather(*cls._tasks)
+        await asyncio.gather(*cls._tasks, return_exceptions=True)
         cls._tasks = []  # Clear the tasks list
         return None

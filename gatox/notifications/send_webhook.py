@@ -8,6 +8,7 @@ from gatox.configuration.configuration_manager import ConfigurationManager
 
 logger = logging.getLogger(__name__)
 
+
 async def send_slack_webhook(message: str) -> None:
     """Send a message to configured Slack webhooks asynchronously.
 
@@ -37,7 +38,9 @@ async def send_slack_webhook(message: str) -> None:
                     await asyncio.sleep(1)
             else:
                 # All attempts failed.
-                raise ValueError("Failed to send webhook due to connection errors after 3 attempts.")
+                raise ValueError(
+                    "Failed to send webhook due to connection errors after 3 attempts."
+                )
 
             if response.status_code != 200:
                 raise ValueError(
