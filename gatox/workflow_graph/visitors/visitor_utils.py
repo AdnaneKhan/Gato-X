@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import asyncio
+
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.caching.cache_manager import CacheManager
 from gatox.enumerate.results.confidence import Confidence
@@ -193,4 +195,4 @@ class VisitorUtils:
                         commit_date = return_recent(commit_date, merge_date)
 
                     if is_within_last_day(commit_date) and "[bot]" not in author:
-                        send_slack_webhook(value)
+                        asyncio.create_task(send_slack_webhook(value))
