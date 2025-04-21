@@ -18,7 +18,9 @@ async def send_slack_webhook(message: str) -> None:
     payload = {"text": json.dumps(message, indent=4)}
     hooks: List[str] = ConfigurationManager().NOTIFICATIONS["SLACK_WEBHOOKS"]
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(
+        http2=True, follow_redirects=True, timeout=10.0
+    ) as client:
         for webhook in hooks:
             response = await client.post(webhook, json=payload)
             if response.status_code != 200:
