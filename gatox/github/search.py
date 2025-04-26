@@ -1,9 +1,9 @@
 import time
 import logging
+import asyncio
 
 from gatox.github.api import Api
 from gatox.cli.output import Output
-
 from urllib.parse import urlparse
 
 
@@ -16,17 +16,17 @@ class Search:
     """
 
     def __init__(self, api_accessor: Api):
-        """Initialize class to call GH search methods. Due to the late limiting
-        associated with these API calls.
-
+        """Initialize class to call GH search methods.
 
         Args:
-            api_accesor (Api): API accesor to use when making GitHub
+            api_accesor (Api): API accessor to use when making GitHub
             API requests.
         """
         self.api_accessor = api_accessor
 
-    def search_enumeration(self, organization: str = None, custom_query: str = None):
+    async def search_enumeration(
+        self, organization: str = None, custom_query: str = None
+    ):
         """Search for self-hosted in yml files within a given organization.
 
         Args:
@@ -55,7 +55,7 @@ class Search:
         Output.info("Searching", end="", flush=True)
         candidates = set()
         while next_page:
-            result = self.api_accessor.call_get(next_page)
+            result = await self.api_accessor.call_get(next_page)
             print(".", end="", flush=True)
             code = result.status_code
             data = result.json()
@@ -74,7 +74,7 @@ class Search:
                 Output.warn(
                     f"Secondary API Rate Limit Hit. Sleeping for {sleep} seconds!"
                 )
-                time.sleep(sleep)
+                await asyncio.sleep(sleep)
 
                 Output.info("Searching", end="", flush=True)
                 continue
@@ -102,7 +102,7 @@ class Search:
             if next_page:
                 link = urlparse(next_page)
                 next_page = f"{link.path}?{link.query}"
-                time.sleep(5)
+                await asyncio.sleep(5)
 
         print()
         return candidates

