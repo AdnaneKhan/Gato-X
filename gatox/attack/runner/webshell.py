@@ -291,7 +291,7 @@ class WebShell(Attacker):
     async def interact_webshell(self, c2_repo: str, runner_name: str = None):
         """Interacts with the webshell to issue commands."""
 
-        self.setup_user_info()
+        await self.setup_user_info()
 
         if not ("repo" in self.user_perms["scopes"]):
             Output.error("Insufficient scopes for C2 operator PAT!")
