@@ -258,15 +258,23 @@ class Api:
                         return content
 
     async def __get_raw_file(self, repo: str, file_path: str, ref: str):
-        """Get a raw file with a web request."""
-
-        resp = await self.client.get(
-            f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}",
-            headers={
-                "Authorization": "None",
-                "Accept": "text/plain",
-            },
-        )
+        """Get a raw file with a web request, retrying on RemoteProtocolError."""
+        url = f"https://raw.githubusercontent.com/{repo}/{ref}/{file_path}"
+        headers = {
+            "Authorization": "None",
+            "Accept": "text/plain",
+        }
+        attempt = 0
+        while attempt < 3:
+            try:
+                resp = await self.client.get(url, headers=headers)
+                break
+            except httpx.RemoteProtocolError:
+                attempt += 1
+                await asyncio.sleep(1)
+        else:
+            # All attempts failed.
+            return None
 
         if resp.status_code == 404:
             return None
@@ -329,8 +337,8 @@ class Api:
             except Exception as e:
                 logger.warning("GET request failed due to transport error re-trying!")
                 continue
-
-        await self.__check_rate_limit(api_response.headers)
+        if not strip_auth:
+            await self.__check_rate_limit(api_response.headers)
 
         return api_response
 
@@ -1285,7 +1293,7 @@ class Api:
                 if file["type"] == "file"
                 and (file["name"].endswith(".yml") or file["name"].endswith(".yaml"))
             ]
-            results = await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
             ymls = [wf for wf in results if wf is not None]
 
         return ymls

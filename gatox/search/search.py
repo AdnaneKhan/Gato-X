@@ -102,7 +102,7 @@ class Searcher:
 
         results = set()
         try:
-            async with httpx.AsyncClient(proxy=self.transport) as client:
+            async with httpx.AsyncClient(proxy=self.transport, http2=True) as client:
                 async with client.stream(
                     "GET", url, headers=headers, params=params, timeout=60.0
                 ) as response:
