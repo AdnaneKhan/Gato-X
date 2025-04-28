@@ -169,7 +169,8 @@ def parse_script(contents: str):
         return_dict["soft_gate"] = True
     if "getMembershipForUserInOrg" in contents:
         return_dict["soft_gate"] = True
-
+    if "/collaborators" in contents and "/repos" in contents:
+        return_dict["soft_gate"] = True
     if check_sinks(contents):
         return_dict["is_sink"] = True
     return return_dict

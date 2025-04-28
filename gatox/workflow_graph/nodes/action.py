@@ -77,6 +77,7 @@ class ActionNode(Node):
             "prince-chrismc/check-actor-permissions-action",
             "lannonbr/repo-permission-check-action",
             "skjnldsv/check-actor-permission",
+            "xt0rted/slash-command-action",
         ]
     )
 
@@ -128,6 +129,7 @@ class ActionNode(Node):
             # will use node. We are interested in organizations that
             # use a centralized repo with reusable composite actions to prevent
             # duplication.
+
             if not self.action_info["key"].startswith(repo_name.split("/")[0]):
                 self.initialized = True
             # We don't need to download official GitHub Actions.
