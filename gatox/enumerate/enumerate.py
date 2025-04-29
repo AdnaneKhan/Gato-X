@@ -283,8 +283,10 @@ class Enumerator:
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
-        org_wrappers = list(map(self.enumerate_organization, orgs))
-
+        org_wrappers = []
+        for org in orgs:
+            wrapper = await self.enumerate_organization(org)
+            org_wrappers.append(wrapper)
         return org_wrappers, repo_wrappers
 
     async def enumerate_user(self, user: str):
