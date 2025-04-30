@@ -33,7 +33,7 @@ class Repository:
         self.sh_runner_access = False
         self.accessible_runners: list[Runner] = []
         self.runners: list[Runner] = []
-        self.risks = []
+        self.risks = {}
 
     def is_admin(self):
         return self.permission_data.get("admin", False)
@@ -114,11 +114,12 @@ class Repository:
 
     def get_risks(self):
         """Return repository risks."""
-        return self.risks
+        return list(self.risks.values())
 
     def set_results(self, result: AnalysisResult):
         """Set results on the repository object."""
-        self.risks.append(result)
+        key = result.get_first_and_last_hash()
+        self.risks[key] = result
 
     def toJSON(self):
         """Converts the repository to a Gato JSON representation."""
@@ -135,7 +136,7 @@ class Repository:
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],
-            "risks": [risk.to_machine() for risk in self.risks],
+            "risks": [risk.to_machine() for risk in self.get_risks()],
         }
 
         return representation
