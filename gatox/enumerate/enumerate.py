@@ -287,6 +287,10 @@ class Enumerator:
         for org in orgs:
             wrapper = await self.enumerate_organization(org)
             org_wrappers.append(wrapper)
+            # Clear the graph after each organization to avoid
+            # excessive node visits.
+            WorkflowGraphBuilder().graph.clear()
+
         return org_wrappers, repo_wrappers
 
     async def enumerate_user(self, user: str):
