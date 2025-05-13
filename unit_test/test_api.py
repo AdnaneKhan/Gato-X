@@ -1275,7 +1275,7 @@ async def test_retrieve_raw_action_private_repo():
     mock_api_response.json.return_value = {
         "content": base64.b64encode(
             b"name: 'Test Action'\ndescription: 'This is a test action'"
-        ).decode("utf-8")
+        )
     }
 
     # Set up the client mock to return our responses
@@ -1306,7 +1306,7 @@ async def test_retrieve_raw_action_private_repo():
         in mock_client.get.call_args_list[1][0][0]
     )
 
-    assert result == b"name: 'Test Action'\ndescription: 'This is a test action'"
+    assert result == "name: 'Test Action'\ndescription: 'This is a test action'"
 
 
 async def test_retrieve_raw_action_not_found():
