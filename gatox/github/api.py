@@ -1778,7 +1778,7 @@ class Api:
             if resp.status_code == 200:
                 resp_data = resp.json()
                 if "content" in resp_data:
-                    file_data = base64.b64decode(resp_data["content"])
+                    file_data = base64.b64decode(resp_data["content"]).decode()
                     return file_data
 
         return None
