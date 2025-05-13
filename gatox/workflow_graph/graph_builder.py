@@ -114,9 +114,39 @@ class WorkflowGraphBuilder:
             if type(steps) != list:
                 raise ValueError("Steps must be a list")
 
-            self._build_sequential_steps(
-                steps, node, ref, action_metadata["repo"], action_metadata["path"]
-            )
+            prev_step_node = None
+            for iter, step in enumerate(steps):
+                calling_name = parsed_action.parsed_yml.get("name", f"EMPTY")
+                step_node = NodeFactory.create_step_node(
+                    step,
+                    ref,
+                    action_metadata["repo"],
+                    action_metadata["path"],
+                    calling_name,
+                    iter,
+                )
+
+                self.graph.add_node(step_node, **step_node.get_attrs())
+
+                # Steps are sequential, so for reachability checks
+                # the job only "contains" the first step.
+                if prev_step_node:
+                    self.graph.add_edge(prev_step_node, step_node, relation="next")
+                    prev_step_node = step_node
+                else:
+                    self.graph.add_edge(node, step_node, relation="contains")
+                
+                # Handle nested actions within composite actions
+                if "uses" in step:
+                    action_name = step["uses"]
+                    nested_action_node = NodeFactory.create_action_node(
+                        action_name,
+                        ref,
+                        action_metadata["path"],
+                        action_metadata["repo"],
+                    )
+                    self.graph.add_node(nested_action_node, **nested_action_node.get_attrs())
+                    self.graph.add_edge(step_node, nested_action_node, relation="uses")
 
     async def _initialize_callee_node(self, workflow: WorkflowNode, api):
         """Initialize a callee workflow with the workflow yaml"""
@@ -258,14 +288,37 @@ class WorkflowGraphBuilder:
 
             # Handle steps
             steps = job_def.get("steps", [])
-            self._build_sequential_steps(
-                steps,
-                job_node,
-                workflow_wrapper.branch,
-                workflow_wrapper.repo_name,
-                workflow_wrapper.getPath(),
-                job_name,
-            )
+            prev_step_node = None
+            for iter, step in enumerate(steps):
+                step_node = NodeFactory.create_step_node(
+                    step,
+                    workflow_wrapper.branch,
+                    workflow_wrapper.repo_name,
+                    workflow_wrapper.getPath(),
+                    job_name,
+                    iter,
+                )
+
+                self.graph.add_node(step_node, **step_node.get_attrs())
+
+                # Steps are sequential, so for reachability checks
+                # the job only "contains" the first step.
+                if prev_step_node:
+                    self.graph.add_edge(prev_step_node, step_node, relation="next")
+                else:
+                    self.graph.add_edge(job_node, step_node, relation="contains")
+                prev_step_node = step_node
+                # Handle actions
+                if "uses" in step:
+                    action_name = step["uses"]
+                    action_node = NodeFactory.create_action_node(
+                        action_name,
+                        workflow_wrapper.branch,
+                        workflow_wrapper.getPath(),
+                        workflow_wrapper.repo_name,
+                    )
+                    self.graph.add_node(action_node, **action_node.get_attrs())
+                    self.graph.add_edge(step_node, action_node, relation="uses")
 
     async def initialize_node(self, node, api):
         tags = node.get_tags()
@@ -284,110 +337,3 @@ class WorkflowGraphBuilder:
                     logger.warning(f"Error initializing callee node: {e}")
                     # Likely encountered a syntax error in the workflow
                     return
-
-    def _process_step_with_action(self, step, step_node, ref, repo_name, action_path):
-        """
-        Process a step that uses an action and create the action node.
-
-        Args:
-            step (dict): The step definition.
-            step_node: The node representing the step.
-            ref (str): The reference to use.
-            repo_name (str): The repository name.
-            action_path (str): The path to the action file.
-
-        Returns:
-            The created action node if the step uses an action, None otherwise.
-        """
-        if "uses" in step:
-            action_name = step["uses"]
-            action_node = NodeFactory.create_action_node(
-                action_name,
-                ref,
-                action_path,
-                repo_name,
-            )
-            self.graph.add_node(action_node, **action_node.get_attrs())
-            self.graph.add_edge(step_node, action_node, relation="uses")
-            return action_node
-        return None
-
-    def _build_sequential_steps(
-        self, steps, parent_node, ref, repo_name, action_path, job_name=None
-    ):
-        """
-        Build step nodes sequentially and handle their actions.
-
-        Args:
-            steps (list): The list of steps to process.
-            parent_node: The parent node that contains the steps.
-            ref (str): The reference to use.
-            repo_name (str): The repository name.
-            action_path (str): The path to the action.
-            job_name (str, optional): The name of the job for workflow steps.
-
-        Returns:
-            The list of created step nodes.
-        """
-        prev_step_node = None
-        step_nodes = []
-
-        for iter, step in enumerate(steps):
-            # For composite actions vs workflow jobs
-            if job_name:
-                step_node = NodeFactory.create_step_node(
-                    step,
-                    ref,
-                    repo_name,
-                    action_path,
-                    job_name,
-                    iter,
-                )
-            else:
-                # For composite actions
-                calling_name = parent_node.action_info.get("name", "EMPTY")
-                step_node = NodeFactory.create_step_node(
-                    step,
-                    ref,
-                    repo_name,
-                    action_path,
-                    calling_name,
-                    iter,
-                )
-
-            self.graph.add_node(step_node, **step_node.get_attrs())
-            step_nodes.append(step_node)
-
-            # Steps are sequential, so for reachability checks
-            # the node only "contains" the first step.
-            if prev_step_node:
-                self.graph.add_edge(prev_step_node, step_node, relation="next")
-            else:
-                self.graph.add_edge(parent_node, step_node, relation="contains")
-
-            prev_step_node = step_node
-
-            # Handle actions within steps
-            self._process_step_with_action(step, step_node, ref, repo_name, action_path)
-
-        return step_nodes
-
-    async def _retrieve_and_cache_content(self, cache_key, get_func, set_func, *args):
-        """
-        Retrieve content from cache or external source and cache it.
-
-        Args:
-            cache_key: The function to get the cache key.
-            get_func: The function to get the content if not in cache.
-            set_func: The function to set the content in cache.
-            args: Arguments to pass to the functions.
-
-        Returns:
-            The retrieved content.
-        """
-        content = cache_key(*args)
-        if not content:
-            content = await get_func(*args)
-            if content:
-                set_func(*args, content)
-        return content
