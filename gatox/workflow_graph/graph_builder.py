@@ -132,9 +132,23 @@ class WorkflowGraphBuilder:
                 # the job only "contains" the first step.
                 if prev_step_node:
                     self.graph.add_edge(prev_step_node, step_node, relation="next")
-                    prev_step_node = step_node
                 else:
                     self.graph.add_edge(node, step_node, relation="contains")
+                prev_step_node = step_node
+
+                # Handle nested actions within composite actions
+                if "uses" in step:
+                    action_name = step["uses"]
+                    nested_action_node = NodeFactory.create_action_node(
+                        action_name,
+                        ref,
+                        action_metadata["path"],
+                        action_metadata["repo"],
+                    )
+                    self.graph.add_node(
+                        nested_action_node, **nested_action_node.get_attrs()
+                    )
+                    self.graph.add_edge(step_node, nested_action_node, relation="uses")
 
     async def _initialize_callee_node(self, workflow: WorkflowNode, api):
         """Initialize a callee workflow with the workflow yaml"""
