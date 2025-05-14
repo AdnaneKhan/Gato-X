@@ -2,7 +2,6 @@ import tempfile
 import os
 import subprocess
 import logging
-import hashlib
 import asyncio
 
 from gatox.models.workflow import Workflow
@@ -61,83 +60,170 @@ class Git:
             subprocess.run(["rm", "-rf", self.work_dir], check=True)
 
     async def get_non_default(self) -> list:
-        """Get all workflows in non-default branches.
+        """Get all workflows in non-default branches using an efficient approach.
+        
+        Uses Git's internal object system for deduplication and avoids full checkouts.
+        Only processes workflows containing 'pull_request_target'.
 
         Returns:
-            list: List of Workflow objects
+            list: List of unique Workflow objects
         """
         workflows = []
-        workflow_hashes = set()  # Set to track unique workflow content
+        blob_workflows = {}  # Maps blob SHA to workflow objects
+        commits_branches = {}  # Maps commit SHA to branch names
 
         logger.info(f"Processing repository {self.repository}...")
         try:
             url = f"https://{self.pat}@github.com/{self.repository}"
 
-            # Create process to clone the repo
-            proc = await asyncio.create_subprocess_exec(
-                "git",
-                "clone",
-                "--no-checkout",
-                url,
-                self.work_dir,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            await proc.communicate()
-
-            # Get all remote branches
-            proc = await asyncio.create_subprocess_exec(
-                "git",
-                "-C",
-                self.work_dir,
-                "branch",
-                "-r",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, _ = await proc.communicate()
-            branches = stdout.decode().splitlines()
-            for branch in branches:
-                branch = branch.strip()
-                if branch.startswith("origin/HEAD"):
-                    continue
-
-                # Checkout branch
+            # Initialize repo with sparse checkout 
+            # Credit to https://github.com/boostsecurityio/poutine/ for the implementation.
+            commands = [
+                ["git", "init", "--quiet"],
+                ["git", "remote", "add", "origin", url],
+                ["git", "config", "submodule.recurse", "false"],
+                ["git", "config", "core.sparseCheckout", "true"],
+                ["git", "config", "index.sparse", "true"],
+                ["git", "sparse-checkout", "init", "--sparse-index", "--cone"],
+                ["git", "sparse-checkout", "set", ".github/workflows"],
+                ["git", "fetch", "--quiet", "--no-tags", "--depth", "1", "--filter=blob:none", "origin"],
+            ]
+            
+            for cmd in commands:
                 proc = await asyncio.create_subprocess_exec(
-                    "git",
-                    "-C",
-                    self.work_dir,
-                    "checkout",
-                    branch.replace("origin/", ""),
+                    *cmd,
+                    cwd=self.work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
                 await proc.communicate()
-
-                workflow_dir = os.path.join(self.work_dir, ".github", "workflows")
-                if os.path.exists(workflow_dir):
-                    for filename in os.listdir(workflow_dir):
-                        if filename.endswith((".yml", ".yaml")):
-                            with open(os.path.join(workflow_dir, filename), "r") as f:
-                                contents = f.read()
-                                
-                                # Pre-filter: Skip workflows that don't contain pull_request_target
-                                if 'pull_request_target' not in contents:
-                                    continue
-                                
-                                # Create a hash of the workflow contents
-                                content_hash = hashlib.sha256(contents.encode()).hexdigest()
-                                
-                                # Only add the workflow if we haven't seen this content before
-                                if content_hash not in workflow_hashes:
-                                    workflow_hashes.add(content_hash)
-                                    workflows.append(
-                                        Workflow(
-                                            self.repository,
-                                            contents,
-                                            filename,
-                                            default_branch=branch.replace("origin/", ""),                                    )
-                                )
+            
+            # Get all remote branches with their commit SHA for deduplication
+            # Similar to Go's getRemoteBranches function
+            proc = await asyncio.create_subprocess_exec(
+                "git", 
+                "ls-remote", 
+                "--heads", 
+                "origin",
+                cwd=self.work_dir,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await proc.communicate()
+            
+            # Process each branch's commit and deduplicate by commit SHA
+            for line in stdout.decode().splitlines():
+                parts = line.split("\t")
+                if len(parts) < 2:
+                    continue
+                    
+                commit_sha = parts[0]
+                ref = parts[1]
+                
+                if not ref.startswith("refs/heads/"):
+                    continue
+                    
+                branch_name = ref.replace("refs/heads/", "")
+                
+                if branch_name not in commits_branches:
+                    commits_branches.setdefault(commit_sha, []).append(branch_name)
+            
+            # For each unique commit, examine workflows without checkout
+            for commit_sha, branches in commits_branches.items():
+                if not branches:
+                    continue
+                    
+                branch = branches[0]  # Process one branch from each unique commit
+                
+                # Fetch and checkout this specific branch to match Go implementation
+                checkout_commands = [
+                    ["git", "fetch", "--quiet", "--no-tags", "--depth", "1", "--filter=blob:none", "origin", branch],
+                    ["git", "checkout", "--quiet", "-b", f"target-{branch}", "FETCH_HEAD"],
+                ]
+                
+                for cmd in checkout_commands:
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        cwd=self.work_dir,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    _, stderr = await proc.communicate()
+                    if stderr:
+                        stderr_text = stderr.decode().strip()
+                        if "already exists" in stderr_text:
+                            # Skip if branch already exists, continue with next commands
+                            continue
+                        elif "fatal:" in stderr_text:
+                            logger.warning(f"Git checkout warning: {stderr_text}")
+                            # Continue anyway to try the direct commit SHA approach as fallback
+                
+                # List workflow files in the branch without checkout
+                # Try both approaches: first with commit SHA directly
+                proc = await asyncio.create_subprocess_exec(
+                    "git", 
+                    "ls-tree", 
+                    "-r", 
+                    f"origin/{branch}", 
+                    "--full-tree",
+                    ".github/workflows",
+                    cwd=self.work_dir,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                
+                if stderr:
+                    stderr_text = stderr.decode().strip()
+                    logger.info(stderr_text)
+                    if "Not a valid object name" in stderr_text or "did not match any file" in stderr_text:
+                        continue  # Branch doesn't have .github/workflows
+                
+                # Process each workflow file by its blob SHA
+                for line in stdout.decode().splitlines():
+                    parts = line.split()
+                    if len(parts) < 4:
+                        continue
+                        
+                    blob_sha = parts[2]
+                    file_path = parts[-1]
+                    
+                    if not (file_path.endswith(".yml") or file_path.endswith(".yaml")):
+                        continue
+                    
+                    # Skip if we've already processed this blob SHA
+                    if blob_sha in blob_workflows:
+                        continue
+                    
+                    # Get file contents directly using git cat-file
+                    proc = await asyncio.create_subprocess_exec(
+                        "git", 
+                        "cat-file", 
+                        "blob", 
+                        blob_sha,
+                        cwd=self.work_dir,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    content_stdout, _ = await proc.communicate()
+                    contents = content_stdout.decode()
+                    
+                    # Pre-filter: Skip workflows that don't contain pull_request_target
+                    if 'pull_request_target' not in contents:
+                        continue
+                    
+                    filename = os.path.basename(file_path)
+                    
+                    # Store by blob SHA, so we automatically deduplicate identical content
+                    blob_workflows[blob_sha] = Workflow(
+                        self.repository,
+                        contents,
+                        filename,
+                        default_branch=branch,
+                    )
+            
+            # Convert the blob_workflows map values to a list for return
+            workflows = list(blob_workflows.values())
 
         except subprocess.CalledProcessError as e:
             logger.warning(f"Git operation failed: {e}")
