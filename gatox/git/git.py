@@ -67,6 +67,9 @@ class Git:
             list: List of Workflow objects
         """
         workflows = []
+        workflow_hashes = set()  # Set to track unique workflow content
+
+        logger.info(f"Processing repository {self.repository}...")
         try:
             url = f"https://{self.pat}@github.com/{self.repository}"
 
@@ -117,13 +120,23 @@ class Git:
                         if filename.endswith((".yml", ".yaml")):
                             with open(os.path.join(workflow_dir, filename), "r") as f:
                                 contents = f.read()
-                                workflows.append(
-                                    Workflow(
-                                        self.repository,
-                                        contents,
-                                        filename,
-                                        default_branch=branch.replace("origin/", ""),
-                                    )
+                                
+                                # Pre-filter: Skip workflows that don't contain pull_request_target
+                                if 'pull_request_target' not in contents:
+                                    continue
+                                
+                                # Create a hash of the workflow contents
+                                content_hash = hashlib.sha256(contents.encode()).hexdigest()
+                                
+                                # Only add the workflow if we haven't seen this content before
+                                if content_hash not in workflow_hashes:
+                                    workflow_hashes.add(content_hash)
+                                    workflows.append(
+                                        Workflow(
+                                            self.repository,
+                                            contents,
+                                            filename,
+                                            default_branch=branch.replace("origin/", ""),                                    )
                                 )
 
         except subprocess.CalledProcessError as e:

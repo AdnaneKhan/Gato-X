@@ -25,6 +25,7 @@ class IngestNonDefault:
 
     _tasks = []
     _api = None
+    _semaphore = asyncio.Semaphore(10)  # Limit to 10 concurrent repositories
 
     @classmethod
     async def ingest(cls, repo: Repository, api):
@@ -36,9 +37,15 @@ class IngestNonDefault:
             cls._api = api
 
         # Create and store the task
-        task = asyncio.create_task(cls._process_repo(repo))
+        task = asyncio.create_task(cls._process_repo_with_semaphore(repo))
         cls._tasks.append(task)
         return task
+
+    @classmethod
+    async def _process_repo_with_semaphore(cls, repo: Repository):
+        """Process repository with semaphore control for concurrency limitation."""
+        async with cls._semaphore:
+            await cls._process_repo(repo)
 
     @classmethod
     async def _process_repo(cls, repo: Repository):
