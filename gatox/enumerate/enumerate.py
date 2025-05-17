@@ -171,7 +171,7 @@ class Enumerator:
                     "Ensure the repository exists and the user has access."
                 )
 
-    async def enumerate_repo(self, repo_name: str):
+    async def enumerate_repo(self, repo_name: str) -> Repository:
         """Enumerate only a single repository. No checks for org-level
         self-hosted runners will be performed in this case.
 
@@ -229,7 +229,7 @@ class Enumerator:
         tasks = [asyncio.create_task(sem_retrieve(repo)) for repo in repos]
         await asyncio.gather(*tasks)
 
-    async def validate_only(self):
+    async def validate_only(self) -> Organization:
         """Validates the PAT access and exits."""
         if not await self.__setup_user_info():
             return False
@@ -253,7 +253,7 @@ class Enumerator:
             for org in orgs
         ]
 
-    async def self_enumeration(self):
+    async def self_enumeration(self) -> tuple[list[Organization], list[Repository]]:
         """Enumerates all organizations associated with the authenticated user.
 
         Returns:
@@ -314,7 +314,7 @@ class Enumerator:
 
         return repo_wrappers
 
-    async def enumerate_organization(self, org: str):
+    async def enumerate_organization(self, org: str) -> Organization:
         """Enumerate an entire organization, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
 
@@ -448,7 +448,7 @@ class Enumerator:
         if not self.skip_log:
             await RunnerVisitor.find_runner_workflows(WorkflowGraphBuilder().graph)
 
-    async def enumerate_repos(self, repo_names: list):
+    async def enumerate_repos(self, repo_names: list) -> list[Repository]:
         """Enumerate a list of repositories, each repo must be in Org/Repo name
         format.
 
