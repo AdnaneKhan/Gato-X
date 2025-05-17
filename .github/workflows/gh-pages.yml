@@ -8,6 +8,8 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      pages: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
