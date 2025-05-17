@@ -35,6 +35,7 @@ test = [
 docs = [
     "mkdocs",
     "mkdocs-material"
+]
 mcp = [
     "fastmcp"
 ]
