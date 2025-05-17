@@ -32,6 +32,10 @@ test = [
     "black",
     "pytest-asyncio"
 ]
+docs = [
+    "mkdocs",
+    "mkdocs-material"
+]
 
 [tool.hatch.build.targets.wheel]
 packages = [

@@ -57,7 +57,7 @@ After creating this token, set the `GH_TOKEN` environment variable within your s
 export GH_TOKEN=<YOUR_CREATED_TOKEN>
 ```
 
-Alternatively, you can enter it when the application prompts you.
+Alternatively, you can enter the token when the application prompts you.
 
 ## Verifying Installation
 
