@@ -2,26 +2,26 @@
 
 ## Getting Started
 * [Introduction](README.md)
-* [Installation](installation.md)
+* [Installation](user-guide/installation.md)
 * [Quick Start Guide](quick-start.md)
 
 ## Command Reference
-* [Overview](command-reference/index.md)
-* [Search Command](command-reference/search.md)
-* [Enumerate Command](command-reference/enumerate.md)
-* [Attack Command](command-reference/attack.md)
+* [Overview](user-guide/command-reference/index.md)
+* [Search Command](user-guide/command-reference/search.md)
+* [Enumerate Command](user-guide/command-reference/enumerate.md)
+* [Attack Command](user-guide/command-reference/attack.md)
 
 ## Use Cases
-* [Overview](use-cases/index.md)
-* [Scanning for Vulnerabilities](use-cases/scanning.md)
-* [Self-Hosted Runner Takeover](use-cases/runner-takeover.md)
-* [Post-Compromise Enumeration](use-cases/post-compromise.md)
+* [Overview](user-guide/use-cases/index.md)
+* [Scanning for Vulnerabilities](user-guide/use-cases/scanning.md)
+* [Self-Hosted Runner Takeover](user-guide/use-cases/runner-takeover.md)
+* [Post-Compromise Enumeration](user-guide/use-cases/post-compromise.md)
 
 ## Advanced Topics
-* [Overview](advanced/index.md)
-* [Understanding GitHub Actions Vulnerabilities](advanced/vulnerabilities.md)
-* [Complex Attack Scenarios](advanced/complex-attacks.md)
-* [Contributing to Gato-X](advanced/contributing.md)
+* [Overview](user-guide/advanced/index.md)
+* [Understanding GitHub Actions Vulnerabilities](user-guide/advanced/vulnerabilities.md)
+* [Complex Attack Scenarios](user-guide/advanced/complex-attacks.md)
+* [Contributing to Gato-X](user-guide/advanced/contributing.md)
 
 ## Additional Resources
-* [Contributing](contributing.md)
+* [Contributing](contribution-guide/contributions.md)

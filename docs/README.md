@@ -23,15 +23,11 @@ The target audience for Gato-X is Red Teamers, Bug Bounty Hunters, and Security 
 
 ## Documentation Structure
 
-- [Installation](installation.md)
-- [Quick Start Guide](quick-start.md)
-- [Command Reference](command-reference/index.md)
-  - [Search Command](command-reference/search.md)
-  - [Enumerate Command](command-reference/enumerate.md)
-  - [Attack Command](command-reference/attack.md)
-- [Use Cases](use-cases/index.md)
-- [Advanced Topics](advanced/index.md)
-- [Contributing](contributing.md)
+For installation instructions, see the [Installation Guide](user-guide/installation.md).
+For command usage, see the [Command Reference](user-guide/command-reference/index.md).
+For use cases, see the [Use Cases](user-guide/use-cases/index.md).
+For advanced topics, see the [Advanced Topics](user-guide/advanced/index.md).
+For contribution guidelines, see the [Contribution Guide](contribution-guide/contributions.md).
 
 ## What Gato-X is NOT
 

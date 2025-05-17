@@ -6,7 +6,7 @@ This guide will help you get started with Gato-X quickly for common use cases.
 
 Before you begin, make sure you have:
 
-1. Installed Gato-X (see [Installation](installation.md))
+1. Installed Gato-X (see [Installation](user-guide/installation.md))
 2. Created a GitHub PAT with appropriate scopes
 3. Set the `GH_TOKEN` environment variable with your PAT
 
@@ -76,4 +76,4 @@ This command:
 
 ## Additional Options
 
-For more detailed information about each command and its options, see the [Command Reference](command-reference/index.md) section.
+For more detailed information about each command and its options, see the [Command Reference](user-guide/command-reference/index.md) section.

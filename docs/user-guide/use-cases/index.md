@@ -1,6 +1,10 @@
-# Use Cases
+# Overview
 
-This section covers common use cases for Gato-X and provides detailed guidance on how to approach each scenario.
+This section provides an overview of common use cases for Gato-X.
+
+For installation instructions, see the [Installation Guide](../installation.md).
+For command usage, see the [Command Reference](../command-reference/index.md).
+For advanced topics, see the [Advanced Topics](../advanced/index.md).
 
 ## Available Use Cases
 
