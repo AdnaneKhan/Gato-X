@@ -18,27 +18,7 @@ to follow responsible disclosure if you find vulnerabilities with Gato-X.
 
 ## Documentation
 
-For comprehensive documentation, please visit the [Gato-X Documentation](https://adnanekhan.github.io/gato-x/).
-
-## Table of Contents
-
-- [What is Gato-X?](#what-is-gato-x)
-- [Feature Highlights](#feature-highlights)
-  - [Enumeration for Pwn Requests and Injection](#enumeration-for-github-actions-injection-and-pwn-requests)
-  - [Post Compromise Enumeration](#post-compromise-enumeration)
-  - [Features Coming Soon](#features-coming-soon)
-    - [Automated Pwn Requests](#automated-pwn-requests)
-- [Quick Start](quick-start.md)
-  - [Perform Runner Takeover](user-guide/use-cases/runner-takeover.md)
-  - [Scan for Vulnerabilities](user-guide/use-cases/scanning.md)
-  - [Advanced Attacks](user-guide/advanced/complex-attacks.md)
-- [Getting Started](user-guide/installation.md)
-  - [Installation](user-guide/installation.md)
-  - [Usage](user-guide/command-reference/index.md)
-- [Usage](user-guide/command-reference/index.md)
-- [Bugs](#bugs)
-- [Contributing](contribution-guide/contributions.md)
-- [License](#license)
+For comprehensive documentation, please visit the [Gato-X Documentation](https://adnanekhan.github.io/gato-x/) site.
 
 ## What is Gato-X?
 
@@ -63,14 +43,7 @@ Gato-X contains a powerful scanning engine for GitHub Actions vulnerabilities. I
 * Parsing and Simulation of "If Statements"
 * Gate Check Detection (permission checks, etc.)
 * Lightweight Source-Sink Analysis for Variables
-
-### Automated Self-Hosted Runner Attacks
-
-Gato-X automates the "Runner-on-Runner" (RoR) technique, which installs another GitHub Actions runner as an implant on an existing runner. From the user's perspective, it's simply: run command, get shell.
-
-### Post-Compromise Enumeration
-
-If you obtain a GitHub PAT, you can use Gato-X to validate it and identify what it has access to, including repositories with administrative access and the names of accessible secrets.
+* MCP Server
 
 ## Quick Start
 
@@ -93,7 +66,6 @@ gato-x e -R checks.txt | tee gatox_output.txt
 
 This will take some time depending on your computer and internet connection speed. Since the results are very long, use `tee` to save them to a file
 for later review. Gato-X also supports JSON output, but that is intended for further machine analysis.
-
 
 ### Perform Self Hosted Runner Takeover
 
@@ -118,6 +90,14 @@ self-hosted runner.
 
 If the target runner is non-ephemeral, use the `--keep-alive` flag. This will keep the workflow running. GitHub
 Actions allows workflow runs on self-hosted runners to run for up to **5 days** (as of writing, this might change - it was 30 days).
+
+### Dump Secrets
+
+If you have a PAT with write access to the repository along with the `repo` and `workflow` scopes, you can dump all secrets accessible to the repository with a single command:
+
+`gato-x attack --secrets -t targetOrg/targetRepo -d`
+
+See documentation for additional options such as specifying workflow name, branch name, and more.
 
 ## Installation
 
@@ -147,7 +127,7 @@ If you need to make on-the-fly modifications, then install it in editable mode w
 
 ## Contributing
 
-Contributions are welcome! Please [review](docs/advanced/contributing.md) the design methodology before working on a new feature!
+Contributions are welcome! Please [review](https://adnanekhan.github.io/gato-x/contribution-guide/contributions/) the design methodology before working on a new feature!
 
 Additionally, if you are proposing significant changes to the tool, please open an issue to start a conversation about the motivation for the changes.
 
