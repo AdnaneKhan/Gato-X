@@ -1771,6 +1771,16 @@ class Api:
             if res:
                 return res
 
+            resp = await self.call_get(
+                f"/repos/{repo}/contents/{path}", params={"ref": ref}
+            )
+
+            if resp.status_code == 200:
+                resp_data = resp.json()
+                if "content" in resp_data:
+                    file_data = base64.b64decode(resp_data["content"]).decode()
+                    return file_data
+
         return None
 
     async def get_installation_repos(self):

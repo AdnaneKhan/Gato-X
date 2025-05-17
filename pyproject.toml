@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gato-x"
-version = "1.1.0"
+version = "1.1.1"
 description = "GitHub Actions Enumeration and Attack Framework"
 readme = "README.md"
 authors = [
@@ -35,6 +35,8 @@ test = [
 docs = [
     "mkdocs",
     "mkdocs-material"
+mcp = [
+    "fastmcp"
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -57,3 +59,4 @@ directory = "cov_html"
 [project.scripts]
 gato-x = "gatox.main:entry"
 gatox = "gatox.main:entry"
+gato-x-mcp = "gatox.mcp.mcp_server:entry"

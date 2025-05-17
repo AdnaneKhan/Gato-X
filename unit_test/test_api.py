@@ -1229,3 +1229,135 @@ async def test_get_own_repos_empty_response():
     repos = await api.get_own_repos()
     assert repos == []
     mock_client.get.assert_called_once()
+
+
+async def test_retrieve_raw_action_public_repo():
+    """Test retrieving a GitHub action from a public repository using raw.githubusercontent.com."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_client = AsyncMock()
+
+    # Mock response for the raw file request
+    mock_raw_response = MagicMock()
+    mock_raw_response.status_code = 200
+    mock_raw_response.text = "name: 'Test Action'\ndescription: 'This is a test action'"
+
+    # Set up the client mock to return our raw response
+    mock_client.get.return_value = mock_raw_response
+
+    abstraction_layer = Api(test_pat, "2022-11-28", client=mock_client)
+
+    # Test the method with a .yml file path
+    result = await abstraction_layer.retrieve_raw_action(
+        "testorg/testrepo", "actions/test-action/action.yml", "main"
+    )
+
+    # Verify the correct URL was called
+    mock_client.get.assert_called_with(
+        "https://raw.githubusercontent.com/testorg/testrepo/main/actions/test-action/action.yml",
+        headers={"Authorization": "None", "Accept": "text/plain"},
+    )
+
+    assert result == "name: 'Test Action'\ndescription: 'This is a test action'"
+
+
+async def test_retrieve_raw_action_private_repo():
+    """Test retrieving a GitHub action from a private repository using the GitHub API."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_client = AsyncMock()
+
+    # Mock response for raw file request (this should fail for private repos)
+    mock_raw_response = MagicMock()
+    mock_raw_response.status_code = 404
+
+    # Mock response for the API request
+    mock_api_response = MagicMock()
+    mock_api_response.status_code = 200
+    mock_api_response.json.return_value = {
+        "content": base64.b64encode(
+            b"name: 'Test Action'\ndescription: 'This is a test action'"
+        )
+    }
+
+    # Set up the client mock to return our responses
+    def mock_get_side_effect(*args, **kwargs):
+        if "raw.githubusercontent.com" in args[0]:
+            return mock_raw_response
+        else:
+            return mock_api_response
+
+    mock_client.get.side_effect = mock_get_side_effect
+
+    abstraction_layer = Api(test_pat, "2022-11-28", client=mock_client)
+
+    # Test the method with a directory path (should try action.yml and action.yaml)
+    result = await abstraction_layer.retrieve_raw_action(
+        "testorg/testrepo", "actions/test-action", "main"
+    )
+
+    # Verify both file paths were tried with raw URL
+    assert (
+        mock_client.get.call_args_list[0][0][0]
+        == "https://raw.githubusercontent.com/testorg/testrepo/main/actions/test-action/action.yml"
+    )
+
+    # Verify the API method was called after raw URL failed
+    assert (
+        "/repos/testorg/testrepo/contents/actions/test-action/action.yml"
+        in mock_client.get.call_args_list[1][0][0]
+    )
+
+    assert result == "name: 'Test Action'\ndescription: 'This is a test action'"
+
+
+async def test_retrieve_raw_action_not_found():
+    """Test retrieving a GitHub action that doesn't exist."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_client = AsyncMock()
+
+    # Mock responses for both raw file and API requests
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+
+    # Set up the client mock to return 404 for all requests
+    mock_client.get.return_value = mock_response
+
+    abstraction_layer = Api(test_pat, "2022-11-28", client=mock_client)
+
+    # Test with a non-existent action
+    result = await abstraction_layer.retrieve_raw_action(
+        "testorg/testrepo", "actions/nonexistent-action", "main"
+    )
+
+    # Should try both action.yml and action.yaml paths
+    assert mock_client.get.call_count >= 4  # 2 raw URLs + 2 API calls
+
+    # Should return None when action is not found
+    assert result is None
+
+
+async def test_retrieve_raw_action_path_normalization():
+    """Test path normalization in retrieve_raw_action."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_client = AsyncMock()
+
+    # Mock successful response
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = "name: 'Test Action'\ndescription: 'This is a test action'"
+
+    mock_client.get.return_value = mock_response
+
+    abstraction_layer = Api(test_pat, "2022-11-28", client=mock_client)
+
+    # Test with double slashes in path
+    result = await abstraction_layer.retrieve_raw_action(
+        "testorg/testrepo", "actions//test-action//action.yml", "main"
+    )
+
+    # Verify the URL was normalized (double slashes replaced)
+    mock_client.get.assert_called_with(
+        "https://raw.githubusercontent.com/testorg/testrepo/main/actions/test-action/action.yml",
+        headers={"Authorization": "None", "Accept": "text/plain"},
+    )
+
+    assert result == "name: 'Test Action'\ndescription: 'This is a test action'"

@@ -94,7 +94,6 @@ class Git:
             )
             stdout, _ = await proc.communicate()
             branches = stdout.decode().splitlines()
-
             for branch in branches:
                 branch = branch.strip()
                 if branch.startswith("origin/HEAD"):
@@ -123,7 +122,7 @@ class Git:
                                         self.repository,
                                         contents,
                                         filename,
-                                        branch=branch.replace("origin/", ""),
+                                        default_branch=branch.replace("origin/", ""),
                                     )
                                 )
 
