@@ -18,15 +18,26 @@ to follow responsible disclosure if you find vulnerabilities with Gato-X.
 
 ## Documentation
 
-For comprehensive documentation, please visit the [Gato-X Documentation](docs/README.md).
+For comprehensive documentation, please visit the [Gato-X Documentation](https://adnanekhan.github.io/gato-x/).
 
 ## Table of Contents
 
 - [What is Gato-X?](#what-is-gato-x)
 - [Feature Highlights](#feature-highlights)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Contributing](#contributing)
+  - [Enumeration for Pwn Requests and Injection](#enumeration-for-github-actions-injection-and-pwn-requests)
+  - [Post Compromise Enumeration](#post-compromise-enumeration)
+  - [Features Coming Soon](#features-coming-soon)
+    - [Automated Pwn Requests](#automated-pwn-requests)
+- [Quick Start](quick-start.md)
+  - [Perform Runner Takeover](user-guide/use-cases/runner-takeover.md)
+  - [Scan for Vulnerabilities](user-guide/use-cases/scanning.md)
+  - [Advanced Attacks](user-guide/advanced/complex-attacks.md)
+- [Getting Started](user-guide/installation.md)
+  - [Installation](user-guide/installation.md)
+  - [Usage](user-guide/command-reference/index.md)
+- [Usage](user-guide/command-reference/index.md)
+- [Bugs](#bugs)
+- [Contributing](contribution-guide/contributions.md)
 - [License](#license)
 
 ## What is Gato-X?

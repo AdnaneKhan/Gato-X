@@ -1,6 +1,12 @@
-# Advanced Topics
+# Overview
 
-This section covers advanced topics related to Gato-X and GitHub Actions security.
+This section covers advanced topics related to Gato-X.
+
+For installation instructions, see the [Installation Guide](../installation.md).
+For command usage, see the [Command Reference](../command-reference/index.md).
+For use cases, see the [Use Cases](../use-cases/index.md).
+
+For advanced contribution guidelines, see [Contributing to Gato-X](contributing.md).
 
 ## Available Topics
 

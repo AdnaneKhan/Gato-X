@@ -1,3 +1,11 @@
+# Overview
+
+Welcome to the Gato-X Command Reference. This section provides detailed usage information for each command.
+
+For installation instructions, see the [Installation Guide](../installation.md).
+For use cases, see the [Use Cases](../use-cases/index.md).
+For advanced topics, see the [Advanced Topics](../advanced/index.md).
+
 # Command Reference
 
 Gato-X provides three main commands, each with its own set of options:
