@@ -32,6 +32,10 @@ test = [
     "black",
     "pytest-asyncio"
 ]
+docs = [
+    "mkdocs",
+    "mkdocs-material"
+]
 mcp = [
     "fastmcp"
 ]
