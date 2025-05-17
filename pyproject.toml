@@ -32,6 +32,9 @@ test = [
     "black",
     "pytest-asyncio"
 ]
+mcp = [
+    "fastmcp"
+]
 
 [tool.hatch.build.targets.wheel]
 packages = [
@@ -53,3 +56,4 @@ directory = "cov_html"
 [project.scripts]
 gato-x = "gatox.main:entry"
 gatox = "gatox.main:entry"
+gato-x-mcp = "gatox.mcp.mcp_server:entry"

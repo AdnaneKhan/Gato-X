@@ -14,9 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import logging
+
 from gatox.workflow_graph.nodes.node import Node
 from gatox.workflow_graph.nodes.job import JobNode
 from gatox.models.workflow import Workflow
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowNode(Node):
@@ -117,7 +121,7 @@ class WorkflowNode(Node):
             else:
                 return {}
         except TypeError:
-            print(workflow_data["on"])
+            logger.error(workflow_data["on"])
 
     def __process_envs(self, workflow_data: dict):
         if "env" in workflow_data:
