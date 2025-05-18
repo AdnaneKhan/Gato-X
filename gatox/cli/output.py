@@ -42,7 +42,7 @@ Y88b  d88P  d8888888888     888     Y88b. .d88P         d88P Y88b
 
 class Output(metaclass=Singleton):
 
-    def __init__(self, color: bool, suppress: bool = False):
+    def __init__(self, color: bool = True, suppress: bool = False):
         self.color = color
         self.suppress = suppress
 
