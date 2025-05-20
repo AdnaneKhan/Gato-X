@@ -353,6 +353,13 @@ async def enumerate(args, parser):
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
+    elif args.commit:
+        if not args.repository:
+            parser.error("--commit requires --repository to be specified")
+        repo_obj = await gh_enumeration_runner.enumerate_commit(
+            args.repository, args.commit
+        )
+        repos = [repo_obj] if repo_obj else []
     elif args.repository:
         repos = await gh_enumeration_runner.enumerate_repos([args.repository])
 

@@ -1298,6 +1298,52 @@ class Api:
 
         return ymls
 
+    async def retrieve_workflow_ymls_ref(self, repo_name: str, ref: str):
+        """Retrieve workflow files from a specific Git reference.
+
+        Args:
+            repo_name (str): Repository in Org/Repo format.
+            ref (str): Commit SHA or branch name to pull workflows from.
+
+        Returns:
+            list[Workflow]: List of workflow wrappers.
+        """
+        ymls = []
+
+        resp = await self.call_get(
+            f"/repos/{repo_name}/contents/.github/workflows/", params={"ref": ref}
+        )
+
+        if resp.status_code == 200:
+            objects = resp.json()
+            semaphore = asyncio.Semaphore(50)
+
+            async def fetch_file(file):
+                async with semaphore:
+                    resp_file = await self.call_get(
+                        f"/repos/{repo_name}/contents/{file['path']}",
+                        params={"ref": ref},
+                    )
+                    if resp_file.status_code == 200:
+                        resp_data = resp_file.json()
+                        if "content" in resp_data:
+                            file_data = base64.b64decode(resp_data["content"])
+                            return Workflow(
+                                repo_name, file_data, file["name"], non_default=ref
+                            )
+                    return None
+
+            tasks = [
+                asyncio.create_task(fetch_file(file))
+                for file in objects
+                if file["type"] == "file"
+                and (file["name"].endswith(".yml") or file["name"].endswith(".yaml"))
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            ymls = [wf for wf in results if wf is not None]
+
+        return ymls
+
     async def retrieve_repo_file(
         self, repo_name: str, file_path: str, ref: str, public=False
     ):
