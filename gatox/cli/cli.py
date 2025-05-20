@@ -20,6 +20,7 @@ from gatox.attack.runner.webshell import WebShell
 from gatox.attack.secrets.secrets_attack import SecretsAttack
 from gatox.search.search import Searcher
 from gatox.models.execution import Execution
+from gatox.cli.app_enum import app_enum
 
 
 async def cli(args):
@@ -72,6 +73,38 @@ async def cli(args):
         formatter_class=argparse.RawTextHelpFormatter,
     )
     search_parser.set_defaults(func=search)
+
+    app_parser = subparsers.add_parser(
+        "app",
+        help="GitHub App blast radius enumeration",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    app_parser.add_argument(
+        "--installations",
+        action="store_true",
+        help="List installations, installed repos, and permissions for the GitHub App.",
+    )
+    app_parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Enumerate all accessible repos and permissions for all installations.",
+    )
+    app_parser.add_argument(
+        "--installation",
+        type=int,
+        help="Enumerate a specific installation by ID.",
+    )
+    app_parser.add_argument(
+        "--app",
+        required=True,
+        help="GitHub App ID.",
+    )
+    app_parser.add_argument(
+        "--pem",
+        required=True,
+        help="Path to the App's private key PEM file.",
+    )
+    app_parser.set_defaults(func=app_enum)
 
     configure_parser_attack(attack_parser)
     configure_parser_enumerate(enumerate_parser)
