@@ -40,39 +40,63 @@ The Gato-X codebase is organized into several modules:
 - `gatox/models/`: Data models
 - `gatox/github/`: GitHub API interaction
 - `gatox/util/`: Utility functions
+- `gatox/configuration/`: Configuration management
+- `gatox/caching/`: Caching and local cache management
+- `gatox/notifications/`: Notification and webhook sending
+
+### Example Directory Tree
+
+```mermaid
+flowchart TD
+    CLI[cli] --> Main[main.py]
+    Main --> Attack[attack]
+    Main --> Enumerate[enumerate]
+    Main --> Search[search]
+    Main --> WorkflowGraph[workflow_graph]
+    Main --> Models[models]
+    Main --> Utils[util]
+    Main --> Config[configuration]
+    Main --> Caching[caching]
+    Main --> Notifications[notifications]
+```
 
 ## Development Guidelines
 
 ### Code Style
 
-Gato-X follows the Black code style. Before submitting a pull request, format your code:
+- Use [Black](https://black.readthedocs.io/en/stable/) for formatting:
+  ```bash
+  black gatox/
+  ```
+- Use [isort](https://pycqa.github.io/isort/) for import sorting:
+  ```bash
+  isort gatox/
+  ```
+- Follow PEP8 and add docstrings to all public classes and functions.
 
-```bash
-pip install black
-black .
-```
+### Making Changes
 
-### Adding New Features
+- Branch from `main` for new features or bugfixes.
+- Write clear, descriptive commit messages.
+- Add or update tests for your changes (see [Testing Guidelines](testing.md)).
+- Run all tests before submitting a pull request.
 
-When adding new features:
+### Submitting Pull Requests
 
-1. Create a new branch:
-   ```bash
-   git checkout -b feature/my-new-feature
-   ```
-2. Implement your feature
-3. Add tests for your feature
-4. Update documentation
-5. Submit a pull request
+- Ensure your branch is up to date with `main`.
+- Open a pull request with a clear description of your changes.
+- Reference related issues if applicable.
+- Be responsive to code review feedback.
 
-### Design Methodology
+## Communication
 
-Before working on significant changes, please review the project's design methodology:
+- Use GitHub Issues for bug reports and feature requests.
+- For significant changes, open an issue to discuss before submitting a PR.
 
-1. **Operator-Focused**: Gato-X is designed for security practitioners, prioritizing usability and effectiveness over perfect precision
-2. **Avoid False Negatives**: The tool is tuned to catch all potential vulnerabilities, even if it means some false positives
-3. **Provide Context**: For each finding, provide enough context for operators to quickly determine if it's a true positive
-4. **Performance Matters**: The tool should be able to scan thousands of repositories efficiently
+## TODO: Human check
+
+- Confirm if there are additional contribution requirements (e.g., DCO, CLA).
+- Add more details on advanced contribution topics if needed.
 
 ## Testing
 

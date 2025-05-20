@@ -22,7 +22,6 @@ nav:
           - Overview: user-guide/advanced/index.md
           - Understanding GitHub Actions Vulnerabilities: user-guide/advanced/vulnerabilities.md
           - Complex Attack Scenarios: user-guide/advanced/complex-attacks.md
-          - Contributing to Gato-X: user-guide/advanced/contributing.md
   - Quick Start: quick-start.md
   - Contribution Guide:
       - Overview: contribution-guide/contributions.md

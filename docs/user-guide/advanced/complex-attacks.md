@@ -75,6 +75,10 @@ Some approval workflows may be vulnerable to TOCTOU attacks:
 3. After approval but before execution, modify the pull request to include malicious code
 4. The approved workflow will run the modified code
 
+### Pivoting via GitHub Actions Cache Poisoning
+
+
+
 ## Advanced Self-Hosted Runner Attacks
 
 ### Targeting Specific Runner Labels
