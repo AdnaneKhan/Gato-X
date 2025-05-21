@@ -7,6 +7,7 @@ import httpx
 from unittest.mock import patch, AsyncMock
 from gatox.github.api import Api
 
+from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 from gatox.enumerate.enumerate import Enumerator
 from gatox.cli.output import Output
