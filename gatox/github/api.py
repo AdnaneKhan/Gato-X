@@ -1310,12 +1310,28 @@ class Api:
         """
         ymls = []
 
-        resp = await self.call_get(
-            f"/repos/{repo_name}/contents/.github/workflows/", params={"ref": ref}
-        )
+        page = 1
+        per_page = 100
+        objects = []
 
-        if resp.status_code == 200:
-            objects = resp.json()
+        while True:
+            resp = await self.call_get(
+                f"/repos/{repo_name}/contents/.github/workflows/",
+                params={"ref": ref, "per_page": per_page, "page": page},
+            )
+
+            if resp.status_code != 200:
+                break
+
+            listing = resp.json()
+            objects.extend(listing)
+
+            if len(listing) < per_page:
+                break
+
+            page += 1
+
+        if objects:
             semaphore = asyncio.Semaphore(50)
 
             async def fetch_file(file):

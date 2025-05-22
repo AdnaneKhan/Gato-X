@@ -290,6 +290,7 @@ async def enumerate(args, parser):
         or args.repository
         or args.repositories
         or args.validate
+        or args.commit
     ):
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was" " specified!"
@@ -304,6 +305,7 @@ async def enumerate(args, parser):
                 args.repository,
                 args.repositories,
                 args.validate,
+                args.commit
             ]
         )
         != 1
