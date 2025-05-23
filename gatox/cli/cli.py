@@ -305,7 +305,7 @@ async def enumerate(args, parser):
                 args.repository,
                 args.repositories,
                 args.validate,
-                args.commit
+                args.commit,
             ]
         )
         != 1
