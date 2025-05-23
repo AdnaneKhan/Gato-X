@@ -36,6 +36,13 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
+        "--commit",
+        help="Check a specific commit for Actions vulnerabilities. Requires --repository.",
+        metavar=f"{Fore.RED}SHA{Style.RESET_ALL}",
+        type=StringType(40, regex=r"[A-Fa-f0-9]{40}"),
+    )
+
+    parser.add_argument(
         "--self-enumeration",
         "-s",
         help=(
@@ -129,4 +136,11 @@ def configure_parser_enumerate(parser):
         ),
         metavar="JSON_FILE",
         type=WritablePath(),
+    )
+
+    parser.add_argument(
+        "--scan-commit",
+        help=(
+            "check a single commit for Actions vulnerabilities. This will be useful for checking if a commit would introduce vulnerabilities if it were merged into the default branch."
+        ),
     )

@@ -214,6 +214,47 @@ class Enumerator:
                 "exist or the user does not have access."
             )
 
+    async def enumerate_commit(self, repo_name: str, sha: str):
+        """Enumerate a single commit of a repository.
+
+        Workflow files from the commit are treated as if they are on the
+        repository's default branch so that default-branch checks apply.
+
+        Args:
+            repo_name (str): Repository in Org/Repo format.
+            sha (str): Commit SHA to analyze.
+
+        Returns:
+            Repository | bool: Repository wrapper populated with results or
+            False on failure.
+        """
+        if not await self.__setup_user_info():
+            return False
+
+        repo_data = await self.api.get_repository(repo_name)
+        if not repo_data:
+            Output.warn(f"Unable to retrieve repository: {Output.bright(repo_name)}")
+            return False
+
+        repo = Repository(repo_data)
+
+        workflows = await self.api.retrieve_workflow_ymls_ref(repo.name, sha)
+        for workflow in workflows:
+            workflow.branch = repo.repo_data["default_branch"]
+            await WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
+
+        await self.process_graph()
+
+        await self.repo_e.enumerate_repository(repo)
+        await self.repo_e.enumerate_repository_secrets(repo)
+        Recommender.print_repo_secrets(
+            self.user_perms["scopes"], repo.secrets + repo.org_secrets
+        )
+        Recommender.print_repo_runner_info(repo)
+        Recommender.print_repo_attack_recommendations(self.user_perms["scopes"], repo)
+
+        return repo
+
     async def __finalize_caches(self, repos: list):
         """Finalizes the caches for the repositories enumerated.
 
@@ -492,3 +533,13 @@ class Enumerator:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
         return repo_wrappers
+
+    async def enumerate_commit(self, repo_name: str, commit_sha: str):
+        """
+        Enumerate commit takes a single commit and checks for vulnerabilities before it gets
+        merged to a default branch.
+
+        Args:
+            repo_name: name of the repository
+            commit_sha: sha of the commit that needs to be scanned
+        """
