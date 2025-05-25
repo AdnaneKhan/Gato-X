@@ -1819,3 +1819,42 @@ class Api:
 
             if pr_info["merged"]:
                 return pr_info["mergedAt"]
+
+    async def get_app_installations(self):
+        """Get all installations for the GitHub App."""
+        response = await self.call_get("/app/installations")
+        if response.status_code == 200:
+            return response.json()
+        return None
+
+    async def get_installation_access_token(self, installation_id: str):
+        """Get an access token for a specific installation."""
+        response = await self.call_post(
+            f"/app/installations/{installation_id}/access_tokens"
+        )
+        if response.status_code == 201:
+            return response.json()
+        return None
+
+    async def get_installation_info(self, installation_id: str):
+        """Get detailed information about a specific installation."""
+        response = await self.call_get(f"/app/installations/{installation_id}")
+        if response.status_code == 200:
+            return response.json()
+        return None
+
+    async def get_installation_repositories(self, installation_id: str):
+        """Get repositories accessible to a specific installation."""
+        response = await self.call_get(
+            f"/app/installations/{installation_id}/repositories"
+        )
+        if response.status_code == 200:
+            return response.json()
+        return None
+
+    async def get_app_info(self):
+        """Get information about the GitHub App."""
+        response = await self.call_get("/app")
+        if response.status_code == 200:
+            return response.json()
+        return None

@@ -21,7 +21,8 @@ dependencies = [
     "httpx[socks,http2]",
     "pyyaml",
     "cryptography",
-    "networkx"
+    "networkx",
+    "PyJWT[crypto]"
 ]
 
 [project.optional-dependencies]
