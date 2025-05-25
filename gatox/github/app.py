@@ -21,9 +21,9 @@ class GitHubApp:
         self.app_id = app_id
         self.private_key_path = private_key_path
         self.private_key = None
-        
+
         try:
-            with open(private_key_path, 'r') as key_file:
+            with open(private_key_path, "r") as key_file:
                 self.private_key = key_file.read()
         except FileNotFoundError:
             logger.error(f"Private key file not found at: {private_key_path}")
@@ -34,23 +34,23 @@ class GitHubApp:
 
     def generate_jwt(self):
         """Generate a JWT token for GitHub App authentication.
-        
+
         Returns:
             str: JWT token for GitHub API authentication
         """
         now = int(time.time())
         payload = {
             # Issued at time
-            'iat': now,
+            "iat": now,
             # JWT expiration time (10 minutes maximum)
-            'exp': now + (10 * 60),
+            "exp": now + (10 * 60),
             # GitHub App's identifier
-            'iss': self.app_id
+            "iss": self.app_id,
         }
 
         try:
             # Create JWT using RS256 algorithm
-            token = jwt.encode(payload, self.private_key, algorithm='RS256')
+            token = jwt.encode(payload, self.private_key, algorithm="RS256")
             return token
         except Exception as e:
             logger.error(f"Error generating JWT: {str(e)}")

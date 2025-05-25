@@ -73,7 +73,7 @@ async def cli(args):
         formatter_class=argparse.RawTextHelpFormatter,
     )
     search_parser.set_defaults(func=search)
-    
+
     app_parser = subparsers.add_parser(
         "app",
         help="GitHub App Private Key Authentication and Enumeration",
@@ -424,15 +424,15 @@ async def search(args, parser):
 
 async def app(args, parser):
     """Handle the app command for GitHub App enumeration.
-    
+
     Args:
         args: Command line arguments
         parser: Command line parser
     """
     from gatox.enumerate.app_enumerate import AppEnumerator
-    
+
     parser = parser.choices["app"]
-    
+
     app_enumerator = AppEnumerator(
         app_id=args.app,
         private_key_path=args.pem,
@@ -441,47 +441,47 @@ async def app(args, parser):
         http_proxy=args.http_proxy,
         github_url=args.api_url,
     )
-    
+
     # Command for listing installations
     if args.installations:
         await app_enumerator.list_installations()
-        
+
     # Command for specific installation
     elif args.installation:
         Output.info(f"Enumerating specific installation: {args.installation}")
         results = await app_enumerator.enumerate_installation(args.installation)
-        
+
         # Print summary of results
         orgs = results.get("orgs", [])
         repos = results.get("repos", [])
-        
+
         if orgs:
             Output.info(f"Found {len(orgs)} organization(s)")
             for org in orgs:
                 Output.info(f"Organization: {org.name}")
-                
+
         if repos:
             Output.info(f"Found {len(repos)} repository(ies)")
             for repo in repos:
                 Output.info(f"Repository: {repo.full_name}")
-                
+
     # Command for full enumeration
     elif args.full:
         Output.info("Performing full enumeration of all installations")
         results = await app_enumerator.enumerate_all_installations()
-        
+
         # Print summary of results
         for inst_id, info in results.items():
             account = info.get("account")
             inst_results = info.get("results", {})
-            
+
             orgs = inst_results.get("orgs", [])
             repos = inst_results.get("repos", [])
-            
+
             Output.info(f"Installation {inst_id} (Account: {account}):")
             if orgs:
                 Output.info(f"  Found {len(orgs)} organization(s)")
-                
+
             if repos:
                 Output.info(f"  Found {len(repos)} repository(ies)")
 
