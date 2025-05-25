@@ -13,6 +13,7 @@ Gato-X provides three main commands, each with its own set of options:
 1. [Search Command](search.md) - Find repositories with potential vulnerabilities
 2. [Enumerate Command](enumerate.md) - Analyze repositories for exploitable issues
 3. [Attack Command](attack.md) - Execute attacks against vulnerable repositories
+4. [App Command](app.md) - Enumerate GitHub App installations with App ID and private key
 
 ## Common Options
 
