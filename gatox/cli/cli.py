@@ -14,6 +14,7 @@ from gatox.caching.local_cache_manager import LocalCacheFactory
 from gatox.cli.enumeration.config import configure_parser_enumerate
 from gatox.cli.search.config import configure_parser_search
 from gatox.cli.attack.config import configure_parser_attack
+from gatox.cli.app.config import configure_parser_app
 from gatox.enumerate.enumerate import Enumerator
 from gatox.attack.attack import Attacker
 from gatox.attack.runner.webshell import WebShell
@@ -72,10 +73,18 @@ async def cli(args):
         formatter_class=argparse.RawTextHelpFormatter,
     )
     search_parser.set_defaults(func=search)
+    
+    app_parser = subparsers.add_parser(
+        "app",
+        help="GitHub App Private Key Authentication and Enumeration",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    app_parser.set_defaults(func=app)
 
     configure_parser_attack(attack_parser)
     configure_parser_enumerate(enumerate_parser)
     configure_parser_search(search_parser)
+    configure_parser_app(app_parser)
 
     arguments = parser.parse_args(args)
 
@@ -411,6 +420,70 @@ async def search(args, parser):
 
     if results:
         gh_search_runner.present_results(results, args.output_text)
+
+
+async def app(args, parser):
+    """Handle the app command for GitHub App enumeration.
+    
+    Args:
+        args: Command line arguments
+        parser: Command line parser
+    """
+    from gatox.enumerate.app_enumerate import AppEnumerator
+    
+    parser = parser.choices["app"]
+    
+    app_enumerator = AppEnumerator(
+        app_id=args.app,
+        private_key_path=args.pem,
+        specific_installation_id=args.installation,
+        socks_proxy=args.socks_proxy,
+        http_proxy=args.http_proxy,
+        github_url=args.api_url,
+    )
+    
+    # Command for listing installations
+    if args.installations:
+        await app_enumerator.list_installations()
+        
+    # Command for specific installation
+    elif args.installation:
+        Output.info(f"Enumerating specific installation: {args.installation}")
+        results = await app_enumerator.enumerate_installation(args.installation)
+        
+        # Print summary of results
+        orgs = results.get("orgs", [])
+        repos = results.get("repos", [])
+        
+        if orgs:
+            Output.info(f"Found {len(orgs)} organization(s)")
+            for org in orgs:
+                Output.info(f"Organization: {org.name}")
+                
+        if repos:
+            Output.info(f"Found {len(repos)} repository(ies)")
+            for repo in repos:
+                Output.info(f"Repository: {repo.full_name}")
+                
+    # Command for full enumeration
+    elif args.full:
+        Output.info("Performing full enumeration of all installations")
+        results = await app_enumerator.enumerate_all_installations()
+        
+        # Print summary of results
+        for inst_id, info in results.items():
+            account = info.get("account")
+            inst_results = info.get("results", {})
+            
+            orgs = inst_results.get("orgs", [])
+            repos = inst_results.get("repos", [])
+            
+            Output.info(f"Installation {inst_id} (Account: {account}):")
+            if orgs:
+                Output.info(f"  Found {len(orgs)} organization(s)")
+                
+            if repos:
+                Output.info(f"  Found {len(repos)} repository(ies)")
 
 
 def configure_parser_general(parser):

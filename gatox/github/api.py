@@ -6,13 +6,14 @@ import zipfile
 import re
 import io
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Union
 
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
 from gatox.enumerate.ingest.ingest import DataIngestor
 from gatox.models.workflow import Workflow
 from gatox.github.gql_queries import GqlQueries
+from gatox.github.app import GitHubApp
 
 logger = logging.getLogger(__name__)
 
@@ -1819,3 +1820,109 @@ class Api:
 
             if pr_info["merged"]:
                 return pr_info["mergedAt"]
+                
+    async def get_app_installations(self):
+        """Get all installations of a GitHub App.
+        
+        This method requires a JWT token generated with the GitHub App's private key.
+        
+        Returns:
+            List[Dict]: List of installation dictionaries
+        """
+        result = await self.call_get("/app/installations")
+        
+        if result.status_code == 200:
+            return result.json()
+        else:
+            logger.warning(f"Failed to get app installations: {result.status_code}")
+            logger.debug(result.text)
+            return []
+            
+    async def get_installation_details(self, installation_id):
+        """Get details about a specific GitHub App installation.
+        
+        Args:
+            installation_id (str): The ID of the installation
+            
+        Returns:
+            Dict: Details about the installation
+        """
+        result = await self.call_get(f"/app/installations/{installation_id}")
+        
+        if result.status_code == 200:
+            return result.json()
+        else:
+            logger.warning(f"Failed to get installation details: {result.status_code}")
+            logger.debug(result.text)
+            return {}
+            
+    async def get_installation_access_token(self, installation_id):
+        """Get an installation access token for a specific installation.
+        
+        Args:
+            installation_id (str): The ID of the installation
+            
+        Returns:
+            Optional[str]: The installation access token, or None if failed
+        """
+        result = await self.call_post(f"/app/installations/{installation_id}/access_tokens")
+        
+        if result.status_code == 201:
+            return result.json().get("token")
+        else:
+            logger.warning(f"Failed to get installation token: {result.status_code}")
+            logger.debug(result.text)
+            return None
+                
+    async def get_app_installations(self) -> List[Dict]:
+        """Get all installations of a GitHub App.
+        
+        This method requires a JWT token generated with the GitHub App's private key.
+        
+        Returns:
+            List[Dict]: List of installation dictionaries
+        """
+        result = await self.call_get("/app/installations")
+        
+        if result.status_code == 200:
+            return result.json()
+        else:
+            logger.warning(f"Failed to get app installations: {result.status_code}")
+            logger.debug(result.text)
+            return []
+            
+    async def get_installation_details(self, installation_id: str) -> Dict:
+        """Get details about a specific GitHub App installation.
+        
+        Args:
+            installation_id (str): The ID of the installation
+            
+        Returns:
+            Dict: Details about the installation
+        """
+        result = await self.call_get(f"/app/installations/{installation_id}")
+        
+        if result.status_code == 200:
+            return result.json()
+        else:
+            logger.warning(f"Failed to get installation details: {result.status_code}")
+            logger.debug(result.text)
+            return {}
+            
+    async def get_installation_access_token(self, installation_id: str) -> Optional[str]:
+        """Get an installation access token for a specific installation.
+        
+        Args:
+            installation_id (str): The ID of the installation
+            
+        Returns:
+            Optional[str]: The installation access token, or None if failed
+        """
+        result = await self.call_post(f"/app/installations/{installation_id}/access_tokens")
+        
+        if result.status_code == 201:
+            return result.json().get("token")
+        else:
+            logger.warning(f"Failed to get installation token: {result.status_code}")
+            logger.debug(result.text)
+            return None
