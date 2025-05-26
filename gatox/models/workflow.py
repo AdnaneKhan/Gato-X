@@ -1,9 +1,11 @@
 from datetime import datetime
 import yaml
+import logging
 
 from yaml import CSafeLoader
 from yaml.resolver import Resolver
 
+logger = logging.getLogger(__name__)
 
 # remove resolver entries for On/Off/Yes/No
 for ch in "OoTtFf":
@@ -64,7 +66,7 @@ class Workflow:
         except ValueError as parse_error:
             self.invalid = True
         except Exception as parse_error:
-            print(
+            logger.error(
                 "Received an exception while parsing workflow contents: "
                 + str(parse_error)
             )
