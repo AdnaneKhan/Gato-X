@@ -1344,9 +1344,7 @@ class Api:
                         resp_data = resp_file.json()
                         if "content" in resp_data:
                             file_data = base64.b64decode(resp_data["content"])
-                            return Workflow(
-                                repo_name, file_data, file["name"], non_default=ref
-                            )
+                            return Workflow(repo_name, file_data, file["name"])
                     return None
 
             tasks = [

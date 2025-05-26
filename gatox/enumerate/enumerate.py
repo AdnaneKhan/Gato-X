@@ -189,6 +189,7 @@ class Enumerator:
             repo_data = await self.api.get_repository(repo_name)
             if repo_data:
                 repo = Repository(repo_data)
+                CacheManager().set_repository(repo)
 
         if repo:
             if repo.is_archived():
@@ -237,21 +238,18 @@ class Enumerator:
             return False
 
         repo = Repository(repo_data)
+        CacheManager().set_repository(repo)
 
         workflows = await self.api.retrieve_workflow_ymls_ref(repo.name, sha)
         for workflow in workflows:
+            # Override the branch to the default to "trick" graph into
+            # thinking commit is merged to default.
             workflow.branch = repo.repo_data["default_branch"]
+            CacheManager().set_workflow(repo.name, workflow.workflow_name, workflow)
             await WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
 
         await self.process_graph()
-
         await self.repo_e.enumerate_repository(repo)
-        await self.repo_e.enumerate_repository_secrets(repo)
-        Recommender.print_repo_secrets(
-            self.user_perms["scopes"], repo.secrets + repo.org_secrets
-        )
-        Recommender.print_repo_runner_info(repo)
-        Recommender.print_repo_attack_recommendations(self.user_perms["scopes"], repo)
 
         return repo
 
