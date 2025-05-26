@@ -533,13 +533,3 @@ class Enumerator:
             Output.warn("Keyboard interrupt detected, exiting enumeration!")
 
         return repo_wrappers
-
-    async def enumerate_commit(self, repo_name: str, commit_sha: str):
-        """
-        Enumerate commit takes a single commit and checks for vulnerabilities before it gets
-        merged to a default branch.
-
-        Args:
-            repo_name: name of the repository
-            commit_sha: sha of the commit that needs to be scanned
-        """

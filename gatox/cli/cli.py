@@ -296,20 +296,19 @@ async def enumerate(args, parser):
             f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was" " specified!"
         )
 
-    if (
-        sum(
-            bool(x)
-            for x in [
-                args.target,
-                args.self_enumeration,
-                args.repository,
-                args.repositories,
-                args.validate,
-                args.commit,
-            ]
-        )
-        != 1
-    ):
+    # Count enumeration types, treating commit as a modifier for repository
+    enumeration_count = sum(
+        bool(x)
+        for x in [
+            args.target,
+            args.self_enumeration,
+            args.repository or args.commit,  # repository and commit work together
+            args.repositories,
+            args.validate,
+        ]
+    )
+
+    if enumeration_count != 1:
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
             "enumeration type."

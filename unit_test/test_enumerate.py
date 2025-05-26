@@ -486,10 +486,13 @@ async def test_enum_self_no_repos(mock_api, capfd):
     new_callable=AsyncMock,
 )
 @patch("gatox.enumerate.enumerate.Enumerator.process_graph", new_callable=AsyncMock)
+@patch("gatox.enumerate.repository.RepositoryEnum.enumerate_repository", new_callable=AsyncMock)
+@patch("gatox.enumerate.repository.RepositoryEnum.enumerate_repository_secrets", new_callable=AsyncMock)
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
-async def test_enumerate_commit(mock_api, mock_pg, mock_build):
+async def test_enumerate_commit(mock_api, mock_enum_secrets, mock_enum_repo, mock_pg, mock_build):
     """Test commit enumeration functionality."""
 
+    # Set up the mocks before creating the Enumerator
     mock_api.return_value.is_app_token.return_value = False
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
