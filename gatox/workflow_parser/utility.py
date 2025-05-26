@@ -69,8 +69,8 @@ def process_matrix(job_def, runs_on):
                 elif type(key) is list:
                     return True
     except TypeError as e:
-        print("Error processing matrix job")
-        print(job_def)
+        logger.error("Error processing matrix job")
+        logger.debug(job_def)
         return False
 
 

@@ -79,7 +79,7 @@ async def cli(args):
 
     arguments = parser.parse_args(args)
 
-    Output(not arguments.no_color)
+    Output(color=not arguments.no_color)
     validate_arguments(arguments, parser)
     print(Output.blue(SPLASH))
 
