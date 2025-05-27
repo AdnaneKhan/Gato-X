@@ -137,10 +137,3 @@ def configure_parser_enumerate(parser):
         metavar="JSON_FILE",
         type=WritablePath(),
     )
-
-    parser.add_argument(
-        "--scan-commit",
-        help=(
-            "check a single commit for Actions vulnerabilities. This will be useful for checking if a commit would introduce vulnerabilities if it were merged into the default branch."
-        ),
-    )
