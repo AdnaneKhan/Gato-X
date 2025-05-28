@@ -1,6 +1,7 @@
 import pytest
-from unittest.mock import patch, MagicMock
+import types
 
+from unittest.mock import patch, MagicMock
 from gatox.enumerate.reports.actions import ActionsReport
 from gatox.enumerate.results.complexity import Complexity
 from gatox.enumerate.results.confidence import Confidence
@@ -13,9 +14,7 @@ from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
-from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
-import types
 
 
 class DummyNode:
@@ -130,9 +129,8 @@ async def test_initialize_action_node(mock_api):
 
     try:
         await VisitorUtils.initialize_action_node(graph, api, node)
-    except:
-        pass  # Expected to fail without proper mocking
-
+    except Exception:
+        pass
     # Just verify tag was removed
     assert "uninitialized" not in node.get_tags()
 
@@ -214,9 +212,6 @@ def test_add_results_and_append_path_extra():
     # append_path edge case: empty head or tail
     assert VisitorUtils.append_path([], [1, 2]) == []
     assert VisitorUtils.append_path([1, 2], []) == [1, 2]
-
-
-import pytest
 
 
 @pytest.mark.asyncio

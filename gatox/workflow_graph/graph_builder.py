@@ -17,8 +17,6 @@ limitations under the License.
 import logging
 import traceback
 
-logger = logging.getLogger(__name__)
-
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 from gatox.models.composite import Composite
@@ -28,6 +26,8 @@ from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.caching.cache_manager import CacheManager
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowGraphBuilder:
@@ -66,7 +66,7 @@ class WorkflowGraphBuilder:
 
         callee_node.add_caller_reference(job_node)
 
-        if not callee_node in self.graph.nodes:
+        if callee_node not in self.graph.nodes:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
 
@@ -111,12 +111,12 @@ class WorkflowGraphBuilder:
         parsed_action = Composite(contents)
         if parsed_action.composite:
             steps = parsed_action.parsed_yml["runs"].get("steps", [])
-            if type(steps) != list:
+            if type(steps) is not list:
                 raise ValueError("Steps must be a list")
 
             prev_step_node = None
             for iter, step in enumerate(steps):
-                calling_name = parsed_action.parsed_yml.get("name", f"EMPTY")
+                calling_name = parsed_action.parsed_yml.get("name", "EMPTY")
                 step_node = NodeFactory.create_step_node(
                     step,
                     ref,
@@ -175,7 +175,7 @@ class WorkflowGraphBuilder:
         """Transforms a list job into a dictionary job."""
         jobs_dict = {}
         for job in jobs:
-            if not type(job) == dict:
+            if type(job) is not dict:
                 raise ValueError("Job must be a dictionary")
             if "name" not in job:
                 raise ValueError("Job in list format must have a name field")
@@ -204,7 +204,7 @@ class WorkflowGraphBuilder:
                 workflow_wrapper.repo_name,
                 workflow_wrapper.getPath(),
             )
-            if not "uninitialized" in wf_node.get_tags():
+            if "uninitialized" not in wf_node.get_tags():
                 self.graph.remove_tags_from_node(wf_node, "uninitialized")
 
             self.graph.add_node(wf_node, **wf_node.get_attrs())
@@ -212,7 +212,7 @@ class WorkflowGraphBuilder:
             await self.build_workflow_jobs(workflow_wrapper, wf_node)
 
             return True
-        except ValueError as e:
+        except ValueError:
             logger.warning(
                 f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}, {repo_wrapper.name}"
             )
@@ -242,7 +242,6 @@ class WorkflowGraphBuilder:
             jobs = self.__transform_list_job(jobs)
 
         for job_name, job_def in jobs.items():
-
             if not job_def:
                 # This means there is a syntax error
                 # in the workflow. Gato-X cannot process
@@ -265,7 +264,7 @@ class WorkflowGraphBuilder:
 
             needs = job_def.get("needs", [])
             # If single entry then set as array
-            if type(needs) == str:
+            if type(needs) is str:
                 needs = [needs]
             prev_node = None
             for i, need in enumerate(needs):

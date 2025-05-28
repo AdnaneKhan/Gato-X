@@ -3,7 +3,7 @@ import httpx
 import pytest
 
 from unittest.mock import patch
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock
 from gatox.attack.attack import Attacker
 from gatox.cli.output import Output
 from gatox.github.api import Api

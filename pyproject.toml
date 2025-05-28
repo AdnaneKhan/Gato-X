@@ -30,7 +30,8 @@ test = [
     "pytest",
     "pytest-cov",
     "black",
-    "pytest-asyncio"
+    "pytest-asyncio",
+    "ruff"
 ]
 docs = [
     "mkdocs",

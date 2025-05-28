@@ -41,7 +41,6 @@ Y88b  d88P  d8888888888     888     Y88b. .d88P         d88P Y88b
 
 
 class Output(metaclass=Singleton):
-
     def __init__(self, color: bool = True, suppress: bool = False):
         self.color = color
         self.suppress = suppress
@@ -114,7 +113,7 @@ class Output(metaclass=Singleton):
         """
         if Output().suppress:
             return
-        print(f"{cls.bright('---')}" f" {message} " f"{cls.bright('---')}")
+        print(f"{cls.bright('---')} {message} {cls.bright('---')}")
 
     @classmethod
     def result(cls, message: str):
@@ -149,9 +148,9 @@ class Output(metaclass=Singleton):
             padding = 118 - get_length_without_color_codes(line)
 
             if line[0] not in [" ", "-", "=", "-", "~"]:
-                print(f"| {line}{' '*(padding-1)}|")
+                print(f"| {line}{' ' * (padding - 1)}|")
             else:
-                print(f"|{line}{' '*padding}|")
+                print(f"|{line}{' ' * padding}|")
 
     @classmethod
     def owned(cls, message: str):
