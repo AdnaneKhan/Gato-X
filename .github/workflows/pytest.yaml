@@ -33,6 +33,9 @@ jobs:
           - name: Test with Pytest
             run: |
               pytest --cov-fail-under=60
+          - uses: astral-sh/ruff-action@v3
+            with:
+              src: "./gatox"
 
     OSX-test-and-lint:
         name: OS X Test and Lint
@@ -63,6 +66,3 @@ jobs:
           - name: Test with Pytest
             run: |
               pytest --cov-fail-under=60
-          - uses: astral-sh/ruff-action@v3
-            with:
-              src: "./gatox"
