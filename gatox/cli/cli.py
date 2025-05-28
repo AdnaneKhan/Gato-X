@@ -6,7 +6,7 @@ import logging
 
 from colorama import Fore, Style
 
-from gatox import util
+from gatox.util.arg_utils import read_file_and_validate_lines
 from gatox.caching.cache_manager import CacheManager
 from gatox.cli.colors import RED_DASH
 from gatox.cli.output import Output, SPLASH
@@ -341,7 +341,7 @@ async def enumerate(args, parser):
             repos = await gh_enumeration_runner.enumerate_user(args.target)
     elif args.repositories:
         try:
-            repo_list = util.read_file_and_validate_lines(
+            repo_list = read_file_and_validate_lines(
                 args.repositories, r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
             repos = await gh_enumeration_runner.enumerate_repos(repo_list)

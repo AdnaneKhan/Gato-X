@@ -119,7 +119,6 @@ class DispatchTOCTOUVisitor:
         # Workflow dispatch jobs inherently have an approval gate,
         # so only TOCTOU issues can be exploited.
         input_lookup = {}
-        approval_gate = True
         env_lookup = {}
         flexible_lookup = {}
 

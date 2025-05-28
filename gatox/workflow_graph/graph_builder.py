@@ -17,8 +17,6 @@ limitations under the License.
 import logging
 import traceback
 
-logger = logging.getLogger(__name__)
-
 from gatox.models.workflow import Workflow
 from gatox.models.repository import Repository
 from gatox.models.composite import Composite
@@ -28,6 +26,8 @@ from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.nodes.action import ActionNode
 from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.caching.cache_manager import CacheManager
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowGraphBuilder:
@@ -111,7 +111,7 @@ class WorkflowGraphBuilder:
         parsed_action = Composite(contents)
         if parsed_action.composite:
             steps = parsed_action.parsed_yml["runs"].get("steps", [])
-            if type(steps) != list:
+            if type(steps) is not list:
                 raise ValueError("Steps must be a list")
 
             prev_step_node = None
@@ -175,7 +175,7 @@ class WorkflowGraphBuilder:
         """Transforms a list job into a dictionary job."""
         jobs_dict = {}
         for job in jobs:
-            if not type(job) == dict:
+            if type(job) is not dict:
                 raise ValueError("Job must be a dictionary")
             if "name" not in job:
                 raise ValueError("Job in list format must have a name field")
@@ -264,7 +264,7 @@ class WorkflowGraphBuilder:
 
             needs = job_def.get("needs", [])
             # If single entry then set as array
-            if type(needs) == str:
+            if type(needs) is str:
                 needs = [needs]
             prev_node = None
             for i, need in enumerate(needs):

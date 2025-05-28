@@ -270,7 +270,7 @@ updates:
 def test_parse_workflow_db():
     workflow = Workflow("unit_test", DEPENDABOT_FALSE_WF, "main.yml")
 
-    assert workflow.isInvalid() == False
+    assert not workflow.isInvalid()
 
 
 # def test_workflow_write():

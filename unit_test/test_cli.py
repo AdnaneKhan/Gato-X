@@ -424,7 +424,7 @@ async def test_enum_user(mock_enumerator):
 
 
 @mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repos")
-@mock.patch("gatox.util.read_file_and_validate_lines")
+@mock.patch("gatox.cli.cli.read_file_and_validate_lines")
 async def test_enum_repos(mock_read, mock_enumerate):
     """Test enum command using the repo list."""
     curr_path = pathlib.Path(__file__).parent.resolve()

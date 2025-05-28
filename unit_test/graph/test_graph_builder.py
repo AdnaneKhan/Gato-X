@@ -115,7 +115,7 @@ async def test_build_graph_from_yaml_invalid(builder, mock_repo):
         ]
     }
 
-    assert await builder.build_graph_from_yaml(workflow, mock_repo) == False
+    assert not await builder.build_graph_from_yaml(workflow, mock_repo)
 
 
 async def test_build_workflow_jobs(builder, mock_workflow):

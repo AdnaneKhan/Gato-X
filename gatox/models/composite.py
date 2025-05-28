@@ -38,7 +38,7 @@ class Composite:
             )
             self.invalid = True
 
-        if not self.parsed_yml or type(self.parsed_yml) != dict:
+        if not self.parsed_yml or type(self.parsed_yml) is not dict:
             self.invalid = True
         else:
             self.composite = self._check_composite()

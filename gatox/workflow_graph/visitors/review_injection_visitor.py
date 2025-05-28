@@ -196,7 +196,7 @@ class ReviewInjectionVisitor:
                             # Set lookup for input params
                             input_lookup.update(node_params)
                         if index == 0:
-                            repo = CacheManager().get_repository(node.repo_name())
+                            CacheManager().get_repository(node.repo_name())
 
                             # Check workflow environment variables.
                             # For env vars that are github.event.*

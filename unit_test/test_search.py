@@ -257,9 +257,7 @@ async def test_search_query(mock_client, mock_time, capfd):
 
     gh_search_runner = Searcher("ghp_AAAA")
 
-    res = await gh_search_runner.use_search_api(
-        None, query="pull_request_target self-hosted"
-    )
+    await gh_search_runner.use_search_api(None, query="pull_request_target self-hosted")
     out, err = capfd.readouterr()
     assert "GitHub with the following query: pull_request_target self-hosted" in out
 
