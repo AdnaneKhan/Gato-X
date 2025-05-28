@@ -33,7 +33,7 @@ jobs:
           - name: Test with Pytest
             run: |
               pytest --cov-fail-under=60
-          - uses: astral-sh/ruff-action@v3
+          - uses: astral-sh/ruff-action@eaf0ecdd668ceea36159ff9d91882c9795d89b49 # v3.4.0
             with:
               src: "./gatox"
 
