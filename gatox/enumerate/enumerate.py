@@ -189,6 +189,7 @@ class Enumerator:
             repo_data = await self.api.get_repository(repo_name)
             if repo_data:
                 repo = Repository(repo_data)
+                CacheManager().set_repository(repo)
 
         if repo:
             if repo.is_archived():
@@ -213,6 +214,44 @@ class Enumerator:
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
                 "exist or the user does not have access."
             )
+
+    async def enumerate_commit(self, repo_name: str, sha: str):
+        """Enumerate a single commit of a repository.
+
+        Workflow files from the commit are treated as if they are on the
+        repository's default branch so that default-branch checks apply.
+
+        Args:
+            repo_name (str): Repository in Org/Repo format.
+            sha (str): Commit SHA to analyze.
+
+        Returns:
+            Repository | bool: Repository wrapper populated with results or
+            False on failure.
+        """
+        if not await self.__setup_user_info():
+            return False
+
+        repo_data = await self.api.get_repository(repo_name)
+        if not repo_data:
+            Output.warn(f"Unable to retrieve repository: {Output.bright(repo_name)}")
+            return False
+
+        repo = Repository(repo_data)
+        CacheManager().set_repository(repo)
+
+        workflows = await self.api.retrieve_workflow_ymls_ref(repo.name, sha)
+        for workflow in workflows:
+            # Override the branch to the default to "trick" graph into
+            # thinking commit is merged to default.
+            workflow.branch = repo.repo_data["default_branch"]
+            CacheManager().set_workflow(repo.name, workflow.workflow_name, workflow)
+            await WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
+
+        await self.process_graph()
+        await self.repo_e.enumerate_repository(repo)
+
+        return repo
 
     async def __finalize_caches(self, repos: list):
         """Finalizes the caches for the repositories enumerated.

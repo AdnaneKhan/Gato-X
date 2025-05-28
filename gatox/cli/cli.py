@@ -290,24 +290,25 @@ async def enumerate(args, parser):
         or args.repository
         or args.repositories
         or args.validate
+        or args.commit
     ):
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was" " specified!"
         )
 
-    if (
-        sum(
-            bool(x)
-            for x in [
-                args.target,
-                args.self_enumeration,
-                args.repository,
-                args.repositories,
-                args.validate,
-            ]
-        )
-        != 1
-    ):
+    # Count enumeration types, treating commit as a modifier for repository
+    enumeration_count = sum(
+        bool(x)
+        for x in [
+            args.target,
+            args.self_enumeration,
+            args.repository or args.commit,  # repository and commit work together
+            args.repositories,
+            args.validate,
+        ]
+    )
+
+    if enumeration_count != 1:
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
             "enumeration type."
@@ -353,6 +354,13 @@ async def enumerate(args, parser):
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
+    elif args.commit:
+        if not args.repository:
+            parser.error("--commit requires --repository to be specified")
+        repo_obj = await gh_enumeration_runner.enumerate_commit(
+            args.repository, args.commit
+        )
+        repos = [repo_obj] if repo_obj else []
     elif args.repository:
         repos = await gh_enumeration_runner.enumerate_repos([args.repository])
 
