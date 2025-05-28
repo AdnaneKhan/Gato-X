@@ -24,7 +24,6 @@ from gatox.workflow_parser.utility import (
     prReviewUnsafe,
 )
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
-from gatox.caching.cache_manager import CacheManager
 from gatox.github.api import Api
 
 
