@@ -5,7 +5,6 @@ from gatox.caching.cache_manager import CacheManager
 
 
 class TestConstructWorkflowCache(unittest.IsolatedAsyncioTestCase):
-
     def setUp(self):
         self.workflow = MagicMock()
         self.repository = MagicMock()

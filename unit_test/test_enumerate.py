@@ -7,7 +7,6 @@ import httpx
 from unittest.mock import patch, AsyncMock
 from gatox.github.api import Api
 
-from gatox.models.repository import Repository
 from gatox.enumerate.enumerate import Enumerator
 from gatox.cli.output import Output
 
@@ -177,7 +176,6 @@ async def test_enumerate_repo_admin_no_wf(mock_api, capsys):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_validate(mock_api, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -203,7 +201,6 @@ async def test_enum_validate(mock_api, capfd):
 @patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repo(mock_api, mock_time, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -229,7 +226,6 @@ async def test_enum_repo(mock_api, mock_time, capfd):
 @patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_org(mock_api, mock_time, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow", "admin:org"],
@@ -307,7 +303,6 @@ async def test_enum_org(mock_api, mock_time, capfd):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repo_runner(mock_api, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -366,7 +361,6 @@ async def test_enum_repo_runner(mock_api, capfd):
 @patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repos(mock_api, mock_time, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -391,7 +385,6 @@ async def test_enum_repos(mock_api, mock_time, capfd):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repos_empty(mock_api, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -416,7 +409,6 @@ async def test_enum_repos_empty(mock_api, capfd):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_bad_token(mock_api):
-
     gh_enumeration_runner = Enumerator(
         "ghp_BADTOKEN",
         socks_proxy=None,
@@ -435,7 +427,6 @@ async def test_bad_token(mock_api):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_unscoped_token(mock_api, capfd):
-
     gh_enumeration_runner = Enumerator(
         "ghp_BADTOKEN",
         socks_proxy=None,

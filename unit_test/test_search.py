@@ -241,7 +241,6 @@ async def test_search(mock_client, mock_time):
 @patch("gatox.github.search.asyncio.sleep")
 @patch("gatox.search.search.Api", return_value=AsyncMock(Api))
 async def test_search_query(mock_client, mock_time, capfd):
-
     mock_client.return_value.transport = None
     mock_client.return_value.call_get.return_value = MagicMock(
         status_code=200,

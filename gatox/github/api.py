@@ -6,7 +6,6 @@ import zipfile
 import re
 import io
 import asyncio
-from typing import Optional, Dict, Any
 
 from gatox.cli.output import Output
 from datetime import datetime, timezone, timedelta
@@ -130,7 +129,7 @@ class Api:
             # very large orgs will take several hours to enumerate, especially
             # if runlog enumeration is enabled.
             Output.warn(
-                f"Sleeping for {Output.bright( sleep_time_mins + ' minutes')} "
+                f"Sleeping for {Output.bright(sleep_time_mins + ' minutes')} "
                 "to prevent rate limit exhaustion!"
             )
 
@@ -165,7 +164,7 @@ class Api:
                             in content
                             or "Job is about to start running on the hosted runner: GitHub Actions"
                             in content
-                        ) and not "1ES.Pool" in content:
+                        ) and "1ES.Pool" not in content:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner",
@@ -292,8 +291,7 @@ class Api:
         """
         if response.status_code != expected_code:
             logger.warning(
-                f"Expected status code {expected_code}, but got "
-                f"{response.status_code}!"
+                f"Expected status code {expected_code}, but got {response.status_code}!"
             )
             logger.debug(response.text)
             return False
@@ -334,7 +332,7 @@ class Api:
                 )
 
                 break
-            except Exception as e:
+            except Exception:
                 logger.warning("GET request failed due to transport error re-trying!")
                 continue
         if not strip_auth:
@@ -358,8 +356,7 @@ class Api:
 
         api_response = await self.client.post(request_url, json=params, timeout=30)
         logger.debug(
-            f"The POST request to {request_url} returned a "
-            f"{api_response.status_code}!"
+            f"The POST request to {request_url} returned a {api_response.status_code}!"
         )
 
         await self.__check_rate_limit(api_response.headers)
@@ -382,8 +379,7 @@ class Api:
 
         api_response = await self.client.patch(request_url, json=params)
         logger.debug(
-            f"The PATCH request to {request_url} returned a "
-            f"{api_response.status_code}!"
+            f"The PATCH request to {request_url} returned a {api_response.status_code}!"
         )
 
         await self.__check_rate_limit(api_response.headers)
@@ -422,8 +418,7 @@ class Api:
 
         api_response = await self.client.delete(request_url)
         logger.debug(
-            f"The POST request to {request_url} returned a "
-            f"{api_response.status_code}!"
+            f"The POST request to {request_url} returned a {api_response.status_code}!"
         )
 
         await self.__check_rate_limit(api_response.headers)
@@ -653,8 +648,7 @@ class Api:
 
         elif result.status_code == 404:
             logger.info(
-                f"The organization {org} was not found or there"
-                " is a permission issue!"
+                f"The organization {org} was not found or there is a permission issue!"
             )
 
     async def validate_sso(self, org: str, repository: str):
@@ -708,7 +702,6 @@ class Api:
         result = await self.call_get(f"/orgs/{org}/actions/runners")
 
         if result.status_code == 200:
-
             runner_info = result.json()
             if runner_info["total_count"] > 0:
                 return runner_info
@@ -726,7 +719,6 @@ class Api:
 
         cursor = None
         while True:
-
             query = {
                 "query": GqlQueries.GET_ORG_REPOS,
                 "variables": {"orgName": org, "repoTypes": type, "cursor": cursor},
@@ -859,7 +851,7 @@ class Api:
         elif res.status_code == 404:
             return 0
         else:
-            logger.warning("Failed to check repo for branch! " f"({res.status_code}")
+            logger.warning(f"Failed to check repo for branch! ({res.status_code}")
             return -1
 
     async def get_repo_runners(self, full_name: str):
@@ -923,7 +915,6 @@ class Api:
             # Larger repos with complex matrix builds and reusable workflows
             # can have massive log sizes and we end up wasting a lot of time.
             if total_attempts > 10:
-
                 break
 
             # We are only interested in runs that actually executed.
@@ -936,8 +927,8 @@ class Api:
                 continue
             names.add(workflow_key)
             run_log = await self.call_get(
-                f'/repos/{repo_name}/actions/runs/{run["id"]}/'
-                f'attempts/{run["run_attempt"]}/logs'
+                f"/repos/{repo_name}/actions/runs/{run['id']}/"
+                f"attempts/{run['run_attempt']}/logs"
             )
 
             if run_log.status_code == 200:
@@ -949,7 +940,7 @@ class Api:
 
                         if run_log["non_ephemeral"]:
                             return run_logs.values()
-                except Exception as e:
+                except Exception:
                     logger.warning(
                         f"Failed to process run log for {repo_name} run "
                         f"{run['id']} attempt {run['run_attempt']}!"
@@ -981,7 +972,6 @@ class Api:
         runs = await self.call_get(f"/repos/{repo_name}/actions/runs")
 
         if runs.status_code == 200:
-
             return runs.json()["total_count"]
         else:
             logger.warning("Unable to query workflow runs.")
@@ -1070,9 +1060,7 @@ class Api:
         Returns:
             bool: True if the workflow was deleted, false otherwise.
         """
-        req = await self.call_delete(
-            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}"
-        )
+        req = await self.call_delete(f"/repos/{repo_name}/actions/runs/{workflow_id}")
 
         return req.status_code == 204
 
@@ -1087,9 +1075,7 @@ class Api:
         Returns:
             bool: True of the workflow log was downloaded, false otherwise.
         """
-        req = await self.call_get(
-            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs"
-        )
+        req = await self.call_get(f"/repos/{repo_name}/actions/runs/{workflow_id}/logs")
 
         if req.status_code != 200:
             return False
@@ -1110,9 +1096,7 @@ class Api:
         Returns:
             str: String content of the run log matching the job name, if found.
         """
-        req = await self.call_get(
-            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/logs"
-        )
+        req = await self.call_get(f"/repos/{repo_name}/actions/runs/{workflow_id}/logs")
 
         if req.status_code != 200:
             return False
@@ -1132,7 +1116,7 @@ class Api:
         files = {}
 
         req = await self.call_get(
-            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/artifacts"
+            f"/repos/{repo_name}/actions/runs/{workflow_id}/artifacts"
         )
         if req.status_code != 200:
             return False
@@ -1160,7 +1144,7 @@ class Api:
         """Download a workflow artifact and save it to the destination."""
 
         req = await self.call_get(
-            f"/repos/{repo_name}/actions/runs/" f"{workflow_id}/artifacts"
+            f"/repos/{repo_name}/actions/runs/{workflow_id}/artifacts"
         )
         if req.status_code != 200:
             return False
@@ -1278,7 +1262,7 @@ class Api:
             async def fetch_file(file):
                 async with semaphore:
                     resp_file = await self.call_get(
-                        f'/repos/{repo_name}/contents/{file["path"]}'
+                        f"/repos/{repo_name}/contents/{file['path']}"
                     )
                     if resp_file.status_code == 200:
                         resp_data = resp_file.json()
@@ -1344,7 +1328,6 @@ class Api:
         )
 
         if resp.status_code == 200:
-
             resp_data = resp.json()
             if "content" in resp_data:
                 file_data = base64.b64decode(resp_data["content"])
@@ -1410,12 +1393,10 @@ class Api:
 
             if secrets_response["total_count"] > 0:
                 for secret in secrets_response["secrets"]:
-
                     if secret["visibility"] == "selected":
-
                         repos_resp = await self.call_get(
                             f"/orgs/{org_name}/actions/secrets/"
-                            f'{secret["name"]}/repositories'
+                            f"{secret['name']}/repositories"
                         )
 
                         if repos_resp.status_code == 200:
@@ -1698,7 +1679,7 @@ class Api:
 
         params = {"private": True, "name": repository_name}
 
-        response = await self.call_post(f"/user/repos", params=params)
+        response = await self.call_post("/user/repos", params=params)
 
         if response.status_code == 201:
             return response.json()["full_name"]

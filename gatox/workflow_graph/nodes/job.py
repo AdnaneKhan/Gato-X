@@ -110,7 +110,6 @@ class JobNode(Node):
         return True
 
     def populate(self, job_def, wf_node):
-
         self.wf_reference = wf_node
 
         if not isinstance(job_def, dict):

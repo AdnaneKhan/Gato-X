@@ -103,7 +103,7 @@ def validate_arguments(args, parser):
 
     if "GH_TOKEN" not in os.environ:
         gh_token = input(
-            "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
+            "No 'GH_TOKEN' environment variable set! Please enter a GitHub PAT.\n"
         )
     else:
         gh_token = os.environ["GH_TOKEN"]
@@ -213,7 +213,6 @@ async def attack(args, parser):
         )
 
         if args.payload_only:
-
             await gh_attack_runner.payload_only(
                 args.target_os,
                 args.target_arch,
@@ -265,7 +264,6 @@ async def attack(args, parser):
             args.file_name,
         )
     elif args.secrets:
-
         gh_attack_runner = SecretsAttack(
             args.gh_token,
             author_email=args.author_email,
@@ -292,7 +290,7 @@ async def enumerate(args, parser):
         or args.validate
     ):
         parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was" " specified!"
+            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was specified!"
         )
 
     if (
@@ -309,8 +307,7 @@ async def enumerate(args, parser):
         != 1
     ):
         parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
-            "enumeration type."
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one enumeration type."
         )
 
     gh_enumeration_runner = Enumerator(
@@ -364,10 +361,9 @@ async def enumerate(args, parser):
     exec_wrapper.add_repositories(repos)
 
     try:
-
         if args.output_json:
             Output.write_json(exec_wrapper, args.output_json)
-    except Exception as output_error:
+    except Exception:
         Output.error(
             "Encountered an error writing the output JSON, this is likely a Gato-X bug."
         )

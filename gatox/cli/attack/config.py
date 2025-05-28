@@ -1,4 +1,4 @@
-from gatox.util.arg_utils import ReadableFile, WriteableDir, StringType
+from gatox.util.arg_utils import ReadableFile, StringType
 from gatox.cli.output import Output
 
 

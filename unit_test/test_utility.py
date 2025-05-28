@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from gatox.workflow_parser.utility import (
     decompose_action_ref,
     parse_github_path,

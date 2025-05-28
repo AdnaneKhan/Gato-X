@@ -61,9 +61,9 @@ class Workflow:
             yaml.parser.ParserError,
             yaml.scanner.ScannerError,
             yaml.constructor.ConstructorError,
-        ) as parse_error:
+        ):
             self.invalid = True
-        except ValueError as parse_error:
+        except ValueError:
             self.invalid = True
         except Exception as parse_error:
             logger.error(

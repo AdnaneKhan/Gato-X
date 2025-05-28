@@ -74,7 +74,6 @@ async def test_exceptions_in_process_path(mock_process, mock_api):
     mock_node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [mock_node]
     # ...but make dfs_to_tag async so that it can be properly awaited.
-    from unittest.mock import AsyncMock
 
     mock_graph.dfs_to_tag = AsyncMock(return_value=[[MagicMock(), MagicMock()]])
 

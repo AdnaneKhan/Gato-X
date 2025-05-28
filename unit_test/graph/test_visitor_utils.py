@@ -13,7 +13,6 @@ from gatox.workflow_graph.nodes.workflow import WorkflowNode
 from gatox.workflow_graph.nodes.job import JobNode
 from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
-from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.graph_builder import WorkflowGraphBuilder
 import types
 

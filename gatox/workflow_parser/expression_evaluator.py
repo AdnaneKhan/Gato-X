@@ -69,7 +69,6 @@ class FlexibleAction:
 
 
 class ExpressionEvaluator:
-
     STANDARD_VARIABLES = {
         "github.event.pull_request.merged": False,
         "github.event.pull_request.head.fork": True,
@@ -157,7 +156,6 @@ class ExpressionEvaluator:
             # Evaluate logical OR between children
             return self.evaluate(node.children[0]) or self.evaluate(node.children[1])
         elif node.type == "comparison":
-
             # Handle comparison operations
             left = self.evaluate(node.children[0])
             right = self.evaluate(node.children[1])

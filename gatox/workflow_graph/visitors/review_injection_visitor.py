@@ -21,7 +21,6 @@ from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.workflow_parser.utility import (
     getTokens,
     getToken,
-    checkUnsafe,
     prReviewUnsafe,
 )
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
@@ -144,7 +143,6 @@ class ReviewInjectionVisitor:
 
                             # Now we go and try to resolve variables.
                             for variable in node.contexts:
-
                                 if "inputs." in variable:
                                     if "${{" in variable:
                                         processed_var = CONTEXT_REGEX.findall(variable)

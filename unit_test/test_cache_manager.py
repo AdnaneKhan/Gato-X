@@ -1,8 +1,6 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from gatox.caching.cache_manager import CacheManager
-from gatox.models.repository import Repository
-from gatox.models.workflow import Workflow
 
 
 def test_init_cache():

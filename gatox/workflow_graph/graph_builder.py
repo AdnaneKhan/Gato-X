@@ -66,7 +66,7 @@ class WorkflowGraphBuilder:
 
         callee_node.add_caller_reference(job_node)
 
-        if not callee_node in self.graph.nodes:
+        if callee_node not in self.graph.nodes:
             self.graph.add_node(callee_node, **callee_node.get_attrs())
         self.graph.add_edge(job_node, callee_node, relation="uses")
 
@@ -116,7 +116,7 @@ class WorkflowGraphBuilder:
 
             prev_step_node = None
             for iter, step in enumerate(steps):
-                calling_name = parsed_action.parsed_yml.get("name", f"EMPTY")
+                calling_name = parsed_action.parsed_yml.get("name", "EMPTY")
                 step_node = NodeFactory.create_step_node(
                     step,
                     ref,
@@ -204,7 +204,7 @@ class WorkflowGraphBuilder:
                 workflow_wrapper.repo_name,
                 workflow_wrapper.getPath(),
             )
-            if not "uninitialized" in wf_node.get_tags():
+            if "uninitialized" not in wf_node.get_tags():
                 self.graph.remove_tags_from_node(wf_node, "uninitialized")
 
             self.graph.add_node(wf_node, **wf_node.get_attrs())
@@ -212,7 +212,7 @@ class WorkflowGraphBuilder:
             await self.build_workflow_jobs(workflow_wrapper, wf_node)
 
             return True
-        except ValueError as e:
+        except ValueError:
             logger.warning(
                 f"Error building graph from workflow, likely syntax error: {workflow_wrapper.getPath()}, {repo_wrapper.name}"
             )
@@ -242,7 +242,6 @@ class WorkflowGraphBuilder:
             jobs = self.__transform_list_job(jobs)
 
         for job_name, job_def in jobs.items():
-
             if not job_def:
                 # This means there is a syntax error
                 # in the workflow. Gato-X cannot process

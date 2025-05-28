@@ -76,7 +76,6 @@ class OrganizationEnum:
         token has the necessary scopes.
         """
         if organization.org_admin_scopes and organization.org_admin_user:
-
             runners = await self.api.check_org_runners(organization.name)
             if runners:
                 org_runners = [
