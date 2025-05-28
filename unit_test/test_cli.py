@@ -442,6 +442,23 @@ async def test_enum_repo(mock_enumerate):
     mock_enumerate.assert_called_once()
 
 
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_commit")
+async def test_enum_commit(mock_commit):
+    """Test enum command using commit scanning."""
+    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    await cli.cli(["enum", "-r", "testorg/testrepo", "--commit", sha])
+    mock_commit.assert_called_once_with("testorg/testrepo", sha)
+
+
+async def test_enum_commit_requires_repo(capfd):
+    """Test enum command commit option without repository."""
+    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    with pytest.raises(SystemExit):
+        await cli.cli(["enum", "--commit", sha])
+    out, err = capfd.readouterr()
+    assert "--commit requires --repository" in err
+
+
 @mock.patch("gatox.search.search.Searcher.use_search_api")
 async def test_search(mock_search):
     """Test search command"""
