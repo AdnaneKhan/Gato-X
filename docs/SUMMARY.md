@@ -21,7 +21,6 @@
 * [Overview](user-guide/advanced/index.md)
 * [Understanding GitHub Actions Vulnerabilities](user-guide/advanced/vulnerabilities.md)
 * [Complex Attack Scenarios](user-guide/advanced/complex-attacks.md)
-* [Contributing to Gato-X](user-guide/advanced/contributing.md)
 
 ## Additional Resources
 * [Contributing](contribution-guide/contributions.md)
