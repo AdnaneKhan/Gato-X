@@ -6,7 +6,7 @@ import logging
 
 from colorama import Fore, Style
 
-from gatox import util
+from gatox.util.arg_utils import read_file_and_validate_lines
 from gatox.caching.cache_manager import CacheManager
 from gatox.cli.colors import RED_DASH
 from gatox.cli.output import Output, SPLASH
@@ -103,7 +103,7 @@ def validate_arguments(args, parser):
 
     if "GH_TOKEN" not in os.environ:
         gh_token = input(
-            "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
+            "No 'GH_TOKEN' environment variable set! Please enter a GitHub PAT.\n"
         )
     else:
         gh_token = os.environ["GH_TOKEN"]
@@ -213,7 +213,6 @@ async def attack(args, parser):
         )
 
         if args.payload_only:
-
             await gh_attack_runner.payload_only(
                 args.target_os,
                 args.target_arch,
@@ -265,7 +264,6 @@ async def attack(args, parser):
             args.file_name,
         )
     elif args.secrets:
-
         gh_attack_runner = SecretsAttack(
             args.gh_token,
             author_email=args.author_email,
@@ -293,7 +291,7 @@ async def enumerate(args, parser):
         or args.commit
     ):
         parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was" " specified!"
+            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was specified!"
         )
 
     # Count enumeration types, treating commit as a modifier for repository
@@ -310,8 +308,7 @@ async def enumerate(args, parser):
 
     if enumeration_count != 1:
         parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
-            "enumeration type."
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one enumeration type."
         )
 
     gh_enumeration_runner = Enumerator(
@@ -345,7 +342,7 @@ async def enumerate(args, parser):
             repos = await gh_enumeration_runner.enumerate_user(args.target)
     elif args.repositories:
         try:
-            repo_list = util.read_file_and_validate_lines(
+            repo_list = read_file_and_validate_lines(
                 args.repositories, r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
             repos = await gh_enumeration_runner.enumerate_repos(repo_list)
@@ -372,10 +369,9 @@ async def enumerate(args, parser):
     exec_wrapper.add_repositories(repos)
 
     try:
-
         if args.output_json:
             Output.write_json(exec_wrapper, args.output_json)
-    except Exception as output_error:
+    except Exception:
         Output.error(
             "Encountered an error writing the output JSON, this is likely a Gato-X bug."
         )

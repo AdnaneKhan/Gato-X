@@ -31,7 +31,6 @@ def starts_with_any(value: str, prefixes: list[str]) -> bool:
 def process_matrix(job_def, runs_on):
     """Process case where runner is specified via matrix."""
     try:
-
         matrix_match = MATRIX_KEY_EXTRACTION_REGEX.search(runs_on)
 
         if matrix_match:
@@ -68,7 +67,7 @@ def process_matrix(job_def, runs_on):
                 # list of labels
                 elif type(key) is list:
                     return True
-    except TypeError as e:
+    except TypeError:
         logger.error("Error processing matrix job")
         logger.debug(job_def)
         return False
