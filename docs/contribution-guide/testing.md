@@ -51,6 +51,36 @@ flowchart TD
 - Keep tests isolated and independent.
 - Use descriptive test names and docstrings.
 
-## TODO: Human check
-- Add more details on integration test strategy and coverage.
-- Document any CI/CD integration for automated testing.
+## Integration Testing
+
+Currently, Gato-X does not run automated integration tests. This will be coming soon, but in the interim prior to making a large contribution you should test Gato-X's functionality for larger runs:
+
+### Test Bulk Repository Enumeration
+
+- Use the CLI to enumerate a large list of repositories (e.g., from a file or organization).
+- Example:
+  ```bash
+  gato enumerate --repositories-file test/creds.json
+  gato enumerate --organization myorg
+  ```
+- Confirm that all repositories are processed, results are saved, and no errors occur.
+- Check for correct handling of rate limits, API errors, and partial failures.
+
+### Test Self/Repo/Org Enumeration
+
+- Test the following commands:
+  - Self-enumeration: `gato enumerate --self`
+  - Repository: `gato enumerate --repository myorg/myrepo`
+  - Organization: `gato enumerate --organization myorg`
+- Validate that the output includes all expected runners, secrets, and workflow data.
+- For self-enumeration, ensure the tool reports all accessible organizations and repositories for the current token.
+- For org/repo, verify correct parsing of runner groups, workflows, and permissions.
+
+### Test Output Features
+
+- Run enumeration with output options:
+  - `--output json` (machine-readable)
+  - `--output table` (human-readable)
+  - `--output markdown` (for documentation)
+- Confirm that output files are created and formatted correctly.
+- Test output for both successful and error cases.

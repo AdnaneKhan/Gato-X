@@ -68,6 +68,10 @@ flowchart TD
   ```bash
   black gatox/
   ```
+- Use [ruff](https://github.com/astral-sh/ruff) for linting:
+  ```bash
+  ruff check
+  ```
 - Use [isort](https://pycqa.github.io/isort/) for import sorting:
   ```bash
   isort gatox/
@@ -92,11 +96,6 @@ flowchart TD
 
 - Use GitHub Issues for bug reports and feature requests.
 - For significant changes, open an issue to discuss before submitting a PR.
-
-## TODO: Human check
-
-- Confirm if there are additional contribution requirements (e.g., DCO, CLA).
-- Add more details on advanced contribution topics if needed.
 
 ## Testing
 

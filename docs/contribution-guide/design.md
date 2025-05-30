@@ -35,7 +35,3 @@ Gato-X is designed for extensibility, maintainability, and security. Contributor
 3. Add CLI integration in `gatox/cli/attack/` if needed.
 4. Write unit tests in `unit_test/test_attack.py`.
 5. Document the new feature in the appropriate markdown files.
-
-## TODO: Human check
-- Expand on advanced patterns (e.g., plugin architecture) if adopted.
-- Add more examples for common design scenarios.

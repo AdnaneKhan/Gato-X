@@ -53,7 +53,3 @@ flowchart TD
 - New attack/enumeration/search modules can be added under their respective directories.
 - Data models are centralized in `gatox/models/` for consistency.
 - Configuration is managed via JSON files in `gatox/configuration/`.
-
-## TODO: Human check
-- Confirm all cross-module dependencies and update diagram if new modules are added.
-- Add more detailed sequence diagrams for attack and enumeration flows.
