@@ -389,7 +389,7 @@ async def test_check_org():
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_client = AsyncMock()
 
-    mock_response = MagicMock()
+    MagicMock()
     mock_client.get.side_effect = [
         MagicMock(
             status_code=200,
@@ -1274,7 +1274,7 @@ async def test_get_own_repos_multiple_pages():
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_client = AsyncMock()
 
-    mock_response = MagicMock()
+    MagicMock()
 
     def generate_repo_list():
         """

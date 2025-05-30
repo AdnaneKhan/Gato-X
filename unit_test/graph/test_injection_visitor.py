@@ -1,11 +1,8 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.github.api import Api
-from gatox.workflow_graph.nodes.workflow import WorkflowNode
-from gatox.workflow_graph.nodes.job import JobNode
-from gatox.workflow_graph.nodes.step import StepNode
 from gatox.workflow_graph.nodes.action import ActionNode
 
 

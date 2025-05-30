@@ -82,7 +82,7 @@ class Enumerator:
                 count = installation_info["total_count"]
                 if count > 0:
                     Output.info(
-                        f"Gato-X is using valid a GitHub App installation token!"
+                        "Gato-X is using valid a GitHub App installation token!"
                     )
                     self.user_perms = {
                         "user": "Github App",
@@ -101,13 +101,12 @@ class Enumerator:
                 return False
 
             Output.info(
-                "The authenticated user is: "
-                f"{Output.bright(self.user_perms['user'])}"
+                f"The authenticated user is: {Output.bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]):
                 Output.info(
                     "The GitHub Classic PAT has the following scopes: "
-                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
+                    f"{Output.yellow(', '.join(self.user_perms['scopes']))}"
                 )
             else:
                 Output.warn("The token has no scopes!")
@@ -280,8 +279,7 @@ class Enumerator:
         orgs = await self.api.check_organizations()
 
         Output.info(
-            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
-            "organizations!"
+            f"The user {self.user_perms['user']} belongs to {len(orgs)} organizations!"
         )
 
         for org in orgs:
@@ -315,8 +313,7 @@ class Enumerator:
         orgs = await self.api.check_organizations()
 
         Output.info(
-            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
-            "organizations!"
+            f"The user {self.user_perms['user']} belongs to {len(orgs)} organizations!"
         )
 
         for org in orgs:
@@ -395,7 +392,7 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
-        Output.info(f"Querying and caching workflow YAML files!")
+        Output.info("Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
         await self.__query_graphql_workflows(wf_queries)
         await self.__finalize_caches(enum_list)

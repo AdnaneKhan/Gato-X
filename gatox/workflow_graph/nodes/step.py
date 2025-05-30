@@ -71,7 +71,7 @@ class StepNode(Node):
         self.is_checkout = False
         self.id = step_data.get("id", None)
         self.if_condition = step_data.get("if", "")
-        if type(self.if_condition) == str:
+        if type(self.if_condition) is str:
             self.if_condition = self.if_condition.replace("\n", "")
         else:
             self.if_condition = None

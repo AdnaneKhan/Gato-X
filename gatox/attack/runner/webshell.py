@@ -20,7 +20,6 @@ import string
 import time
 import re
 import datetime
-import yaml
 
 from gatox.attack.attack import Attacker
 from gatox.cli.output import Output
@@ -293,7 +292,7 @@ class WebShell(Attacker):
 
         await self.setup_user_info()
 
-        if not ("repo" in self.user_perms["scopes"]):
+        if "repo" not in self.user_perms["scopes"]:
             Output.error("Insufficient scopes for C2 operator PAT!")
             return False
 
@@ -509,7 +508,6 @@ class WebShell(Attacker):
                 f"/repos/{c2_repo}/commits", params={"per_page": 1}
             )
             if resp.status_code == 200:
-
                 for i in range(timeout):
                     workflow_id = await self.api.get_recent_workflow(
                         c2_repo,
@@ -583,7 +581,6 @@ class WebShell(Attacker):
         runners = await self.api.get_repo_runners(c2_repo)
 
         if runners:
-
             Output.info(f"There are {len(runners)} runner(s) connected to {c2_repo}:")
             for runner in runners:
                 runner_name = runner["name"]

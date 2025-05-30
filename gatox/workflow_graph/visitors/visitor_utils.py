@@ -170,7 +170,7 @@ class VisitorUtils:
         for _, flows in data.items():
             for flow in flows:
                 seen_before = flow.get_first_and_last_hash()
-                if not seen_before in seen:
+                if seen_before not in seen:
                     seen.add(seen_before)
                 else:
                     continue
