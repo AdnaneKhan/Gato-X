@@ -74,7 +74,9 @@ class AppEnumerator:
                 "Failed to validate GitHub App - check App ID and private key"
             )
 
-        self.__app_permissions = [f"{k}:{v}" for k, v in app_info["permissions"].items()]
+        self.__app_permissions = [
+            f"{k}:{v}" for k, v in app_info["permissions"].items()
+        ]
 
         Output.info(f"Successfully authenticated as GitHub App: {app_info['name']}")
         Output.info(f"App ID: {app_info['id']}")
@@ -135,7 +137,10 @@ class AppEnumerator:
         if not self.api:
             await self._initialize_api_with_jwt()
 
-        if "contents:read" not in self.__app_permissions and "contents:write" not in self.__app_permissions:
+        if (
+            "contents:read" not in self.__app_permissions
+            and "contents:write" not in self.__app_permissions
+        ):
             Output.error(
                 "App does not have contents permissions, cannot enumerate repositories"
             )
