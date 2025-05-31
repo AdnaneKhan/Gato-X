@@ -77,7 +77,7 @@ async def cli(args):
 
     app_parser = subparsers.add_parser(
         "app",
-        help=f"{Output.red("[Experimental]")} GitHub App Enumeration Capabilities",
+        help=f"{Output.red('[Experimental]')} GitHub App Enumeration Capabilities",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     app_parser.set_defaults(func=app)
