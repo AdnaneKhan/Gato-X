@@ -321,6 +321,7 @@ class Api:
         if strip_auth:
             del get_header["Authorization"]
 
+        api_response = None
         for _ in range(0, 5):
             try:
                 logger.debug(f"Making GET API request to {request_url}!")
@@ -332,9 +333,16 @@ class Api:
                 )
 
                 break
-            except Exception:
-                logger.warning("GET request failed due to transport error re-trying!")
+            except Exception as e:
+                logger.warning(
+                    f"GET request {request_url} failed due to transport error re-trying",
+                    exc_info=e,
+                )
                 continue
+
+        if api_response is None:
+            raise Exception(f"GET request {request_url} failed after 5 attempts")
+
         if not strip_auth:
             await self.__check_rate_limit(api_response.headers)
 
