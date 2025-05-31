@@ -154,8 +154,8 @@ def validate_arguments(args, parser):
                     f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is malformed or unsupported!"
                 )
 
-        args_dict = vars(args)
-        args_dict["gh_token"] = gh_token
+    args_dict = vars(args)
+    args_dict["gh_token"] = gh_token
 
     if args.socks_proxy and args.http_proxy:
         parser.error(
