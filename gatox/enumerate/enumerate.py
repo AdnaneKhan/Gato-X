@@ -40,6 +40,7 @@ class Enumerator:
         output_json: str = None,
         ignore_workflow_run: bool = False,
         deep_dive: bool = False,
+        app_permisions: list = None,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -53,6 +54,13 @@ class Enumerator:
             downloaded.
             output_json (str, optional): JSON file to output enumeration
             results.
+            ignore_workflow_run (bool, optional): If set, then
+            "workflow_run" triggers will be ignored.
+            deep_dive (bool, optional): If set, then deep dive workflow
+            ingestion will be performed. This will slow down enumeration
+            significantly, but will provide more information about workflows
+            and their runs.
+            app_permissions (list, optional): List of permissions for GitHub App.
         """
         self.api = Api(
             pat,
@@ -69,6 +77,7 @@ class Enumerator:
         self.output_json = output_json
         self.deep_dive = deep_dive
         self.ignore_workflow_run = ignore_workflow_run
+        self.app_permissions = app_permisions
 
         self.repo_e = RepositoryEnum(self.api, skip_log)
         self.org_e = OrganizationEnum(self.api)
@@ -81,12 +90,9 @@ class Enumerator:
             if installation_info:
                 count = installation_info["total_count"]
                 if count > 0:
-                    Output.info(
-                        "Gato-X is using valid a GitHub App installation token!"
-                    )
                     self.user_perms = {
                         "user": "Github App",
-                        "scopes": [],
+                        "scopes": self.app_permissions or [],
                         "name": "GATO-X App Mode",
                     }
 

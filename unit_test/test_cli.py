@@ -36,7 +36,7 @@ def mock_settings_env_vars():
         yield
 
 
-@patch("builtins.input", return_value="")
+@patch("builtins.input", return_value="BAD_TOKEN")
 async def test_cli_no_gh_token(mock_input, capfd):
     """Test case where no GH Token is provided"""
     del os.environ["GH_TOKEN"]
@@ -95,7 +95,6 @@ async def test_cli_s2s_token_machine(mock_api, capfd):
     await cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
     out, _ = capfd.readouterr()
     assert "Allowing the use of a GitHub App token for single repo enumeration" in out
-    assert "Gato-X is using valid a GitHub App installation token" in out
 
 
 async def test_cli_u2s_token(capfd):

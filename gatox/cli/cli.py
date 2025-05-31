@@ -14,7 +14,9 @@ from gatox.caching.local_cache_manager import LocalCacheFactory
 from gatox.cli.enumeration.config import configure_parser_enumerate
 from gatox.cli.search.config import configure_parser_search
 from gatox.cli.attack.config import configure_parser_attack
+from gatox.cli.app.config import configure_parser_app
 from gatox.enumerate.enumerate import Enumerator
+from gatox.enumerate.app_enumerate import AppEnumerator
 from gatox.attack.attack import Attacker
 from gatox.attack.runner.webshell import WebShell
 from gatox.attack.secrets.secrets_attack import SecretsAttack
@@ -26,10 +28,10 @@ async def cli(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=(
-            f"{Fore.YELLOW}This tool requires a GitHub PAT to"
+            f"{Fore.YELLOW}This tool requires a GitHub access token to"
             f" function!{Style.RESET_ALL}\n\nThis can be passed via the"
             ' "GH_TOKEN" environment variable, or if it is not set,\nthen the'
-            " application will prompt you for one."
+            " application will prompt you for one. App enumeration requires a GitHub App ID and PEM file.\n\n"
         ),
     )
 
@@ -41,7 +43,7 @@ async def cli(args):
         "--api-url",
         "-u",
         help=(
-            f"{Fore.RED}{Output.bright('!! Experimental !!')}\n"
+            f"{Fore.RED}{Output.bright('[Experimental]')}\n"
             "Github API URL to target. \n"
             "Defaults to 'https://api.github.com'"
         ),
@@ -73,9 +75,17 @@ async def cli(args):
     )
     search_parser.set_defaults(func=search)
 
+    app_parser = subparsers.add_parser(
+        "app",
+        help=f"{Output.red('[Experimental]')} GitHub App Enumeration Capabilities",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    app_parser.set_defaults(func=app)
+
     configure_parser_attack(attack_parser)
     configure_parser_enumerate(enumerate_parser)
     configure_parser_search(search_parser)
+    configure_parser_app(app_parser)
 
     arguments = parser.parse_args(args)
 
@@ -101,34 +111,43 @@ def save_workflow_ymls(output_directory):
 def validate_arguments(args, parser):
     logging.basicConfig(level=args.log_level)
 
-    if "GH_TOKEN" not in os.environ:
-        gh_token = input(
-            "No 'GH_TOKEN' environment variable set! Please enter a GitHub PAT.\n"
-        )
+    # App command has different authentication requirements
+    if hasattr(args, "app") and args.app is not None:
+        # App command uses App ID + PEM file instead of GH_TOKEN
+        gh_token = None  # App command doesn't use this
     else:
-        gh_token = os.environ["GH_TOKEN"]
-
-    if "github_pat_" in gh_token:
-        parser.error(f"{Fore.RED}[!] Fine-grained PATs are currently not supported!")
-
-    if not (
-        re.match("gh[po]_[A-Za-z0-9]{36}$", gh_token)
-        or re.match("^[a-fA-F0-9]{40}$", gh_token)
-    ):
-        if re.match("gh[s]_[A-Za-z0-9]{36}$", gh_token):
-            if not (args.machine and args.repository):
-                parser.error(
-                    f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X does"
-                    " not support App tokens without machine flag."
-                )
-            else:
-                Output.info(
-                    "Allowing the use of a GitHub App token for single repo enumeration."
-                )
-        else:
-            parser.error(
-                f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is malformed or unsupported!"
+        # Regular commands need GH_TOKEN
+        if "GH_TOKEN" not in os.environ:
+            gh_token = input(
+                "No 'GH_TOKEN' environment variable set! Please enter a GitHub"
+                " PAT.\n"
             )
+        else:
+            gh_token = os.environ["GH_TOKEN"]
+
+        if "github_pat_" in gh_token:
+            parser.error(
+                f"{Fore.RED}[!] Fine-grained PATs are currently not supported!"
+            )
+
+        if not (
+            re.match("gh[po]_[A-Za-z0-9]{36}$", gh_token)
+            or re.match("^[a-fA-F0-9]{40}$", gh_token)
+        ):
+            if re.match("gh[s]_[A-Za-z0-9]{36}$", gh_token):
+                if not (args.machine and args.repository):
+                    parser.error(
+                        f"{Fore.RED}[!]{Style.RESET_ALL} Gato-X does"
+                        " not support App tokens without machine flag."
+                    )
+                else:
+                    Output.info(
+                        "Allowing the use of a GitHub App token for single repo enumeration."
+                    )
+            else:
+                parser.error(
+                    f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is malformed or unsupported!"
+                )
 
     args_dict = vars(args)
     args_dict["gh_token"] = gh_token
@@ -415,6 +434,55 @@ async def search(args, parser):
 
     if results:
         gh_search_runner.present_results(results, args.output_text)
+
+
+async def app(args, parser):
+    """Handler for the app command."""
+    parser = parser.choices["app"]
+
+    # Create the app enumerator
+    app_enumerator = AppEnumerator(
+        app_id=args.app,
+        private_key_path=args.pem,
+        socks_proxy=args.socks_proxy,
+        http_proxy=args.http_proxy,
+        skip_log=args.skip_runners,
+        github_url=args.api_url,
+        deep_dive=args.deep_dive,
+    )
+
+    exec_wrapper = Execution()
+
+    try:
+        await app_enumerator.validate_app()
+        if args.installations:
+            # List all installations with metadata
+            installations = await app_enumerator.list_installations()
+            app_enumerator.report_installations(installations)
+
+        elif args.installation:
+            # Enumerate specific installation
+            installation_repos = await app_enumerator.enumerate_installation(
+                args.installation
+            )
+            if installation_repos:
+                Output.result(
+                    f"Successfully enumerated installation {args.installation}"
+                )
+                exec_wrapper.add_repositories(installation_repos)
+            else:
+                Output.error(f"Failed to enumerate installation {args.installation}")
+        # Save output if requested
+        if args.output_json:
+            try:
+                Output.write_json(exec_wrapper, args.output_json)
+            except Exception:
+                Output.error(
+                    "Encountered an error writing the output JSON, this is likely a Gato-X bug."
+                )
+
+    except Exception as e:
+        Output.error(f"App enumeration failed: {str(e)}")
 
 
 def configure_parser_general(parser):
