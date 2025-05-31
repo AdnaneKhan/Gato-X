@@ -21,11 +21,9 @@ from gatox.workflow_parser.utility import CONTEXT_REGEX
 from gatox.workflow_parser.utility import (
     getTokens,
     getToken,
-    checkUnsafe,
     prReviewUnsafe,
 )
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
-from gatox.caching.cache_manager import CacheManager
 from gatox.github.api import Api
 
 
@@ -144,7 +142,6 @@ class ReviewInjectionVisitor:
 
                             # Now we go and try to resolve variables.
                             for variable in node.contexts:
-
                                 if "inputs." in variable:
                                     if "${{" in variable:
                                         processed_var = CONTEXT_REGEX.findall(variable)
@@ -198,8 +195,6 @@ class ReviewInjectionVisitor:
                             # Set lookup for input params
                             input_lookup.update(node_params)
                         if index == 0:
-                            repo = CacheManager().get_repository(node.repo_name())
-
                             # Check workflow environment variables.
                             # For env vars that are github.event.*
                             env_vars = node.get_env_vars()

@@ -4,7 +4,7 @@ import pathlib
 import httpx
 
 from unittest import mock
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, AsyncMock
 
 from gatox.cli import cli
 from gatox.util.arg_utils import read_file_and_validate_lines, is_valid_directory
@@ -45,7 +45,7 @@ async def test_cli_no_gh_token(mock_input, capfd):
         await cli.cli(["enumerate", "-t", "test"])
 
     mock_input.assert_called_with(
-        "No 'GH_TOKEN' environment variable set! Please enter a GitHub" " PAT.\n"
+        "No 'GH_TOKEN' environment variable set! Please enter a GitHub PAT.\n"
     )
 
 
@@ -424,7 +424,7 @@ async def test_enum_user(mock_enumerator):
 
 
 @mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_repos")
-@mock.patch("gatox.util.read_file_and_validate_lines")
+@mock.patch("gatox.cli.cli.read_file_and_validate_lines")
 async def test_enum_repos(mock_read, mock_enumerate):
     """Test enum command using the repo list."""
     curr_path = pathlib.Path(__file__).parent.resolve()
@@ -440,6 +440,23 @@ async def test_enum_repo(mock_enumerate):
     """Test enum command using the organization enumerattion."""
     await cli.cli(["enum", "-r", "testorg/testrepo"])
     mock_enumerate.assert_called_once()
+
+
+@mock.patch("gatox.enumerate.enumerate.Enumerator.enumerate_commit")
+async def test_enum_commit(mock_commit):
+    """Test enum command using commit scanning."""
+    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    await cli.cli(["enum", "-r", "testorg/testrepo", "--commit", sha])
+    mock_commit.assert_called_once_with("testorg/testrepo", sha)
+
+
+async def test_enum_commit_requires_repo(capfd):
+    """Test enum command commit option without repository."""
+    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    with pytest.raises(SystemExit):
+        await cli.cli(["enum", "--commit", sha])
+    out, err = capfd.readouterr()
+    assert "--commit requires --repository" in err
 
 
 @mock.patch("gatox.search.search.Searcher.use_search_api")
@@ -470,9 +487,7 @@ async def test_invalid_repo_name(capfd):
 
     out, err = capfd.readouterr()
 
-    assert (
-        "argument --repository/-r: The argument" " is not in the valid format!" in err
-    )
+    assert "argument --repository/-r: The argument is not in the valid format!" in err
 
 
 @mock.patch("gatox.util.arg_utils.os.access")

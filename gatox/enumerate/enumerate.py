@@ -82,7 +82,7 @@ class Enumerator:
                 count = installation_info["total_count"]
                 if count > 0:
                     Output.info(
-                        f"Gato-X is using valid a GitHub App installation token!"
+                        "Gato-X is using valid a GitHub App installation token!"
                     )
                     self.user_perms = {
                         "user": "Github App",
@@ -101,13 +101,12 @@ class Enumerator:
                 return False
 
             Output.info(
-                "The authenticated user is: "
-                f"{Output.bright(self.user_perms['user'])}"
+                f"The authenticated user is: {Output.bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]):
                 Output.info(
                     "The GitHub Classic PAT has the following scopes: "
-                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
+                    f"{Output.yellow(', '.join(self.user_perms['scopes']))}"
                 )
             else:
                 Output.warn("The token has no scopes!")
@@ -189,6 +188,7 @@ class Enumerator:
             repo_data = await self.api.get_repository(repo_name)
             if repo_data:
                 repo = Repository(repo_data)
+                CacheManager().set_repository(repo)
 
         if repo:
             if repo.is_archived():
@@ -213,6 +213,44 @@ class Enumerator:
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
                 "exist or the user does not have access."
             )
+
+    async def enumerate_commit(self, repo_name: str, sha: str):
+        """Enumerate a single commit of a repository.
+
+        Workflow files from the commit are treated as if they are on the
+        repository's default branch so that default-branch checks apply.
+
+        Args:
+            repo_name (str): Repository in Org/Repo format.
+            sha (str): Commit SHA to analyze.
+
+        Returns:
+            Repository | bool: Repository wrapper populated with results or
+            False on failure.
+        """
+        if not await self.__setup_user_info():
+            return False
+
+        repo_data = await self.api.get_repository(repo_name)
+        if not repo_data:
+            Output.warn(f"Unable to retrieve repository: {Output.bright(repo_name)}")
+            return False
+
+        repo = Repository(repo_data)
+        CacheManager().set_repository(repo)
+
+        workflows = await self.api.retrieve_workflow_ymls_ref(repo.name, sha)
+        for workflow in workflows:
+            # Override the branch to the default to "trick" graph into
+            # thinking commit is merged to default.
+            workflow.branch = repo.repo_data["default_branch"]
+            CacheManager().set_workflow(repo.name, workflow.workflow_name, workflow)
+            await WorkflowGraphBuilder().build_graph_from_yaml(workflow, repo)
+
+        await self.process_graph()
+        await self.repo_e.enumerate_repository(repo)
+
+        return repo
 
     async def __finalize_caches(self, repos: list):
         """Finalizes the caches for the repositories enumerated.
@@ -241,8 +279,7 @@ class Enumerator:
         orgs = await self.api.check_organizations()
 
         Output.info(
-            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
-            "organizations!"
+            f"The user {self.user_perms['user']} belongs to {len(orgs)} organizations!"
         )
 
         for org in orgs:
@@ -276,8 +313,7 @@ class Enumerator:
         orgs = await self.api.check_organizations()
 
         Output.info(
-            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
-            "organizations!"
+            f"The user {self.user_perms['user']} belongs to {len(orgs)} organizations!"
         )
 
         for org in orgs:
@@ -356,7 +392,7 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
-        Output.info(f"Querying and caching workflow YAML files!")
+        Output.info("Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
         await self.__query_graphql_workflows(wf_queries)
         await self.__finalize_caches(enum_list)

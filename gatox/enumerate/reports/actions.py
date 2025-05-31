@@ -15,10 +15,8 @@ limitations under the License.
 """
 
 from gatox.cli.output import Output
-from gatox.configuration.configuration_manager import ConfigurationManager
 
 from gatox.enumerate.reports.report import Report
-from gatox.models.repository import Repository
 from gatox.enumerate.results.issue_type import IssueType
 from gatox.enumerate.results.analysis_result import AnalysisResult
 
@@ -84,8 +82,7 @@ class ActionsReport(Report):
 
         details = []
         for node in path:
-
-            details.append(f"{'-'*118}")
+            details.append(f"{'-' * 118}")
             details.append(f" → {Output.bright(node['node'])}")
             if "if" in node:
                 details.append(f"   ↪ If: {Output.yellow(node['if'])}")

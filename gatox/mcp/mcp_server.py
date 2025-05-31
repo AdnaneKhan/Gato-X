@@ -120,7 +120,6 @@ class ValidatePATInput(MCPAuthParams):
 
 
 def get_enumerator(params: MCPAuthParams):
-
     Output(False, suppress=True)  # Suppress other stdout
     return Enumerator(
         pat=params.pat,

@@ -28,12 +28,6 @@ You can start the MCP server using the following command:
 gato-x-mcp
 ```
 
-Or, if installed in a virtual environment:
-
-```bash
-python -m gatox.mcp.mcp_server
-```
-
 ## Adding Gato-X MCP Server to Your MCP Configuration
 
 To use the Gato-X MCP server with an MCP-compatible agent (such as Copilot Workspace), add an entry to your `mcp.json` (or VS Code `settings.json`) like this:

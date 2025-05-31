@@ -7,9 +7,10 @@ import httpx
 from unittest.mock import patch, AsyncMock
 from gatox.github.api import Api
 
-from gatox.models.repository import Repository
+from gatox.models.workflow import Workflow
 from gatox.enumerate.enumerate import Enumerator
 from gatox.cli.output import Output
+from gatox.caching.cache_manager import CacheManager
 
 from unit_test.utils import escape_ansi as escape_ansi
 
@@ -30,6 +31,18 @@ BASE_MOCK_RUNNER = [
         "requested_labels": ["self-hosted", "Linux", "X64"],
     }
 ]
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    """
+    Fixture to clear the CacheManager singleton instance before each test
+    to prevent test interference.
+    """
+    CacheManager._instance = None
+    yield
+    # Clean up after test as well
+    CacheManager._instance = None
 
 
 @pytest.fixture(autouse=True)
@@ -177,7 +190,6 @@ async def test_enumerate_repo_admin_no_wf(mock_api, capsys):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_validate(mock_api, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -203,7 +215,6 @@ async def test_enum_validate(mock_api, capfd):
 @patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repo(mock_api, mock_time, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -229,7 +240,6 @@ async def test_enum_repo(mock_api, mock_time, capfd):
 @patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_org(mock_api, mock_time, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow", "admin:org"],
@@ -307,7 +317,6 @@ async def test_enum_org(mock_api, mock_time, capfd):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repo_runner(mock_api, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -366,7 +375,6 @@ async def test_enum_repo_runner(mock_api, capfd):
 @patch("gatox.enumerate.ingest.ingest.asyncio.sleep")
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repos(mock_api, mock_time, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -391,7 +399,6 @@ async def test_enum_repos(mock_api, mock_time, capfd):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_enum_repos_empty(mock_api, capfd):
-
     mock_api.return_value.check_user.return_value = {
         "user": "testUser",
         "scopes": ["repo", "workflow"],
@@ -416,7 +423,6 @@ async def test_enum_repos_empty(mock_api, capfd):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_bad_token(mock_api):
-
     gh_enumeration_runner = Enumerator(
         "ghp_BADTOKEN",
         socks_proxy=None,
@@ -435,7 +441,6 @@ async def test_bad_token(mock_api):
 
 @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
 async def test_unscoped_token(mock_api, capfd):
-
     gh_enumeration_runner = Enumerator(
         "ghp_BADTOKEN",
         socks_proxy=None,
@@ -478,3 +483,46 @@ async def test_enum_self_no_repos(mock_api, capfd):
     assert repos == []
 
     out, _ = capfd.readouterr()
+
+
+@patch(
+    "gatox.enumerate.enumerate.WorkflowGraphBuilder.build_graph_from_yaml",
+    new_callable=AsyncMock,
+)
+@patch("gatox.enumerate.enumerate.Enumerator.process_graph", new_callable=AsyncMock)
+@patch(
+    "gatox.enumerate.repository.RepositoryEnum.enumerate_repository",
+    new_callable=AsyncMock,
+)
+@patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
+async def test_enumerate_commit(mock_api, mock_enum_repo, mock_pg, mock_build):
+    """Test commit enumeration functionality."""
+
+    # Set up the mocks before creating the Enumerator
+    mock_api.return_value.is_app_token.return_value = False
+    mock_api.return_value.check_user.return_value = {
+        "user": "testUser",
+        "scopes": ["repo", "workflow"],
+    }
+
+    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
+    mock_api.return_value.get_repository.return_value = repo_data
+    mock_api.return_value.retrieve_workflow_ymls_ref.return_value = [
+        Workflow(repo_data["full_name"], TEST_WORKFLOW_YML, "main.yaml")
+    ]
+
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        skip_log=True,
+    )
+
+    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    repo = await gh_enumeration_runner.enumerate_commit(repo_data["full_name"], sha)
+
+    mock_api.return_value.retrieve_workflow_ymls_ref.assert_called_once_with(
+        repo_data["full_name"], sha
+    )
+    mock_build.assert_awaited()
+    assert repo.name == repo_data["full_name"]

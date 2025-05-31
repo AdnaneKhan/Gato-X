@@ -6,7 +6,7 @@ import logging
 
 from colorama import Fore, Style
 
-from gatox import util
+from gatox.util.arg_utils import read_file_and_validate_lines
 from gatox.caching.cache_manager import CacheManager
 from gatox.cli.colors import RED_DASH
 from gatox.cli.output import Output, SPLASH
@@ -116,6 +116,10 @@ def validate_arguments(args, parser):
         # App command uses App ID + PEM file instead of GH_TOKEN
         args_dict = vars(args)
         args_dict["gh_token"] = None  # App command doesn't use this
+    elif "GH_TOKEN" not in os.environ:
+        gh_token = input(
+            "No 'GH_TOKEN' environment variable set! Please enter a GitHub PAT.\n"
+        )
     else:
         # Regular commands need GH_TOKEN
         if "GH_TOKEN" not in os.environ:
@@ -233,7 +237,6 @@ async def attack(args, parser):
         )
 
         if args.payload_only:
-
             await gh_attack_runner.payload_only(
                 args.target_os,
                 args.target_arch,
@@ -285,7 +288,6 @@ async def attack(args, parser):
             args.file_name,
         )
     elif args.secrets:
-
         gh_attack_runner = SecretsAttack(
             args.gh_token,
             author_email=args.author_email,
@@ -310,27 +312,27 @@ async def enumerate(args, parser):
         or args.repository
         or args.repositories
         or args.validate
+        or args.commit
     ):
         parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was" " specified!"
+            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was specified!"
         )
 
-    if (
-        sum(
-            bool(x)
-            for x in [
-                args.target,
-                args.self_enumeration,
-                args.repository,
-                args.repositories,
-                args.validate,
-            ]
-        )
-        != 1
-    ):
+    # Count enumeration types, treating commit as a modifier for repository
+    enumeration_count = sum(
+        bool(x)
+        for x in [
+            args.target,
+            args.self_enumeration,
+            args.repository or args.commit,  # repository and commit work together
+            args.repositories,
+            args.validate,
+        ]
+    )
+
+    if enumeration_count != 1:
         parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
-            "enumeration type."
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one enumeration type."
         )
 
     gh_enumeration_runner = Enumerator(
@@ -364,7 +366,7 @@ async def enumerate(args, parser):
             repos = await gh_enumeration_runner.enumerate_user(args.target)
     elif args.repositories:
         try:
-            repo_list = util.read_file_and_validate_lines(
+            repo_list = read_file_and_validate_lines(
                 args.repositories, r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
             repos = await gh_enumeration_runner.enumerate_repos(repo_list)
@@ -373,6 +375,13 @@ async def enumerate(args, parser):
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
+    elif args.commit:
+        if not args.repository:
+            parser.error("--commit requires --repository to be specified")
+        repo_obj = await gh_enumeration_runner.enumerate_commit(
+            args.repository, args.commit
+        )
+        repos = [repo_obj] if repo_obj else []
     elif args.repository:
         repos = await gh_enumeration_runner.enumerate_repos([args.repository])
 
@@ -384,10 +393,9 @@ async def enumerate(args, parser):
     exec_wrapper.add_repositories(repos)
 
     try:
-
         if args.output_json:
             Output.write_json(exec_wrapper, args.output_json)
-    except Exception as output_error:
+    except Exception:
         Output.error(
             "Encountered an error writing the output JSON, this is likely a Gato-X bug."
         )
