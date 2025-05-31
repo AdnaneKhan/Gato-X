@@ -28,10 +28,10 @@ async def cli(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=(
-            f"{Fore.YELLOW}This tool requires a GitHub PAT to"
+            f"{Fore.YELLOW}This tool requires a GitHub access token to"
             f" function!{Style.RESET_ALL}\n\nThis can be passed via the"
             ' "GH_TOKEN" environment variable, or if it is not set,\nthen the'
-            " application will prompt you for one."
+            " application will prompt you for one. App enumeration requires a GitHub App ID and PEM file.\n\n"
         ),
     )
 
@@ -43,7 +43,7 @@ async def cli(args):
         "--api-url",
         "-u",
         help=(
-            f"{Fore.RED}{Output.bright('!! Experimental !!')}\n"
+            f"{Fore.RED}{Output.bright('[Experimental]')}\n"
             "Github API URL to target. \n"
             "Defaults to 'https://api.github.com'"
         ),
@@ -77,7 +77,7 @@ async def cli(args):
 
     app_parser = subparsers.add_parser(
         "app",
-        help="GitHub App Enumeration Capabilities",
+        help=f"{Output.red("[Experimental]")} GitHub App Enumeration Capabilities",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     app_parser.set_defaults(func=app)
