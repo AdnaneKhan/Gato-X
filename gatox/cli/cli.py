@@ -459,58 +459,29 @@ async def app(args, parser):
     exec_wrapper = Execution()
 
     try:
+        await app_enumerator.validate_app()
         if args.installations:
             # List all installations with metadata
             installations = await app_enumerator.list_installations()
-            if installations:
-                Output.result(f"Found {len(installations)} installation(s)")
-                for installation in installations:
-                    Output.info(f"Installation ID: {installation['id']}")
-                    Output.tabbed(f"Account: {installation['account']['login']}")
-                    Output.tabbed(f"App ID: {installation['app_id']}")
-                    Output.tabbed(f"Permissions: {installation.get('permissions', {})}")
-                    if "repositories" in installation:
-                        Output.tabbed(
-                            f"Repositories: {len(installation['repositories'])}"
-                        )
-                        for repo in installation["repositories"][:5]:  # Show first 5
-                            Output.tabbed(f"  - {repo['full_name']}")
-                        if len(installation["repositories"]) > 5:
-                            Output.tabbed(
-                                f"  ... and {len(installation['repositories']) - 5} more"
-                            )
-                    Output.print("")
-            else:
-                Output.warn("No installations found")
+            app_enumerator.report_installations(installations)
 
         elif args.installation:
             # Enumerate specific installation
-            installation_data = await app_enumerator.enumerate_installation(
+            installation_repos = await app_enumerator.enumerate_installation(
                 args.installation
             )
-            if installation_data:
+            if installation_repos:
                 Output.result(
                     f"Successfully enumerated installation {args.installation}"
                 )
-                exec_wrapper.add_repositories(installation_data.get("repositories", []))
+                exec_wrapper.add_repositories(installation_repos)
             else:
                 Output.error(f"Failed to enumerate installation {args.installation}")
-
-        elif args.full:
-            # Full enumeration across all installations
-            orgs, repos = await app_enumerator.enumerate_all_installations()
-            if orgs or repos:
-                Output.result("Full enumeration completed successfully")
-                exec_wrapper.add_organizations(orgs)
-                exec_wrapper.add_repositories(repos)
-            else:
-                Output.warn("No data found during full enumeration")
-
         # Save output if requested
         if args.output_json:
             try:
                 Output.write_json(exec_wrapper, args.output_json)
-            except Exception as output_error:
+            except Exception:
                 Output.error(
                     "Encountered an error writing the output JSON, this is likely a Gato-X bug."
                 )

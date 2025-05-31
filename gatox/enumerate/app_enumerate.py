@@ -1,8 +1,8 @@
-import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 from gatox.github.api import Api
+from gatox.models.repository import Repository
 from gatox.github.app_auth import GitHubAppAuth
 from gatox.cli.output import Output
 from gatox.enumerate.enumerate import Enumerator
@@ -74,11 +74,33 @@ class AppEnumerator:
                 "Failed to validate GitHub App - check App ID and private key"
             )
 
+        self.user_perms = [f"{k}:{v}" for k, v in app_info["permissions"].items()]
+
         Output.info(f"Successfully authenticated as GitHub App: {app_info['name']}")
         Output.info(f"App ID: {app_info['id']}")
         Output.info(f"Owner: {app_info['owner']['login']}")
+        Output.info(f"Permissions: {Output.yellow(', '.join(self.user_perms))}")
 
         return app_info
+
+    def report_installations(self, installations: List[Dict[str, Any]]):
+        """Report the installations found."""
+        if installations:
+            for installation in installations:
+                Output.info(f"Installation ID: {Output.yellow(installation['id'])}")
+                Output.tabbed(
+                    f"Account/Org: {Output.bright(installation['account']['login'])}"
+                )
+                if "repositories" in installation:
+                    Output.tabbed(f"Repositories: {len(installation['repositories'])}")
+                    for repo in installation["repositories"][:5]:  # Show first 5
+                        Output.tabbed(f"  - {repo['full_name']}")
+                    if len(installation["repositories"]) > 5:
+                        Output.tabbed(
+                            f"  ... and {len(installation['repositories']) - 5} more"
+                        )
+        else:
+            Output.warn("No installations found")
 
     async def list_installations(self) -> List[Dict[str, Any]]:
         """List all installations for the GitHub App."""
@@ -108,7 +130,7 @@ class AppEnumerator:
 
         return enhanced_installations
 
-    async def enumerate_installation(self, installation_id: str) -> Optional[Execution]:
+    async def enumerate_installation(self, installation_id: str) -> List[Repository]:
         """Enumerate a specific installation."""
         if not self.api:
             await self._initialize_api_with_jwt()
@@ -153,6 +175,7 @@ class AppEnumerator:
             github_url=self.github_url,
             ignore_workflow_run=self.ignore_workflow_run,
             deep_dive=self.deep_dive,
+            app_permisions=self.user_perms,
         )
 
         # Enumerate repositories
@@ -161,14 +184,9 @@ class AppEnumerator:
         ]
         enumerated_repos = await enumerator.enumerate_repos(repos_to_enumerate)
 
-        # Create execution wrapper
-        exec_wrapper = Execution()
-        exec_wrapper.set_user_details(enumerator.user_perms)
-        exec_wrapper.add_repositories(enumerated_repos)
-
         await installation_api.close()
 
-        return exec_wrapper
+        return enumerated_repos
 
     async def enumerate_all_installations(self) -> List[Execution]:
         """Enumerate all installations accessible to the GitHub App."""

@@ -1,23 +1,17 @@
 import os
-import pathlib
 import pytest
-import json
 import httpx
 import tempfile
-import jwt
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import patch, AsyncMock, MagicMock, mock_open
 
 # Import pytest-asyncio for async test support
-import pytest_asyncio
 
-from gatox.github.api import Api
 from gatox.github.app_auth import GitHubAppAuth
 from gatox.enumerate.app_enumerate import AppEnumerator
 from gatox.cli.output import Output
 from gatox.models.execution import Execution
 
-from unit_test.utils import escape_ansi
 
 # Initialize output for testing
 Output(True)
@@ -318,7 +312,7 @@ class TestAppEnumerator:
         enumerator.api = mock_api_instance
 
         # Call the enumerate_installation method and ensure it completes
-        result = await enumerator.enumerate_installation(11111)
+        await enumerator.enumerate_installation(11111)
 
         # Verify the API token was requested
         mock_api_instance.get_installation_access_token.assert_called_once_with(11111)
@@ -374,7 +368,8 @@ class TestAppEnumerator:
         mock_installation_api.get_installation_repos.assert_called_once()
         mock_enumerator_instance.enumerate_repos.assert_called_once()
         assert result is not None
-        assert isinstance(result, Execution)
+        # The method returns a list of Repository objects, not an Execution object
+        assert isinstance(result, list)
 
     @pytest.mark.asyncio
     @patch("gatox.enumerate.app_enumerate.AppEnumerator.enumerate_installation")

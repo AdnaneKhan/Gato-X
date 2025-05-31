@@ -37,6 +37,7 @@ class Api:
         socks_proxy: str = None,
         github_url: str = "https://api.github.com",
         client: httpx.AsyncClient = None,  # Optional, mostly for unit tests.
+        app_permissions: list = None,  # Optional, for GitHub App tokens
     ):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
@@ -92,6 +93,7 @@ class Api:
                 follow_redirects=True,
                 timeout=30.0,
             )
+        self.app_permissions = app_permissions
 
     async def __aenter__(self):
         return self

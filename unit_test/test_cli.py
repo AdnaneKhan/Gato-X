@@ -95,7 +95,6 @@ async def test_cli_s2s_token_machine(mock_api, capfd):
     await cli.cli(["enumerate", "-r", "testOrg/testRepo", "--machine"])
     out, _ = capfd.readouterr()
     assert "Allowing the use of a GitHub App token for single repo enumeration" in out
-    assert "Gato-X is using valid a GitHub App installation token" in out
 
 
 async def test_cli_u2s_token(capfd):

@@ -9,39 +9,6 @@ def configure_parser_app(parser):
         parser: sub parser to add arguments to.
     """
 
-    # Add general arguments
-    parser.add_argument(
-        "--log-level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        default="CRITICAL",
-        required=False,
-    )
-
-    parser.add_argument(
-        "--socks-proxy",
-        "-sp",
-        help=(
-            "SOCKS proxy to use for requests, in"
-            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
-            f" {Style.RESET_ALL}format"
-        ),
-        required=False,
-    )
-
-    parser.add_argument(
-        "--http-proxy",
-        help=(
-            "HTTPS proxy to use for requests, in"
-            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
-            f" {Style.RESET_ALL}format."
-        ),
-        required=False,
-    )
-
-    parser.add_argument(
-        "--no-color", "-nc", help="Removes all color from output.", action="store_true"
-    )
-
     parser.add_argument(
         "--app",
         "-a",
@@ -64,32 +31,16 @@ def configure_parser_app(parser):
 
     operation_group.add_argument(
         "--installations",
-        "-i",
         help="List all app installations with metadata including repositories and permissions.",
         action="store_true",
     )
 
     operation_group.add_argument(
-        "--full",
-        "-f",
-        help="Perform full enumeration on all maximally visible repositories across all installations.",
-        action="store_true",
-    )
-
-    operation_group.add_argument(
         "--installation",
-        "-I",
+        "-i",
         help="Enumerate a specific installation by ID.",
         metavar=f"{Fore.RED}INSTALLATION_ID{Style.RESET_ALL}",
         type=int,
-    )
-
-    parser.add_argument(
-        "--output-json",
-        "-oJ",
-        help="Save enumeration output to JSON file.",
-        metavar="JSON_FILE",
-        type=StringType(256),
     )
 
     parser.add_argument(
@@ -111,4 +62,12 @@ def configure_parser_app(parser):
             "Git is required on the PATH for this feature."
         ),
         action="store_true",
+    )
+
+    parser.add_argument(
+        "--output-json",
+        "-oJ",
+        help=("Save enumeration output to JSON file."),
+        metavar="JSON_FILE",
+        type=StringType(256),
     )
