@@ -51,7 +51,7 @@ class AppEnumerator:
 
         # This will be set when we generate the JWT
         self.api = None
-        self.user_perms = None
+        self.__app_permissions = None
 
     async def _initialize_api_with_jwt(self):
         """Initialize API with JWT token."""
@@ -74,12 +74,12 @@ class AppEnumerator:
                 "Failed to validate GitHub App - check App ID and private key"
             )
 
-        self.user_perms = [f"{k}:{v}" for k, v in app_info["permissions"].items()]
+        self.__app_permissions = [f"{k}:{v}" for k, v in app_info["permissions"].items()]
 
         Output.info(f"Successfully authenticated as GitHub App: {app_info['name']}")
         Output.info(f"App ID: {app_info['id']}")
         Output.info(f"Owner: {app_info['owner']['login']}")
-        Output.info(f"Permissions: {Output.yellow(', '.join(self.user_perms))}")
+        Output.info(f"Permissions: {Output.yellow(', '.join(self.__app_permissions))}")
 
         return app_info
 
@@ -135,6 +135,12 @@ class AppEnumerator:
         if not self.api:
             await self._initialize_api_with_jwt()
 
+        if "contents:read" not in self.__app_permissions and "contents:write" not in self.__app_permissions:
+            Output.error(
+                "App does not have contents permissions, cannot enumerate repositories"
+            )
+            return []
+
         Output.info(f"Enumerating installation {installation_id}")
 
         # Get installation access token
@@ -175,7 +181,7 @@ class AppEnumerator:
             github_url=self.github_url,
             ignore_workflow_run=self.ignore_workflow_run,
             deep_dive=self.deep_dive,
-            app_permisions=self.user_perms,
+            app_permisions=self.__app_permissions,
         )
 
         # Enumerate repositories

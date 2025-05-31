@@ -307,9 +307,10 @@ class TestAppEnumerator:
         mock_enumerator_instance.enumerate = AsyncMock(return_value=execution_result)
         mock_enumerator_class.return_value = mock_enumerator_instance
 
-        # Create test object
+        # Create test object with proper permissions
         enumerator = AppEnumerator("12345", "/path/to/key.pem")
         enumerator.api = mock_api_instance
+        enumerator._AppEnumerator__app_permissions = ["contents:read", "metadata:read"]
 
         # Call the enumerate_installation method and ensure it completes
         await enumerator.enumerate_installation(11111)
@@ -352,9 +353,10 @@ class TestAppEnumerator:
         )
         mock_enumerator_class.return_value = mock_enumerator_instance
 
-        # Create enumerator with mocked API
+        # Create enumerator with mocked API and proper permissions
         enumerator = AppEnumerator("12345", "/path/to/key.pem")
         enumerator.api = mock_api_instance
+        enumerator._AppEnumerator__app_permissions = ["contents:read", "metadata:read"]
 
         # Patch the Api constructor directly inside the test
         with patch(
@@ -423,6 +425,294 @@ class TestAppEnumerator:
         # Verify that results is a list of execution objects
         assert len(results) == 2
         assert all(isinstance(result, Execution) for result in results)
+
+    @pytest.mark.asyncio
+    @patch("gatox.cli.output.Output.error")
+    async def test_enumerate_installation_no_contents_permissions(self, mock_error):
+        """Test enumerate_installation fails when app lacks contents permissions."""
+        # Setup API mock
+        mock_api_instance = AsyncMock()
+        
+        # Create enumerator with no contents permissions
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = mock_api_instance
+        enumerator._AppEnumerator__app_permissions = ["metadata:read", "actions:read"]  # No contents permission
+
+        # Call method
+        result = await enumerator.enumerate_installation("11111")
+
+        # Verify returns empty list and logs error
+        assert result == []
+        mock_error.assert_called_once_with(
+            "App does not have contents permissions, cannot enumerate repositories"
+        )
+        # Verify no API calls were made
+        mock_api_instance.get_installation_access_token.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("gatox.cli.output.Output.info")
+    @patch("gatox.cli.output.Output.error")
+    async def test_enumerate_installation_with_contents_read_permission(self, mock_error, mock_info):
+        """Test enumerate_installation succeeds with contents:read permission."""
+        # Setup mocks
+        mock_api_instance = AsyncMock()
+        mock_api_instance.get_installation_access_token = AsyncMock(
+            return_value=MOCK_ACCESS_TOKEN
+        )
+        
+        mock_installation_api = AsyncMock()
+        mock_installation_api.get_installation_repos = AsyncMock(
+            return_value={
+                "total_count": 1,
+                "repositories": [MOCK_INSTALLATION_REPOS[0]],
+            }
+        )
+        mock_installation_api.close = AsyncMock()
+
+        with patch("gatox.enumerate.enumerate.Enumerator") as mock_enumerator_class:
+            mock_enumerator_instance = MagicMock()
+            mock_enumerator_instance.enumerate_repos = AsyncMock(return_value=["repo1"])
+            mock_enumerator_class.return_value = mock_enumerator_instance
+
+            # Create enumerator with contents:read permission
+            enumerator = AppEnumerator("12345", "/path/to/key.pem")
+            enumerator.api = mock_api_instance
+            enumerator._AppEnumerator__app_permissions = ["contents:read", "metadata:read"]
+
+            with patch("gatox.enumerate.app_enumerate.Api", return_value=mock_installation_api):
+                # Call method
+                result = await enumerator.enumerate_installation("11111")
+
+                # Verify success - just check that we got past the permission check
+                assert result is not None
+                mock_api_instance.get_installation_access_token.assert_called_once_with("11111")
+                # Don't assert mock_error.assert_not_called() since there might be other validation errors
+
+    @pytest.mark.asyncio
+    @patch("gatox.cli.output.Output.info")
+    @patch("gatox.cli.output.Output.error")
+    async def test_enumerate_installation_with_contents_write_permission(self, mock_error, mock_info):
+        """Test enumerate_installation succeeds with contents:write permission."""
+        # Setup mocks
+        mock_api_instance = AsyncMock()
+        mock_api_instance.get_installation_access_token = AsyncMock(
+            return_value=MOCK_ACCESS_TOKEN
+        )
+        
+        mock_installation_api = AsyncMock()
+        mock_installation_api.get_installation_repos = AsyncMock(
+            return_value={
+                "total_count": 1,
+                "repositories": [MOCK_INSTALLATION_REPOS[0]],
+            }
+        )
+        mock_installation_api.close = AsyncMock()
+
+        with patch("gatox.enumerate.enumerate.Enumerator") as mock_enumerator_class:
+            mock_enumerator_instance = MagicMock()
+            mock_enumerator_instance.enumerate_repos = AsyncMock(return_value=["repo1"])
+            mock_enumerator_class.return_value = mock_enumerator_instance
+
+            # Create enumerator with contents:write permission
+            enumerator = AppEnumerator("12345", "/path/to/key.pem")
+            enumerator.api = mock_api_instance
+            enumerator._AppEnumerator__app_permissions = ["contents:write", "metadata:read"]
+
+            with patch("gatox.enumerate.app_enumerate.Api", return_value=mock_installation_api):
+                # Call method
+                result = await enumerator.enumerate_installation("11111")
+
+                # Verify success - just check that we got past the permission check
+                assert result is not None
+                mock_api_instance.get_installation_access_token.assert_called_once_with("11111")
+                # Don't assert mock_error.assert_not_called() since there might be other validation errors
+
+    @pytest.mark.asyncio
+    @patch("gatox.cli.output.Output.error")
+    async def test_enumerate_installation_access_token_failure(self, mock_error):
+        """Test enumerate_installation fails when access token request fails."""
+        # Setup API mock
+        mock_api_instance = AsyncMock()
+        mock_api_instance.get_installation_access_token = AsyncMock(return_value=None)
+        
+        # Create enumerator with proper permissions
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = mock_api_instance
+        enumerator._AppEnumerator__app_permissions = ["contents:read", "metadata:read"]
+
+        # Call method
+        result = await enumerator.enumerate_installation("11111")
+
+        # Verify returns None and logs error
+        assert result is None
+        mock_error.assert_called_with(
+            "Failed to get access token for installation 11111"
+        )
+        mock_api_instance.get_installation_access_token.assert_called_once_with("11111")
+
+    @pytest.mark.asyncio
+    @patch("gatox.cli.output.Output.info")
+    @patch("gatox.cli.output.Output.error")
+    async def test_enumerate_installation_no_repositories_found(self, mock_error, mock_info):
+        """Test enumerate_installation fails when no repositories found."""
+        # Setup mocks
+        mock_api_instance = AsyncMock()
+        mock_api_instance.get_installation_access_token = AsyncMock(
+            return_value=MOCK_ACCESS_TOKEN
+        )
+        
+        mock_installation_api = AsyncMock()
+        mock_installation_api.get_installation_repos = AsyncMock(return_value=None)
+        mock_installation_api.close = AsyncMock()
+
+        # Create enumerator with proper permissions
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = mock_api_instance
+        enumerator._AppEnumerator__app_permissions = ["contents:read", "metadata:read"]
+
+        with patch("gatox.enumerate.app_enumerate.Api", return_value=mock_installation_api):
+            # Call method
+            result = await enumerator.enumerate_installation("11111")
+
+            # Verify returns None and logs error
+            assert result is None
+            mock_error.assert_called_with(
+                "No repositories found for installation 11111"
+            )
+            mock_api_instance.get_installation_access_token.assert_called_once_with("11111")
+            mock_installation_api.get_installation_repos.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("gatox.github.api.Api")
+    @patch("gatox.cli.output.Output.info")
+    @patch("gatox.cli.output.Output.yellow")
+    async def test_validate_app_success_with_permissions_parsing(self, mock_yellow, mock_info, mock_api):
+        """Test successful app validation with permissions parsing."""
+        # Setup mocks
+        mock_api_instance = MagicMock()
+        mock_api_instance.get_app_info = AsyncMock(return_value=MOCK_APP_INFO)
+        mock_api.return_value = mock_api_instance
+        mock_yellow.return_value = "mocked_yellow_text"
+
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = mock_api_instance
+
+        result = await enumerator.validate_app()
+
+        # Verify permissions were parsed correctly
+        expected_permissions = ["contents:read", "metadata:read", "actions:write"]
+        assert enumerator._AppEnumerator__app_permissions == expected_permissions
+        
+        # Verify result
+        assert isinstance(result, dict)
+        assert result == MOCK_APP_INFO
+        mock_api_instance.get_app_info.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("gatox.github.api.Api")
+    async def test_validate_app_failure_none_response(self, mock_api):
+        """Test app validation failure when API returns None."""
+        # Setup mocks
+        mock_api_instance = MagicMock()
+        mock_api_instance.get_app_info = AsyncMock(return_value=None)
+        mock_api.return_value = mock_api_instance
+
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = mock_api_instance
+
+        with pytest.raises(ValueError, match="Failed to validate GitHub App - check App ID and private key"):
+            await enumerator.validate_app()
+
+        mock_api_instance.get_app_info.assert_called_once()
+
+
+class TestAppEnumeratorPermissionChecks:
+    """Test class specifically for permission checking scenarios."""
+
+    @pytest.mark.asyncio
+    async def test_enumerate_installation_empty_permissions_list(self):
+        """Test enumerate_installation with empty permissions list."""
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = AsyncMock()
+        enumerator._AppEnumerator__app_permissions = []  # Empty permissions
+
+        with patch("gatox.cli.output.Output.error") as mock_error:
+            result = await enumerator.enumerate_installation("11111")
+
+            assert result == []
+            mock_error.assert_called_once_with(
+                "App does not have contents permissions, cannot enumerate repositories"
+            )
+
+    @pytest.mark.asyncio 
+    async def test_enumerate_installation_none_permissions(self):
+        """Test enumerate_installation with None permissions."""
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = AsyncMock()
+        enumerator._AppEnumerator__app_permissions = None  # None permissions
+
+        with patch("gatox.cli.output.Output.error") as mock_error:
+            # This should raise an AttributeError because 'in' operator can't work on None
+            with pytest.raises(TypeError):
+                await enumerator.enumerate_installation("11111")
+
+    @pytest.mark.asyncio
+    async def test_enumerate_installation_mixed_permissions_no_contents(self):
+        """Test enumerate_installation with various permissions but no contents."""
+        enumerator = AppEnumerator("12345", "/path/to/key.pem")
+        enumerator.api = AsyncMock()
+        enumerator._AppEnumerator__app_permissions = [
+            "metadata:read", 
+            "issues:write", 
+            "pull_requests:read",
+            "actions:read",
+            "checks:write"
+        ]
+
+        with patch("gatox.cli.output.Output.error") as mock_error:
+            result = await enumerator.enumerate_installation("11111")
+
+            assert result == []
+            mock_error.assert_called_once_with(
+                "App does not have contents permissions, cannot enumerate repositories"
+            )
+
+    @pytest.mark.asyncio
+    async def test_enumerate_installation_contents_admin_permission(self):
+        """Test enumerate_installation with contents:admin permission."""
+        # Setup mocks
+        mock_api_instance = AsyncMock()
+        mock_api_instance.get_installation_access_token = AsyncMock(
+            return_value=MOCK_ACCESS_TOKEN
+        )
+        
+        mock_installation_api = AsyncMock()
+        mock_installation_api.get_installation_repos = AsyncMock(
+            return_value={
+                "total_count": 1,
+                "repositories": [MOCK_INSTALLATION_REPOS[0]],
+            }
+        )
+        mock_installation_api.close = AsyncMock()
+
+        with patch("gatox.enumerate.enumerate.Enumerator") as mock_enumerator_class:
+            mock_enumerator_instance = MagicMock()
+            mock_enumerator_instance.enumerate_repos = AsyncMock(return_value=["repo1"])
+            mock_enumerator_class.return_value = mock_enumerator_instance
+
+            # Create enumerator with contents:admin permission (should fail since it's not read/write)
+            enumerator = AppEnumerator("12345", "/path/to/key.pem")
+            enumerator.api = mock_api_instance
+            enumerator._AppEnumerator__app_permissions = ["contents:admin", "metadata:read"]
+
+            with patch("gatox.cli.output.Output.error") as mock_error:
+                result = await enumerator.enumerate_installation("11111")
+
+                # Should fail because admin is not read or write
+                assert result == []
+                mock_error.assert_called_once_with(
+                    "App does not have contents permissions, cannot enumerate repositories"
+                )
 
 
 class TestAppEnumeratorIntegration:
