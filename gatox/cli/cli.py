@@ -114,12 +114,7 @@ def validate_arguments(args, parser):
     # App command has different authentication requirements
     if hasattr(args, "app") and args.app is not None:
         # App command uses App ID + PEM file instead of GH_TOKEN
-        args_dict = vars(args)
-        args_dict["gh_token"] = None  # App command doesn't use this
-    elif "GH_TOKEN" not in os.environ:
-        gh_token = input(
-            "No 'GH_TOKEN' environment variable set! Please enter a GitHub PAT.\n"
-        )
+        gh_token = None  # App command doesn't use this
     else:
         # Regular commands need GH_TOKEN
         if "GH_TOKEN" not in os.environ:

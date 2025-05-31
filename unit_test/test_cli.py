@@ -36,7 +36,7 @@ def mock_settings_env_vars():
         yield
 
 
-@patch("builtins.input", return_value="")
+@patch("builtins.input", return_value="BAD_TOKEN")
 async def test_cli_no_gh_token(mock_input, capfd):
     """Test case where no GH Token is provided"""
     del os.environ["GH_TOKEN"]
