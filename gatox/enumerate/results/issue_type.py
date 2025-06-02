@@ -30,7 +30,7 @@ class IssueType(str, Enum):
     PWN_REQUEST: str = "PwnRequestResult"
     DISPATCH_TOCTOU: str = "DispatchTOCTOUResult"
     ACTIONS_INJECTION: str = "InjectionResult"
-    PR_REVIEW_INJECTON: str = "ReviewInjectionResult"
+    PR_REVIEW_INJECTION: str = "ReviewInjectionResult"
     ENVIRONMENT_POLLUTION: str = "EnvironmentPollutionResult"
 
     def __str__(self) -> str:

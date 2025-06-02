@@ -37,7 +37,7 @@ class ReviewInjectionResult(AnalysisResult):
 
         super().__init__(
             repository_name,
-            IssueType.PR_REVIEW_INJECTON,
+            IssueType.PR_REVIEW_INJECTION,
             confidence_score,
             attack_complexity_score,
         )

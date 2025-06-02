@@ -205,7 +205,7 @@ def test_add_results_and_append_path_extra():
     )
     VisitorUtils._add_results(path, results, IssueType.ACTIONS_INJECTION)
     VisitorUtils._add_results(path, results, IssueType.DISPATCH_TOCTOU)
-    VisitorUtils._add_results(path, results, IssueType.PR_REVIEW_INJECTON)
+    VisitorUtils._add_results(path, results, IssueType.PR_REVIEW_INJECTION)
     assert "repo" in results
     assert len(results["repo"]) == 4
 

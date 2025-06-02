@@ -184,7 +184,7 @@ class ReviewInjectionVisitor:
                                     VisitorUtils._add_results(
                                         path,
                                         results,
-                                        IssueType.PR_REVIEW_INJECTON,
+                                        IssueType.PR_REVIEW_INJECTION,
                                         confidence=conf,
                                     )
                                     break
