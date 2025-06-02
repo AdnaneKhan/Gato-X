@@ -58,6 +58,8 @@ class PwnRequestVisitor:
         env_lookup = {}
         flexible_lookup = {}
         approval_gate = False
+        blocker_nodes = set()  # Memoize blocker nodes found
+        approval_gate_nodes = set()  # Memoize approval gate nodes found
 
         for index, node in enumerate(path):
             tags = node.get_tags()
@@ -88,11 +90,23 @@ class PwnRequestVisitor:
 
                 paths = await graph.dfs_to_tag(node, "permission_blocker", api)
                 if paths:
-                    break
+                    # Memoize the blocker nodes (last node in each path) instead of breaking
+                    for blocker_path in paths:
+                        if blocker_path:
+                            blocker_nodes.add(blocker_path[-1])
+                    logger.debug(
+                        f"Found {len(paths)} permission blocker paths, memoized {len(blocker_nodes)} blocker nodes"
+                    )
 
                 paths = await graph.dfs_to_tag(node, "permission_check", api)
                 if paths:
-                    approval_gate = True
+                    # Memoize the approval gate nodes (last node in each path)
+                    for gate_path in paths:
+                        if gate_path:
+                            approval_gate_nodes.add(gate_path[-1])
+                    logger.debug(
+                        f"Found {len(paths)} permission check paths, memoized {len(approval_gate_nodes)} approval gate nodes"
+                    )
 
                 if node.outputs:
                     for o_key, val in node.outputs.items():
@@ -144,13 +158,49 @@ class PwnRequestVisitor:
                         else:
                             confidence = Confidence.UNKNOWN
 
-                        VisitorUtils._add_results(
-                            path,
-                            results,
-                            IssueType.PWN_REQUEST,
-                            complexity=complexity,
-                            confidence=confidence,
+                        # Check if any blocker nodes or approval gate nodes are in the current path
+                        path_nodes = set(path)
+                        if sinks:
+                            path_nodes.update(sinks[0])
+
+                        has_blocker_in_path = bool(
+                            blocker_nodes.intersection(path_nodes)
                         )
+                        has_approval_gate_in_path = bool(
+                            approval_gate_nodes.intersection(path_nodes)
+                        )
+
+                        # Update approval_gate based on whether approval gate nodes are actually in the path
+                        # or if it was set by other conditions (deployments, soft gates, etc.)
+                        effective_approval_gate = (
+                            approval_gate or has_approval_gate_in_path
+                        )
+
+                        # Recalculate complexity based on effective approval gate
+                        if effective_approval_gate:
+                            complexity = Complexity.TOCTOU
+                        elif "workflow_run" in path[0].get_tags():
+                            complexity = Complexity.PREVIOUS_CONTRIBUTOR
+                        else:
+                            complexity = Complexity.ZERO_CLICK
+
+                        logger.debug(
+                            f"Path analysis: blocker_nodes={len(blocker_nodes)}, approval_gate_nodes={len(approval_gate_nodes)}, path_nodes={len(path_nodes)}, has_blocker_in_path={has_blocker_in_path}, has_approval_gate_in_path={has_approval_gate_in_path}, effective_approval_gate={effective_approval_gate}"
+                        )
+
+                        # Only add results if no blocker nodes are found in the path
+                        if not has_blocker_in_path:
+                            VisitorUtils._add_results(
+                                path,
+                                results,
+                                IssueType.PWN_REQUEST,
+                                complexity=complexity,
+                                confidence=confidence,
+                            )
+                        else:
+                            logger.debug(
+                                "Suppressing results due to blocker node found in path"
+                            )
                         break
 
                 if node.outputs:
