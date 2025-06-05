@@ -84,7 +84,7 @@ class VisitorUtils:
         """
         tags = node.get_tags()
         if "uninitialized" in tags:
-            await WorkflowGraphBuilder()._(node, api)
+            await WorkflowGraphBuilder()._initialize_action_node(node, api)
             graph.remove_tags_from_node(node, ["uninitialized"])
 
     @staticmethod
