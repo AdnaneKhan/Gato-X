@@ -411,11 +411,10 @@ class TestAppEnumerator:
         mock_api_instance.get_installation_access_token.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
     @patch("gatox.cli.output.Output.info")
     @patch("gatox.cli.output.Output.error")
     async def test_enumerate_installation_with_contents_read_permission(
-        self, mock_error, mock_info, mock_api_instance
+        self, mock_error, mock_info
     ):
         """Test enumerate_installation succeeds with contents:read permission."""
         # Setup mocks

@@ -14,3 +14,15 @@ def block_network_calls(monkeypatch):
 
     monkeypatch.setattr(httpx.Client, "send", mock_request)
     monkeypatch.setattr(httpx.AsyncClient, "send", mock_request)
+
+
+@pytest.fixture(autouse=True)
+async def no_async_sleep(monkeypatch):
+    """
+    Fixture to make asyncio.sleep a no-op during tests.
+    """
+
+    async def mock_sleep(delay, result=None):
+        return result  # Immediately return, effectively doing nothing
+
+    monkeypatch.setattr("asyncio.sleep", mock_sleep)
