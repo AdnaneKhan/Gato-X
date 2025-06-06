@@ -32,7 +32,7 @@ class Enumerator:
 
     def __init__(
         self,
-        pat: str,
+        pat: str = None,
         socks_proxy: str = None,
         http_proxy: str = None,
         skip_log: bool = False,
@@ -41,6 +41,7 @@ class Enumerator:
         ignore_workflow_run: bool = False,
         deep_dive: bool = False,
         app_permisions: list = None,
+        api_client: Api = None,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -61,13 +62,20 @@ class Enumerator:
             significantly, but will provide more information about workflows
             and their runs.
             app_permissions (list, optional): List of permissions for GitHub App.
+            api_client (Api, optional): An existing Api client instance.
+            Defaults to None.
         """
-        self.api = Api(
-            pat,
-            socks_proxy=socks_proxy,
-            http_proxy=http_proxy,
-            github_url=github_url,
-        )
+        if api_client:
+            self.api = api_client
+        else:
+            if not pat:
+                raise ValueError("A valid GitHub token must be provided!")
+            self.api = Api(
+                pat,
+                socks_proxy=socks_proxy,
+                http_proxy=http_proxy,
+                github_url=github_url,
+            )
 
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy

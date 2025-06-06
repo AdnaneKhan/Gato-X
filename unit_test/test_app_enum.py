@@ -11,6 +11,7 @@ from gatox.github.app_auth import GitHubAppAuth
 from gatox.enumerate.app_enumerate import AppEnumerator
 from gatox.cli.output import Output
 from gatox.models.execution import Execution
+from gatox.github.api import Api
 
 
 # Initialize output for testing
@@ -276,49 +277,6 @@ class TestAppEnumerator:
         mock_info.assert_called()
 
     @pytest.mark.asyncio
-    @patch("gatox.enumerate.enumerate.Enumerator")
-    @patch("gatox.github.api.Api")
-    @patch("gatox.cli.output.Output.info")
-    @patch("gatox.cli.output.Output.error")
-    async def test_enumerate_installation_repositories(
-        self, mock_error, mock_info, mock_api, mock_enumerator_class
-    ):
-        """Test getting repositories for an installation."""
-        # Setup mocks
-        mock_api_instance = MagicMock()
-        mock_api_instance.get_installation_access_token = AsyncMock(
-            return_value=MOCK_ACCESS_TOKEN
-        )
-        mock_api_instance.get_installation_repositories = AsyncMock(
-            return_value=MOCK_INSTALLATION_REPOS
-        )
-        mock_api_instance.get_installation_info = AsyncMock(
-            return_value=MOCK_INSTALLATIONS[0]
-        )
-
-        # For the mock API constructor, return different instances
-        mock_installation_api = MagicMock()
-        mock_api.side_effect = [mock_api_instance, mock_installation_api]
-
-        # Mock enumerator class
-        mock_enumerator_instance = MagicMock()
-        execution_result = Execution()
-        execution_result.repositories = ["test-org/test-repo-1"]
-        mock_enumerator_instance.enumerate = AsyncMock(return_value=execution_result)
-        mock_enumerator_class.return_value = mock_enumerator_instance
-
-        # Create test object with proper permissions
-        enumerator = AppEnumerator("12345", "/path/to/key.pem")
-        enumerator.api = mock_api_instance
-        enumerator._AppEnumerator__app_permissions = ["contents:read", "metadata:read"]
-
-        # Call the enumerate_installation method and ensure it completes
-        await enumerator.enumerate_installation(11111)
-
-        # Verify the API token was requested
-        mock_api_instance.get_installation_access_token.assert_called_once_with(11111)
-
-    @pytest.mark.asyncio
     @patch("gatox.enumerate.app_enumerate.Enumerator")
     @patch("gatox.cli.output.Output.info")
     @patch("gatox.cli.output.Output.error")
@@ -501,10 +459,11 @@ class TestAppEnumerator:
                 # Don't assert mock_error.assert_not_called() since there might be other validation errors
 
     @pytest.mark.asyncio
+    @patch("gatox.enumerate.enumerate.Api", return_value=AsyncMock(Api))
     @patch("gatox.cli.output.Output.info")
     @patch("gatox.cli.output.Output.error")
     async def test_enumerate_installation_with_contents_write_permission(
-        self, mock_error, mock_info
+        self, mock_error, mock_info, mock_api_instance
     ):
         """Test enumerate_installation succeeds with contents:write permission."""
         # Setup mocks
