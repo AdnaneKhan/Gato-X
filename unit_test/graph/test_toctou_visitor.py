@@ -325,7 +325,7 @@ async def test_empty_path(mock_process_path, mock_cache_manager, mock_graph, moc
     await DispatchTOCTOUVisitor.find_dispatch_misconfigurations(mock_graph, mock_api)
 
     # Verify process_path was called with empty path
-    mock_process_path.assert_called_once_with([], mock_graph, mock_api)
+    mock_process_path.assert_called_once_with([], mock_graph, mock_api, {})
 
 
 @patch("gatox.caching.cache_manager.CacheManager")

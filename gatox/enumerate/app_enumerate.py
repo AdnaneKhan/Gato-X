@@ -179,7 +179,6 @@ class AppEnumerator:
 
         # Create standard enumerator with installation token
         enumerator = Enumerator(
-            installation_token,
             socks_proxy=self.socks_proxy,
             http_proxy=self.http_proxy,
             skip_log=self.skip_log,
@@ -187,6 +186,7 @@ class AppEnumerator:
             ignore_workflow_run=self.ignore_workflow_run,
             deep_dive=self.deep_dive,
             app_permisions=self.__app_permissions,
+            api_client=installation_api,
         )
 
         # Enumerate repositories
