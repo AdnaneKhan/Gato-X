@@ -510,3 +510,20 @@ async def test_unwritable_dir(mock_access, capfd):
     out, err = capfd.readouterr()
 
     assert " is not writeable" in err
+
+
+async def test_attack_invalid_c2_repo_format(capfd):
+    """Test attack command with c2-repo that does not match regex."""
+    with pytest.raises(SystemExit) as e:
+        await cli.cli(
+            [
+                "attack",
+                "-t",
+                "testorg/testrepo",
+                "-w",  # Need to specify an attack type
+                "--c2-repo",
+                "invalid-c2-repo-format",
+            ]
+        )
+    out, err = capfd.readouterr()
+    assert "argument --c2-repo: The argument is not in the valid format!" in err
