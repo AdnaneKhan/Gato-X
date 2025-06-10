@@ -207,7 +207,7 @@ class ActionNode(Node):
         """
         if "path" in params:
             path = params["path"]
-            if "temp" in path or "tmp" in path:
+            if "temp" in path or "tmp" in path or path.startswith("../"):
                 # If the path is a temp directory, it is likely downloading the artifact to a temp directory.
                 return False
 
