@@ -66,7 +66,10 @@ class ActionsReport(Report):
         for entry in pogression:
             Output.generic(entry)
 
-        if result.issue_type() == "PwnRequestResult" and "sink" in machine_details:
+        if (
+            result.issue_type() in [IssueType.PWN_REQUEST, IssueType.ARTIFACT_POISONING]
+            and "sink" in machine_details
+        ):
             Output.generic(f" Sink: {Output.red(machine_details['sink'])}")
 
         cls.print_divider()

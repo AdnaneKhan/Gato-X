@@ -514,7 +514,7 @@ async def test_unwritable_dir(mock_access, capfd):
 
 async def test_attack_invalid_c2_repo_format(capfd):
     """Test attack command with c2-repo that does not match regex."""
-    with pytest.raises(SystemExit) as e:
+    with pytest.raises(SystemExit):
         await cli.cli(
             [
                 "attack",

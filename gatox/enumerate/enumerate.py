@@ -16,6 +16,9 @@ from gatox.workflow_graph.visitors.injection_visitor import InjectionVisitor
 from gatox.workflow_graph.visitors.pwn_request_visitor import PwnRequestVisitor
 from gatox.workflow_graph.visitors.runner_visitor import RunnerVisitor
 from gatox.workflow_graph.visitors.dispatch_toctou_visitor import DispatchTOCTOUVisitor
+from gatox.workflow_graph.visitors.artifact_poisoning_visitor import (
+    ArtifactPoisoningVisitor,
+)
 from gatox.workflow_graph.visitors.review_injection_visitor import (
     ReviewInjectionVisitor,
 )
@@ -464,6 +467,7 @@ class Enumerator:
             (InjectionVisitor, "find_injections"),
             (ReviewInjectionVisitor, "find_injections"),
             (DispatchTOCTOUVisitor, "find_dispatch_misconfigurations"),
+            (ArtifactPoisoningVisitor, "find_artifact_poisoning"),
         ]
 
         # Create tasks for each visitor

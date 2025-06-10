@@ -320,6 +320,8 @@ class WorkflowGraphBuilder:
                     )
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
+                    if action_node.initialized:
+                        prev_step_node = action_node
 
     async def initialize_node(self, node, api):
         tags = node.get_tags()
