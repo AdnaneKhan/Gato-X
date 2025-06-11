@@ -194,7 +194,7 @@ class StepNode(Node):
             self.is_sink = self.params.get("cache", False)
             if self.is_sink:
                 self.__step_data = (
-                    f"actions/setup-node with cache: {self.params.get("cache")}"
+                    f"actions/setup-node with cache: {self.params.get('cache')}"
                 )
         elif "dependabot/fetch-metadata" in uses:
             self.hard_gate = True
