@@ -15,7 +15,6 @@ class TestDispatchTOCTOUResult(unittest.TestCase):
         self.start_node.get_workflow_name.return_value = "workflow.yml"
         self.start_node.get_triggers.return_value = [
             "workflow_dispatch",
-            "repository_dispatch",
         ]
 
         self.end_node = Mock()
@@ -71,7 +70,7 @@ class TestDispatchTOCTOUResult(unittest.TestCase):
         self.assertEqual(output["attack_complexity"], Complexity.TOCTOU)
         self.assertEqual(output["sink"], self.end_node.get_step_data())
         self.assertEqual(
-            output["triggers"], ["workflow_dispatch", "repository_dispatch"]
+            output["triggers"], ["workflow_dispatch"]
         )
 
     def test_to_machine_low_confidence(self):
