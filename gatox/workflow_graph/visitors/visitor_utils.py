@@ -58,6 +58,10 @@ class VisitorUtils:
             result = ResultFactory.create_review_injection_result(
                 path, confidence, complexity
             )
+        elif issue_type == IssueType.ARTIFACT_POISONING:
+            result = ResultFactory.create_artifact_poisoning_result(
+                path, confidence, complexity
+            )
         else:
             raise ValueError(f"Unknown issue type: {issue_type}")
 

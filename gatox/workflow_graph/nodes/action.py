@@ -61,9 +61,25 @@ class ActionNode(Node):
         ]
     )
 
+    # List taken from https://github.com/github/codeql/blob/main/actions/ql/lib/codeql/actions/security/ArtifactPoisoningQuery.qll#L47-L56
     ARTIFACT_RETRIEVERS = set(
         [
             "actions/download-artifact",
+            "dawidd6/action-download-artifact",
+            "marcofaggian/action-download-multiple-artifacts",
+            "benday-inc/download-latest-artifact",
+            "blablacar/action-download-last-artifact",
+            "levonet/action-download-last-artifact",
+            "bettermarks/action-artifact-download",
+            "aochmann/actions-download-artifact",
+            "cytopia/download-artifact-retry-action",
+            "alextompkins/download-prior-artifact",
+            "nmerget/download-gzip-artifact",
+            "benday-inc/download-artifact",
+            "synergy-au/download-workflow-artifacts-action",
+            "sidx1024/action-download-artifact",
+            "hyperskill/azblob-download-artifact",
+            "ma-ve/action-download-artifact-with-retry",
         ]
     )
 
@@ -115,6 +131,7 @@ class ActionNode(Node):
         self.initialized = False
         self.caller_ref = ref
         self.type = "UNK"
+        self.artifact = False
 
         self.action_info = decompose_action_ref(action_name, repo_name)
 
@@ -136,12 +153,17 @@ class ActionNode(Node):
             if initial_path in self.KNOWN_GOOD:
                 self.initialized = True
             if initial_path in self.KNOWN_GATES:
+                self.initialized = True
                 self.is_gate = True
             if initial_path in self.KNOWN_HARD_GATES:
                 self.is_gate = True
                 self.hard_gate = True
             if initial_path in self.KNOWN_SINKS:
                 self.is_sink = True
+                self.initialized = True
+            if initial_path in self.ARTIFACT_RETRIEVERS:
+                self.artifact = self._check_artifact_calling(params)
+                self.initialized = True
         elif self.action_info["docker"]:
             # We don't resolve docker actions
             self.initialized = True
@@ -155,7 +177,7 @@ class ActionNode(Node):
         """
         return hash((self.name, self.__class__.__name__))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """
         Check if two ActionNode instances are equal.
 
@@ -167,9 +189,29 @@ class ActionNode(Node):
         """
         return isinstance(other, self.__class__) and self.name == other.name
 
-    def get_step_data(self):
-        """ """
+    def get_step_data(self) -> dict:
+        """
+        Get the step data associated with the ActionNode instance.
+
+        Returns:
+            dict: A dictionary containing the action information.
+        """
         return self.action_info["key"]
+
+    def _check_artifact_calling(self, params: dict) -> bool:
+        """Check if the action downloads an artifact without specifying a path.
+        Args:
+            params (dict): Parameters associated with the action.
+        Returns:
+            bool: True if the action downloads an artifact without specifying a path, False otherwise.
+        """
+        if "path" in params:
+            path = params["path"]
+            if "temp" in path or "tmp" in path or path.startswith("../"):
+                # If the path is a temp directory, it is likely downloading the artifact to a temp directory.
+                return False
+
+        return True
 
     def get_tags(self):
         """
@@ -192,9 +234,12 @@ class ActionNode(Node):
         if self.is_gate:
             tags.add("permission_check")
 
+        if self.artifact:
+            tags.add("artifact")
+
         return tags
 
-    def get_attrs(self):
+    def get_attrs(self) -> dict:
         """
         Get the attributes associated with the ActionNode instance.
 

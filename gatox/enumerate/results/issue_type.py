@@ -25,6 +25,7 @@ class IssueType(str, Enum):
         DISPATCH_TOCTOU:
         ACTIONS_INJECTION:
         ENVIRONMENT_POLLUTION:
+        ARTIFACT_POISONING:
     """
 
     PWN_REQUEST: str = "PwnRequestResult"
@@ -32,6 +33,7 @@ class IssueType(str, Enum):
     ACTIONS_INJECTION: str = "InjectionResult"
     PR_REVIEW_INJECTION: str = "ReviewInjectionResult"
     ENVIRONMENT_POLLUTION: str = "EnvironmentPollutionResult"
+    ARTIFACT_POISONING: str = "ArtifactPoisoningResult"
 
     def __str__(self) -> str:
         return str(self.value)

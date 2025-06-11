@@ -20,9 +20,9 @@ from gatox.enumerate.results.analysis_result import AnalysisResult
 from gatox.enumerate.results.issue_type import IssueType
 
 
-class DispatchTOCTOUResult(AnalysisResult):
+class ArtifactPoisoningResult(AnalysisResult):
     """
-    Represents the result of a Pwn request analysis.
+    Represents the result of an Artifact Poisoning analysis.
     Inherits from AnalysisResult to include repository name, issue type,
     confidence score, and attack complexity score.
     """
@@ -33,16 +33,24 @@ class DispatchTOCTOUResult(AnalysisResult):
         confidence_score: Confidence,
         attack_complexity_score: Complexity,
     ):
+
         repository_name = path[0].repo_name()
 
         super().__init__(
             repository_name,
-            IssueType.DISPATCH_TOCTOU,
+            IssueType.ARTIFACT_POISONING,
             confidence_score,
             attack_complexity_score,
         )
 
         self.__attack_path = path
+
+    def filter_triggers(self, triggers):
+        """Filter triggers to remove non-relevant ones."""
+        RELEVANT_TRIGGERS = {
+            "workflow_run",
+        }
+        return list(set(triggers) & RELEVANT_TRIGGERS)
 
     def get_first_and_last_hash(self):
         """Returns a hash of the first and last node. In many
@@ -58,14 +66,6 @@ class DispatchTOCTOUResult(AnalysisResult):
             )
         )
 
-    def filter_triggers(self, triggers):
-        """Filter triggers to remove non-relevant ones."""
-        RELEVANT_TRIGGERS = {
-            "workflow_dispatch",
-            "repository_dispatch",
-        }
-        return list(set(triggers) & RELEVANT_TRIGGERS)
-
     def to_machine(self):
         result = {
             "repository_name": self.repo_name(),
@@ -78,7 +78,7 @@ class DispatchTOCTOUResult(AnalysisResult):
             "path": [node for node in self.collect_steps(self.__attack_path)],
             "sink": (
                 self.__attack_path[-1].get_step_data()
-                if self.confidence_score() == Confidence.HIGH
+                if self.confidence_score() == Confidence.MEDIUM
                 else "Not Detected"
             ),
         }

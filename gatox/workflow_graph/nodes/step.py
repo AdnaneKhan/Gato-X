@@ -174,7 +174,6 @@ class StepNode(Node):
         elif "github-script" in uses and "script" in self.params:
             contents = self.params["script"]
             self.contexts = filter_tokens(getTokens(contents))
-
             self.__step_data = contents
             insights = parse_script(contents)
 
@@ -193,6 +192,10 @@ class StepNode(Node):
             self.is_sink = self.params.get("bundler-cache", False)
         elif "actions/setup-node" in uses:
             self.is_sink = self.params.get("cache", False)
+            if self.is_sink:
+                self.__step_data = (
+                    f"actions/setup-node with cache: {self.params.get('cache')}"
+                )
         elif "dependabot/fetch-metadata" in uses:
             self.hard_gate = True
 
