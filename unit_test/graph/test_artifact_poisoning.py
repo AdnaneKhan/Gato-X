@@ -4,7 +4,9 @@ Unit tests for ArtifactPoisoningVisitor
 
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from gatox.workflow_graph.visitors.artifact_poisoning_visitor import ArtifactPoisoningVisitor
+from gatox.workflow_graph.visitors.artifact_poisoning_visitor import (
+    ArtifactPoisoningVisitor,
+)
 from gatox.workflow_graph.graph.tagged_graph import TaggedGraph
 from gatox.github.api import Api
 from gatox.workflow_graph.visitors.visitor_utils import VisitorUtils
@@ -101,12 +103,15 @@ class TestArtifactPoisoningVisitor:
         workflow_run_node2 = MagicMock()
         artifact_node1 = MagicMock()
         artifact_node2 = MagicMock()
-        
+
         mock_path1 = [workflow_run_node1, artifact_node1]
         mock_path2 = [workflow_run_node2, artifact_node2]
 
-        mock_graph.get_nodes_for_tags.return_value = [workflow_run_node1, workflow_run_node2]
-        
+        mock_graph.get_nodes_for_tags.return_value = [
+            workflow_run_node1,
+            workflow_run_node2,
+        ]
+
         # Simulate each node returning different paths
         def mock_dfs_side_effect(node, tag, api):
             if node == workflow_run_node1:
@@ -114,7 +119,7 @@ class TestArtifactPoisoningVisitor:
             elif node == workflow_run_node2:
                 return [mock_path2]
             return None
-        
+
         mock_graph.dfs_to_tag.side_effect = mock_dfs_side_effect
 
         with patch.object(
@@ -122,9 +127,7 @@ class TestArtifactPoisoningVisitor:
             "_ArtifactPoisoningVisitor__process_path",
             new_callable=AsyncMock,
         ) as mock_process:
-            await ArtifactPoisoningVisitor.find_artifact_poisoning(
-                mock_graph, mock_api
-            )
+            await ArtifactPoisoningVisitor.find_artifact_poisoning(mock_graph, mock_api)
 
             # Should be called twice, once for each path
             assert mock_process.call_count == 2
@@ -239,9 +242,11 @@ class TestArtifactPoisoningVisitor:
         # Mock DFS to sink to return a path with sink
         mock_graph.dfs_to_tag.return_value = [[sink_node]]
 
-        with patch.object(VisitorUtils, "initialize_action_node") as mock_init, \
-             patch.object(VisitorUtils, "append_path") as mock_append, \
-             patch.object(VisitorUtils, "_add_results") as mock_add_results:
+        with (
+            patch.object(VisitorUtils, "initialize_action_node") as mock_init,
+            patch.object(VisitorUtils, "append_path") as mock_append,
+            patch.object(VisitorUtils, "_add_results") as mock_add_results,
+        ):
 
             await ArtifactPoisoningVisitor._ArtifactPoisoningVisitor__process_path(
                 path, mock_graph, mock_api, results
@@ -283,9 +288,11 @@ class TestArtifactPoisoningVisitor:
         # Mock DFS to sink to return empty list (no sinks found)
         mock_graph.dfs_to_tag.return_value = []
 
-        with patch.object(VisitorUtils, "initialize_action_node") as mock_init, \
-             patch.object(VisitorUtils, "append_path") as mock_append, \
-             patch.object(VisitorUtils, "_add_results") as mock_add_results:
+        with (
+            patch.object(VisitorUtils, "initialize_action_node") as mock_init,
+            patch.object(VisitorUtils, "append_path") as mock_append,
+            patch.object(VisitorUtils, "_add_results") as mock_add_results,
+        ):
 
             await ArtifactPoisoningVisitor._ArtifactPoisoningVisitor__process_path(
                 path, mock_graph, mock_api, results
@@ -318,8 +325,10 @@ class TestArtifactPoisoningVisitor:
         path = [workflow_node, action_node]
         results = {}
 
-        with patch.object(VisitorUtils, "initialize_action_node") as mock_init, \
-             patch.object(VisitorUtils, "_add_results") as mock_add_results:
+        with (
+            patch.object(VisitorUtils, "initialize_action_node") as mock_init,
+            patch.object(VisitorUtils, "_add_results") as mock_add_results,
+        ):
 
             await ArtifactPoisoningVisitor._ArtifactPoisoningVisitor__process_path(
                 path, mock_graph, mock_api, results
@@ -363,9 +372,11 @@ class TestArtifactPoisoningVisitor:
         # Mock DFS to sink
         mock_graph.dfs_to_tag.return_value = [[sink_node]]
 
-        with patch.object(VisitorUtils, "initialize_action_node") as mock_init, \
-             patch.object(VisitorUtils, "append_path") as _, \
-             patch.object(VisitorUtils, "_add_results") as mock_add_results:
+        with (
+            patch.object(VisitorUtils, "initialize_action_node") as mock_init,
+            patch.object(VisitorUtils, "append_path") as _,
+            patch.object(VisitorUtils, "_add_results") as mock_add_results,
+        ):
 
             await ArtifactPoisoningVisitor._ArtifactPoisoningVisitor__process_path(
                 path, mock_graph, mock_api, results
@@ -409,12 +420,21 @@ class TestArtifactPoisoningVisitor:
     def test_visitor_imports_and_structure(self):
         """Test that the visitor has the expected structure and imports"""
         # Verify the visitor class exists and has expected methods
-        assert hasattr(ArtifactPoisoningVisitor, 'find_artifact_poisoning')
-        assert hasattr(ArtifactPoisoningVisitor, '_ArtifactPoisoningVisitor__process_path')
+        assert hasattr(ArtifactPoisoningVisitor, "find_artifact_poisoning")
+        assert hasattr(
+            ArtifactPoisoningVisitor, "_ArtifactPoisoningVisitor__process_path"
+        )
 
         # Verify the methods are static
-        assert isinstance(ArtifactPoisoningVisitor.__dict__['find_artifact_poisoning'], staticmethod)
-        assert isinstance(ArtifactPoisoningVisitor.__dict__['_ArtifactPoisoningVisitor__process_path'], staticmethod)
+        assert isinstance(
+            ArtifactPoisoningVisitor.__dict__["find_artifact_poisoning"], staticmethod
+        )
+        assert isinstance(
+            ArtifactPoisoningVisitor.__dict__[
+                "_ArtifactPoisoningVisitor__process_path"
+            ],
+            staticmethod,
+        )
 
     async def test_integration_with_visitor_utils(
         self, mock_graph, mock_api, mock_cache_manager
@@ -429,16 +449,18 @@ class TestArtifactPoisoningVisitor:
         action_node.get_tags.return_value = ["ActionNode", "artifact"]
 
         sink_node = MagicMock()
-        
+
         path = [workflow_node, action_node]
         results = {}
 
         mock_graph.dfs_to_tag.return_value = [[sink_node]]
 
         # Test that all VisitorUtils methods are called with correct parameters
-        with patch.object(VisitorUtils, "initialize_action_node") as mock_init, \
-             patch.object(VisitorUtils, "append_path", return_value=path) as mock_append, \
-             patch.object(VisitorUtils, "_add_results") as mock_add_results:
+        with (
+            patch.object(VisitorUtils, "initialize_action_node") as mock_init,
+            patch.object(VisitorUtils, "append_path", return_value=path) as mock_append,
+            patch.object(VisitorUtils, "_add_results") as mock_add_results,
+        ):
 
             await ArtifactPoisoningVisitor._ArtifactPoisoningVisitor__process_path(
                 path, mock_graph, mock_api, results

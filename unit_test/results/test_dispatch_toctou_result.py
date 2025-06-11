@@ -69,9 +69,7 @@ class TestDispatchTOCTOUResult(unittest.TestCase):
         self.assertEqual(output["confidence"], Confidence.HIGH)
         self.assertEqual(output["attack_complexity"], Complexity.TOCTOU)
         self.assertEqual(output["sink"], self.end_node.get_step_data())
-        self.assertEqual(
-            output["triggers"], ["workflow_dispatch"]
-        )
+        self.assertEqual(output["triggers"], ["workflow_dispatch"])
 
     def test_to_machine_low_confidence(self):
         """Test machine output format with low confidence."""
