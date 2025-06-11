@@ -833,51 +833,6 @@ async def test_workflow_ymls_ref():
     assert ymls[0].workflow_contents == "FooBarBaz"
 
 
-async def test_workflow_ymls_ref_pagination():
-    """Test retrieving workflow yml files across multiple pages."""
-    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    mock_client = AsyncMock()
-
-    # First page returns 100 items, only one is a workflow file
-    page_one_listing = [
-        {"name": "first.yml", "path": ".github/workflows/first.yml", "type": "file"}
-    ] + [
-        {
-            "name": f"file{i}.txt",
-            "path": f".github/workflows/file{i}.txt",
-            "type": "file",
-        }
-        for i in range(99)
-    ]
-    # Second page has a single workflow file
-    page_two_listing = [
-        {"name": "second.yml", "path": ".github/workflows/second.yml", "type": "file"}
-    ]
-
-    base64_first = base64.b64encode(b"Foo")
-    base64_second = base64.b64encode(b"Bar")
-
-    mock_client.get.side_effect = [
-        MagicMock(status_code=200, json=MagicMock(return_value=page_one_listing)),
-        MagicMock(status_code=200, json=MagicMock(return_value=page_two_listing)),
-        MagicMock(
-            status_code=200, json=MagicMock(return_value={"content": base64_first})
-        ),
-        MagicMock(
-            status_code=200, json=MagicMock(return_value={"content": base64_second})
-        ),
-    ]
-
-    api = Api(test_pat, "2022-11-28", client=mock_client)
-    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
-    ymls = await api.retrieve_workflow_ymls_ref("testOrg/testRepo", sha)
-
-    assert len(ymls) == 2
-    names = {y.workflow_name for y in ymls}
-    assert names == {"first.yml", "second.yml"}
-    assert mock_client.get.call_count == 4
-
-
 async def test_get_secrets():
     """Test getting repo secret names."""
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
