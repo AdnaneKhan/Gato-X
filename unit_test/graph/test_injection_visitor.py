@@ -25,49 +25,53 @@ class TestInjectionVisitor:
         mock_graph.get_nodes_for_tags.return_value = []
 
         results = await InjectionVisitor.find_injections(mock_graph, mock_api)
-        
+
         assert results == {}
         expected_tags = [
             "issue_comment",
-            "pull_request_target", 
+            "pull_request_target",
             "fork",
             "issues",
             "discussion",
             "discussion_comment",
-            "workflow_run"
+            "workflow_run",
         ]
         mock_graph.get_nodes_for_tags.assert_called_once_with(expected_tags)
 
     async def test_find_injections_ignore_workflow_run(self, mock_graph, mock_api):
         """Test that workflow_run tag is excluded when ignore_workflow_run is True"""
         mock_graph.get_nodes_for_tags.return_value = []
-        
-        await InjectionVisitor.find_injections(mock_graph, mock_api, ignore_workflow_run=True)
+
+        await InjectionVisitor.find_injections(
+            mock_graph, mock_api, ignore_workflow_run=True
+        )
 
         expected_tags = [
             "issue_comment",
             "pull_request_target",
-            "fork", 
+            "fork",
             "issues",
             "discussion",
-            "discussion_comment"
+            "discussion_comment",
         ]
         mock_graph.get_nodes_for_tags.assert_called_once_with(expected_tags)
 
     async def test_find_injections_include_workflow_run(self, mock_graph, mock_api):
         """Test that workflow_run tag is included when ignore_workflow_run is False"""
         mock_graph.get_nodes_for_tags.return_value = []
-        
-        await InjectionVisitor.find_injections(mock_graph, mock_api, ignore_workflow_run=False)
+
+        await InjectionVisitor.find_injections(
+            mock_graph, mock_api, ignore_workflow_run=False
+        )
 
         expected_tags = [
             "issue_comment",
             "pull_request_target",
             "fork",
-            "issues", 
+            "issues",
             "discussion",
             "discussion_comment",
-            "workflow_run"
+            "workflow_run",
         ]
         mock_graph.get_nodes_for_tags.assert_called_once_with(expected_tags)
 
@@ -77,11 +81,15 @@ class TestInjectionVisitor:
         mock_graph.get_nodes_for_tags.return_value = [mock_node]
         mock_graph.dfs_to_tag = AsyncMock(side_effect=Exception("DFS error"))
 
-        with patch("gatox.workflow_graph.visitors.injection_visitor.logger") as mock_logger:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.logger"
+        ) as mock_logger:
             results = await InjectionVisitor.find_injections(mock_graph, mock_api)
 
             assert results == {}
-            mock_logger.error.assert_any_call("Error finding paths for injection node: DFS error")
+            mock_logger.error.assert_any_call(
+                "Error finding paths for injection node: DFS error"
+            )
             mock_logger.error.assert_any_call(f"Node: {mock_node}")
 
     async def test_find_injections_no_paths(self, mock_graph, mock_api):
@@ -116,21 +124,27 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock()
         mock_graph.dfs_to_tag.side_effect = [
             [path],  # First call returns the main path
-            None,    # permission_check call
-            None     # permission_blocker call
+            None,  # permission_check call
+            None,  # permission_blocker call
         ]
 
         # Mock environment protection rules
-        mock_api.get_all_environment_protection_rules.return_value = {"production": True}
+        mock_api.get_all_environment_protection_rules.return_value = {
+            "production": True
+        }
 
-        with patch("gatox.workflow_graph.visitors.injection_visitor.VisitorUtils") as mock_visitor_utils:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.VisitorUtils"
+        ) as mock_visitor_utils:
             mock_visitor_utils.process_context_var.return_value = "production"
             mock_visitor_utils._add_results.return_value = None
 
             await InjectionVisitor.find_injections(mock_graph, mock_api)
 
             # Should call get_all_environment_protection_rules
-            mock_api.get_all_environment_protection_rules.assert_called_with("owner/repo")
+            mock_api.get_all_environment_protection_rules.assert_called_with(
+                "owner/repo"
+            )
 
     async def test_find_injections_with_step_node_injection(self, mock_graph, mock_api):
         """Test path analysis with StepNode injection"""
@@ -139,7 +153,9 @@ class TestInjectionVisitor:
         mock_job_node.get_tags.return_value = ["JobNode"]
         mock_job_node.repo_name.return_value = "owner/repo"
         mock_job_node.deployments = []
-        mock_job_node.get_env_vars.return_value = {"PR_BODY": "github.event.pull_request.body"}
+        mock_job_node.get_env_vars.return_value = {
+            "PR_BODY": "github.event.pull_request.body"
+        }
         mock_job_node.outputs = None
 
         # Setup mock step node with injection
@@ -153,17 +169,23 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock()
         mock_graph.dfs_to_tag.side_effect = [
             [path],  # First call returns the main path
-            None,    # permission_check call
-            None     # permission_blocker call
+            None,  # permission_check call
+            None,  # permission_blocker call
         ]
 
-        with patch("gatox.workflow_graph.visitors.injection_visitor.VisitorUtils") as mock_visitor_utils:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.VisitorUtils"
+        ) as mock_visitor_utils:
             mock_visitor_utils._add_results.return_value = None
-            
-            with patch("gatox.workflow_graph.visitors.injection_visitor.getToken") as mock_get_token:
+
+            with patch(
+                "gatox.workflow_graph.visitors.injection_visitor.getToken"
+            ) as mock_get_token:
                 mock_get_token.return_value = "github.event.issue.title"
-                
-                with patch("gatox.workflow_graph.visitors.injection_visitor.checkUnsafe") as mock_check_unsafe:
+
+                with patch(
+                    "gatox.workflow_graph.visitors.injection_visitor.checkUnsafe"
+                ) as mock_check_unsafe:
                     mock_check_unsafe.return_value = True
 
                     await InjectionVisitor.find_injections(mock_graph, mock_api)
@@ -191,9 +213,9 @@ class TestInjectionVisitor:
         mock_graph.get_nodes_for_tags.return_value = [mock_job_node]
         mock_graph.dfs_to_tag = AsyncMock()
         mock_graph.dfs_to_tag.side_effect = [
-            [path],     # First call returns the main path
-            None,       # permission_check call
-            [["blocker_path"]]  # permission_blocker call returns a path
+            [path],  # First call returns the main path
+            None,  # permission_check call
+            [["blocker_path"]],  # permission_blocker call returns a path
         ]
 
         results = await InjectionVisitor.find_injections(mock_graph, mock_api)
@@ -215,7 +237,9 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock(return_value=[path])
 
         # Mock repository as fork
-        with patch("gatox.workflow_graph.visitors.injection_visitor.CacheManager") as mock_cache_manager:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.CacheManager"
+        ) as mock_cache_manager:
             mock_repo = MagicMock()
             mock_repo.is_fork.return_value = True
             mock_cache_manager.return_value.get_repository.return_value = mock_repo
@@ -243,18 +267,24 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock(return_value=[path])
 
         # Mock repository as not fork
-        with patch("gatox.workflow_graph.visitors.injection_visitor.CacheManager") as mock_cache_manager:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.CacheManager"
+        ) as mock_cache_manager:
             mock_repo = MagicMock()
             mock_repo.is_fork.return_value = False
             mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
-            with patch("gatox.workflow_graph.visitors.injection_visitor.VisitorUtils") as mock_visitor_utils:
+            with patch(
+                "gatox.workflow_graph.visitors.injection_visitor.VisitorUtils"
+            ) as mock_visitor_utils:
                 mock_visitor_utils.initialize_action_node = AsyncMock()
 
                 await InjectionVisitor.find_injections(mock_graph, mock_api)
 
                 # Should initialize action node
-                mock_visitor_utils.initialize_action_node.assert_called_with(mock_graph, mock_api, mock_action_node)
+                mock_visitor_utils.initialize_action_node.assert_called_with(
+                    mock_graph, mock_api, mock_action_node
+                )
 
     async def test_find_injections_with_job_outputs(self, mock_graph, mock_api):
         """Test path analysis with JobNode that has outputs"""
@@ -267,7 +297,7 @@ class TestInjectionVisitor:
         mock_job_node.outputs = {
             "output1": "env.TEST_VAR",  # String output referencing env var
             "output2": {"value": "test"},  # Non-string output
-            "output3": "static_value"  # String output not referencing env
+            "output3": "static_value",  # String output not referencing env
         }
 
         # Setup mock step node
@@ -281,17 +311,23 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock()
         mock_graph.dfs_to_tag.side_effect = [
             [path],  # First call returns the main path
-            None,    # permission_check call
-            None     # permission_blocker call
+            None,  # permission_check call
+            None,  # permission_blocker call
         ]
 
-        with patch("gatox.workflow_graph.visitors.injection_visitor.VisitorUtils") as mock_visitor_utils:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.VisitorUtils"
+        ) as mock_visitor_utils:
             mock_visitor_utils._add_results.return_value = None
-            
-            with patch("gatox.workflow_graph.visitors.injection_visitor.getToken") as mock_get_token:
+
+            with patch(
+                "gatox.workflow_graph.visitors.injection_visitor.getToken"
+            ) as mock_get_token:
                 mock_get_token.return_value = "github.event.issue.title"
-                
-                with patch("gatox.workflow_graph.visitors.injection_visitor.checkUnsafe") as mock_check_unsafe:
+
+                with patch(
+                    "gatox.workflow_graph.visitors.injection_visitor.checkUnsafe"
+                ) as mock_check_unsafe:
                     mock_check_unsafe.return_value = True
 
                     await InjectionVisitor.find_injections(mock_graph, mock_api)
@@ -308,7 +344,7 @@ class TestInjectionVisitor:
         mock_job_node.deployments = []
         mock_job_node.get_env_vars.return_value = {
             "ENV_VAR": "github.event.pull_request.body",
-            "SAFE_VAR": "github.event.pull_request.number"
+            "SAFE_VAR": "github.event.pull_request.number",
         }
         mock_job_node.outputs = None
 
@@ -316,10 +352,10 @@ class TestInjectionVisitor:
         mock_step_node = MagicMock()
         mock_step_node.get_tags.return_value = ["StepNode", "injectable"]
         mock_step_node.contexts = [
-            "inputs.user_input",          # inputs. variable
-            "env.ENV_VAR",                # env. variable
-            "github.event.issue.title",   # direct github variable
-            "${{ github.event.test }}"    # variable with ${{ }} syntax
+            "inputs.user_input",  # inputs. variable
+            "env.ENV_VAR",  # env. variable
+            "github.event.issue.title",  # direct github variable
+            "${{ github.event.test }}",  # variable with ${{ }} syntax
         ]
 
         path = [mock_job_node, mock_step_node]
@@ -328,23 +364,33 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock()
         mock_graph.dfs_to_tag.side_effect = [
             [path],  # First call returns the main path
-            None,    # permission_check call
-            None     # permission_blocker call
+            None,  # permission_check call
+            None,  # permission_blocker call
         ]
 
-        with patch("gatox.workflow_graph.visitors.injection_visitor.VisitorUtils") as mock_visitor_utils:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.VisitorUtils"
+        ) as mock_visitor_utils:
             mock_visitor_utils._add_results.return_value = None
-            
-            with patch("gatox.workflow_graph.visitors.injection_visitor.CONTEXT_REGEX") as mock_regex:
+
+            with patch(
+                "gatox.workflow_graph.visitors.injection_visitor.CONTEXT_REGEX"
+            ) as mock_regex:
                 mock_regex.findall.return_value = ["github.event.test"]
-                
-                with patch("gatox.workflow_graph.visitors.injection_visitor.getToken") as mock_get_token:
+
+                with patch(
+                    "gatox.workflow_graph.visitors.injection_visitor.getToken"
+                ) as mock_get_token:
                     mock_get_token.side_effect = lambda x: x  # Return input as-is
-                    
-                    with patch("gatox.workflow_graph.visitors.injection_visitor.getTokens") as mock_get_tokens:
+
+                    with patch(
+                        "gatox.workflow_graph.visitors.injection_visitor.getTokens"
+                    ) as mock_get_tokens:
                         mock_get_tokens.return_value = ["github.event.test"]
-                        
-                        with patch("gatox.workflow_graph.visitors.injection_visitor.checkUnsafe") as mock_check_unsafe:
+
+                        with patch(
+                            "gatox.workflow_graph.visitors.injection_visitor.checkUnsafe"
+                        ) as mock_check_unsafe:
                             mock_check_unsafe.return_value = True
 
                             await InjectionVisitor.find_injections(mock_graph, mock_api)
@@ -377,23 +423,31 @@ class TestInjectionVisitor:
         mock_graph.dfs_to_tag = AsyncMock()
         mock_graph.dfs_to_tag.side_effect = [
             [path],  # First call returns the main path
-            None,    # permission_check call
-            None     # permission_blocker call
+            None,  # permission_check call
+            None,  # permission_blocker call
         ]
 
         # Mock repository as not fork
-        with patch("gatox.workflow_graph.visitors.injection_visitor.CacheManager") as mock_cache_manager:
+        with patch(
+            "gatox.workflow_graph.visitors.injection_visitor.CacheManager"
+        ) as mock_cache_manager:
             mock_repo = MagicMock()
             mock_repo.is_fork.return_value = False
             mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
-            with patch("gatox.workflow_graph.visitors.injection_visitor.VisitorUtils") as mock_visitor_utils:
+            with patch(
+                "gatox.workflow_graph.visitors.injection_visitor.VisitorUtils"
+            ) as mock_visitor_utils:
                 mock_visitor_utils._add_results.return_value = None
-                
-                with patch("gatox.workflow_graph.visitors.injection_visitor.getToken") as mock_get_token:
+
+                with patch(
+                    "gatox.workflow_graph.visitors.injection_visitor.getToken"
+                ) as mock_get_token:
                     mock_get_token.return_value = "github.event.issue.title"
-                    
-                    with patch("gatox.workflow_graph.visitors.injection_visitor.checkUnsafe") as mock_check_unsafe:
+
+                    with patch(
+                        "gatox.workflow_graph.visitors.injection_visitor.checkUnsafe"
+                    ) as mock_check_unsafe:
                         mock_check_unsafe.return_value = True
 
                         await InjectionVisitor.find_injections(mock_graph, mock_api)
@@ -402,4 +456,4 @@ class TestInjectionVisitor:
                         mock_visitor_utils._add_results.assert_called()
                         # Check the complexity argument in the call
                         call_args = mock_visitor_utils._add_results.call_args
-                        assert call_args[1]['complexity'].name == 'PREVIOUS_CONTRIBUTOR'
+                        assert call_args[1]["complexity"].name == "PREVIOUS_CONTRIBUTOR"

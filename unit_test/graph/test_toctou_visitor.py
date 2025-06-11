@@ -836,9 +836,7 @@ async def test_process_path_job_node_with_outputs(mock_graph, mock_api):
     # Create mock job node with outputs
     mock_job_node = MagicMock()
     mock_job_node.get_tags.return_value = ["JobNode"]
-    mock_job_node.outputs = {
-        "output_key": "env.PR_ENV_VAR"
-    }
+    mock_job_node.outputs = {"output_key": "env.PR_ENV_VAR"}
     mock_job_node.params = {"input_param": "test_value"}
 
     # Create mock step node with checkout
@@ -850,14 +848,20 @@ async def test_process_path_job_node_with_outputs(mock_graph, mock_api):
     path = [mock_workflow_node, mock_job_node, mock_step_node]
 
     # Mock VisitorUtils methods and CacheManager
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils.append_path.return_value = None
         mock_visitor_utils._add_results.return_value = None
-        
+
         # Mock dfs_to_tag to return sink paths using AsyncMock
         mock_graph.dfs_to_tag = AsyncMock(return_value=[["sink_path"]])
 
@@ -888,16 +892,20 @@ async def test_process_path_fork_repository(mock_graph, mock_api):
     results = {}
 
     # Mock CacheManager inside the test execution
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+    ) as mock_cache_manager:
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
-        
+
         await DispatchTOCTOUVisitor._DispatchTOCTOUVisitor__process_path(
             path, mock_graph, mock_api, results
         )
 
         # Verify that CacheManager was called with correct repo name
         mock_cache_manager.assert_called_once()
-        mock_cache_manager.return_value.get_repository.assert_called_once_with("owner/repo")
+        mock_cache_manager.return_value.get_repository.assert_called_once_with(
+            "owner/repo"
+        )
 
 
 async def test_process_path_no_inputs(mock_graph, mock_api):
@@ -905,8 +913,10 @@ async def test_process_path_no_inputs(mock_graph, mock_api):
     # Mock repository to not be a fork
     mock_repo = MagicMock()
     mock_repo.is_fork.return_value = False
-    
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
+
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+    ) as mock_cache_manager:
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
         # Create mock workflow node with no inputs
@@ -948,10 +958,18 @@ async def test_process_path_step_node_checkout_with_context_regex(mock_graph, mo
     path = [mock_workflow_node, mock_step_node]
 
     # Mock CacheManager, CONTEXT_REGEX, and VisitorUtils
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX") as mock_regex, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX"
+        ) as mock_regex,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         mock_regex.findall.return_value = ["inputs.pr_number"]
         mock_visitor_utils.check_mutable_ref.return_value = True
@@ -993,13 +1011,19 @@ async def test_process_path_step_node_checkout_env_lookup(mock_graph, mock_api):
     path = [mock_workflow_node, mock_step_node]
 
     # Mock CacheManager and VisitorUtils
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils._add_results.return_value = None
-        
+
         # Mock dfs_to_tag to return no sinks using AsyncMock
         mock_graph.dfs_to_tag = AsyncMock(return_value=None)
 
@@ -1037,13 +1061,19 @@ async def test_process_path_step_node_checkout_inputs_env_lookup(mock_graph, moc
     path = [mock_workflow_node, mock_step_node]
 
     # Mock CacheManager and VisitorUtils
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils._add_results.return_value = None
-        
+
         # Mock dfs_to_tag to return no sinks using AsyncMock
         mock_graph.dfs_to_tag = AsyncMock(return_value=None)
 
@@ -1057,7 +1087,9 @@ async def test_process_path_step_node_checkout_inputs_env_lookup(mock_graph, moc
         mock_visitor_utils.check_mutable_ref.assert_called_with("inputs.pr_number")
 
 
-async def test_process_path_step_node_checkout_dollar_brace_env_lookup(mock_graph, mock_api):
+async def test_process_path_step_node_checkout_dollar_brace_env_lookup(
+    mock_graph, mock_api
+):
     """Test process_path with StepNode checkout using ${{ inputs.* }} syntax for environment variable lookup"""
     # Mock repository to not be a fork
     mock_repo = MagicMock()
@@ -1081,16 +1113,24 @@ async def test_process_path_step_node_checkout_dollar_brace_env_lookup(mock_grap
     path = [mock_workflow_node, mock_step_node]
 
     # Mock CacheManager, CONTEXT_REGEX, and VisitorUtils
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX") as mock_regex, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX"
+        ) as mock_regex,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         # Mock CONTEXT_REGEX to extract the variable
         mock_regex.findall.return_value = ["inputs.pr_number"]
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils._add_results.return_value = None
-        
+
         # Mock dfs_to_tag to return no sinks using AsyncMock
         mock_graph.dfs_to_tag = AsyncMock(return_value=None)
 
@@ -1102,7 +1142,9 @@ async def test_process_path_step_node_checkout_dollar_brace_env_lookup(mock_grap
         # Should check mutable ref with the environment variable value
         # because CONTEXT_REGEX extracts "inputs.pr_number", strips "inputs." to get "pr_number",
         # and finds "pr_number" in env_lookup
-        mock_visitor_utils.check_mutable_ref.assert_called_with("github.event.pull_request.number")
+        mock_visitor_utils.check_mutable_ref.assert_called_with(
+            "github.event.pull_request.number"
+        )
 
 
 async def test_process_path_action_node(mock_graph, mock_api):
@@ -1110,8 +1152,10 @@ async def test_process_path_action_node(mock_graph, mock_api):
     # Mock repository to not be a fork
     mock_repo = MagicMock()
     mock_repo.is_fork.return_value = False
-    
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
+
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+    ) as mock_cache_manager:
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
         # Create mock workflow node with PR number input
@@ -1128,7 +1172,9 @@ async def test_process_path_action_node(mock_graph, mock_api):
         path = [mock_workflow_node, mock_action_node]
 
         # Mock VisitorUtils methods
-        with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
+        with patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils:
             mock_visitor_utils.initialize_action_node = AsyncMock()
 
             results = {}
@@ -1137,43 +1183,62 @@ async def test_process_path_action_node(mock_graph, mock_api):
             )
 
             # Should initialize action node
-            mock_visitor_utils.initialize_action_node.assert_called_with(mock_graph, mock_api, mock_action_node)
+            mock_visitor_utils.initialize_action_node.assert_called_with(
+                mock_graph, mock_api, mock_action_node
+            )
 
 
 async def test_find_dispatch_misconfigurations_dfs_exception(mock_graph, mock_api):
     """Test exception handling during DFS to tag operation"""
     mock_node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [mock_node]
-    
+
     # Mock dfs_to_tag to raise an exception
     mock_graph.dfs_to_tag = AsyncMock(side_effect=Exception("DFS error"))
 
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.logger") as mock_logger:
-        result = await DispatchTOCTOUVisitor.find_dispatch_misconfigurations(mock_graph, mock_api)
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.logger"
+    ) as mock_logger:
+        result = await DispatchTOCTOUVisitor.find_dispatch_misconfigurations(
+            mock_graph, mock_api
+        )
 
         # Should handle exception gracefully and return empty results
         assert result == {}
-        mock_logger.error.assert_called_with("Error finding paths for dispatch node: DFS error")
+        mock_logger.error.assert_called_with(
+            "Error finding paths for dispatch node: DFS error"
+        )
         mock_logger.warning.assert_called_with(f"Node: {mock_node}")
 
 
-async def test_find_dispatch_misconfigurations_process_path_exception(mock_graph, mock_api):
+async def test_find_dispatch_misconfigurations_process_path_exception(
+    mock_graph, mock_api
+):
     """Test exception handling during path processing"""
     mock_node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [mock_node]
-    
+
     # Mock successful DFS but failing path processing
     mock_path = [MagicMock(), MagicMock()]
     mock_graph.dfs_to_tag = AsyncMock(return_value=[mock_path])
 
-    with patch.object(DispatchTOCTOUVisitor, '_DispatchTOCTOUVisitor__process_path', 
-                      side_effect=Exception("Process path error")):
-        with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.logger") as mock_logger:
-            result = await DispatchTOCTOUVisitor.find_dispatch_misconfigurations(mock_graph, mock_api)
+    with patch.object(
+        DispatchTOCTOUVisitor,
+        "_DispatchTOCTOUVisitor__process_path",
+        side_effect=Exception("Process path error"),
+    ):
+        with patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.logger"
+        ) as mock_logger:
+            result = await DispatchTOCTOUVisitor.find_dispatch_misconfigurations(
+                mock_graph, mock_api
+            )
 
             # Should handle exception gracefully and return empty results
             assert result == {}
-            mock_logger.warning.assert_any_call("Error processing path: Process path error")
+            mock_logger.warning.assert_any_call(
+                "Error processing path: Process path error"
+            )
             mock_logger.warning.assert_any_call(f"Path: {mock_path}")
 
 
@@ -1182,8 +1247,10 @@ async def test_process_path_job_node_with_env_outputs(mock_graph, mock_api):
     # Mock repository to not be a fork
     mock_repo = MagicMock()
     mock_repo.is_fork.return_value = False
-    
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
+
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+    ) as mock_cache_manager:
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
         # Create mock workflow node
@@ -1198,9 +1265,7 @@ async def test_process_path_job_node_with_env_outputs(mock_graph, mock_api):
         # Create mock job node with env-based outputs
         mock_job_node = MagicMock()
         mock_job_node.get_tags.return_value = ["JobNode"]
-        mock_job_node.outputs = {
-            "test_output": "env.TEST_ENV"  # References env var
-        }
+        mock_job_node.outputs = {"test_output": "env.TEST_ENV"}  # References env var
         mock_job_node.params = {}
 
         path = [mock_workflow_node, mock_job_node]
@@ -1219,8 +1284,10 @@ async def test_process_path_workflow_call_with_job_params(mock_graph, mock_api):
     # Mock repository to not be a fork
     mock_repo = MagicMock()
     mock_repo.is_fork.return_value = False
-    
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
+
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+    ) as mock_cache_manager:
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
         # Create mock job node (should be at index 0)
@@ -1258,14 +1325,16 @@ async def test_process_path_workflow_node_with_required_sha(mock_graph, mock_api
     mock_workflow_node.repo_name.return_value = "owner/repo"
     mock_workflow_node.inputs = {
         "pr_number": {"required": True},
-        "commit_sha": {"required": True}  # Required SHA should stop processing
+        "commit_sha": {"required": True},  # Required SHA should stop processing
     }
     mock_workflow_node.get_env_vars.return_value = {}
 
     path = [mock_workflow_node]
 
     # Mock CacheManager
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager:
+    with patch(
+        "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+    ) as mock_cache_manager:
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
 
         results = {}
@@ -1277,7 +1346,9 @@ async def test_process_path_workflow_node_with_required_sha(mock_graph, mock_api
         assert results == {}
 
 
-async def test_process_path_step_node_checkout_context_regex_empty_result(mock_graph, mock_api):
+async def test_process_path_step_node_checkout_context_regex_empty_result(
+    mock_graph, mock_api
+):
     """Test process_path with StepNode checkout when CONTEXT_REGEX returns empty"""
     # Mock repository to not be a fork
     mock_repo = MagicMock()
@@ -1299,16 +1370,24 @@ async def test_process_path_step_node_checkout_context_regex_empty_result(mock_g
     path = [mock_workflow_node, mock_step_node]
 
     # Mock all dependencies
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX") as mock_regex, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX"
+        ) as mock_regex,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         # Mock CONTEXT_REGEX to return empty list
         mock_regex.findall.return_value = []
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils._add_results.return_value = None
-        
+
         # Mock dfs_to_tag to return no sinks
         mock_graph.dfs_to_tag = AsyncMock(return_value=None)
 
@@ -1318,7 +1397,9 @@ async def test_process_path_step_node_checkout_context_regex_empty_result(mock_g
         )
 
         # Should check mutable ref with the original metadata since CONTEXT_REGEX returned empty
-        mock_visitor_utils.check_mutable_ref.assert_called_with("${{ some.unknown.value }}")
+        mock_visitor_utils.check_mutable_ref.assert_called_with(
+            "${{ some.unknown.value }}"
+        )
 
 
 async def test_process_path_step_node_checkout_input_lookup(mock_graph, mock_api):
@@ -1348,16 +1429,24 @@ async def test_process_path_step_node_checkout_input_lookup(mock_graph, mock_api
     path = [mock_job_node, mock_workflow_node, mock_step_node]
 
     # Mock dependencies
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX") as mock_regex, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CONTEXT_REGEX"
+        ) as mock_regex,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         # Mock CONTEXT_REGEX to extract and allow stripping inputs.
         mock_regex.findall.return_value = ["inputs.pr_ref"]
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils._add_results.return_value = None
-        
+
         mock_graph.dfs_to_tag = AsyncMock(return_value=None)
 
         results = {}
@@ -1396,14 +1485,20 @@ async def test_process_path_step_node_checkout_with_sinks(mock_graph, mock_api):
     mock_sink_path = [MagicMock(), MagicMock()]
 
     # Mock dependencies
-    with patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager") as mock_cache_manager, \
-         patch("gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils") as mock_visitor_utils:
-        
+    with (
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.CacheManager"
+        ) as mock_cache_manager,
+        patch(
+            "gatox.workflow_graph.visitors.dispatch_toctou_visitor.VisitorUtils"
+        ) as mock_visitor_utils,
+    ):
+
         mock_cache_manager.return_value.get_repository.return_value = mock_repo
         mock_visitor_utils.check_mutable_ref.return_value = True
         mock_visitor_utils.append_path.return_value = None
         mock_visitor_utils._add_results.return_value = None
-        
+
         # Mock dfs_to_tag to return sinks
         mock_graph.dfs_to_tag = AsyncMock(return_value=[mock_sink_path])
 

@@ -297,7 +297,9 @@ async def test_process_single_path_approval_gate_affects_complexity(
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_job_node_with_deployments(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_job_node_with_deployments(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test job node with deployment environment rules"""
     # Create mock nodes
     workflow_node = MagicMock()
@@ -343,18 +345,22 @@ async def test_process_single_path_job_node_with_deployments(mock_graph, mock_ap
     rule_cache = {}
 
     # Mock VisitorUtils methods
-    with patch.object(VisitorUtils, "process_context_var", return_value="production"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="production"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
         )
 
         # Should call API to get environment protection rules
-        mock_api.get_all_environment_protection_rules.assert_called_once_with("test/repo")
-        
+        mock_api.get_all_environment_protection_rules.assert_called_once_with(
+            "test/repo"
+        )
+
         # Verify approval gate was triggered and complexity is TOCTOU
         mock_add_results.assert_called_once()
         call_args = mock_add_results.call_args
@@ -362,7 +368,9 @@ async def test_process_single_path_job_node_with_deployments(mock_graph, mock_ap
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_job_node_with_outputs_and_env_lookup(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_job_node_with_outputs_and_env_lookup(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test job node with outputs that reference environment variables"""
     # Create mock nodes
     workflow_node = MagicMock()
@@ -377,7 +385,7 @@ async def test_process_single_path_job_node_with_outputs_and_env_lookup(mock_gra
     job_node.outputs = {
         "output1": "env.MY_VAR",  # References environment variable
         "output2": "static_value",  # Static value
-        "output3": 123  # Non-string value
+        "output3": 123,  # Non-string value
     }
     job_node.repo_name.return_value = "test/repo"
 
@@ -407,10 +415,12 @@ async def test_process_single_path_job_node_with_outputs_and_env_lookup(mock_gra
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="output1"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="output1"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -421,7 +431,9 @@ async def test_process_single_path_job_node_with_outputs_and_env_lookup(mock_gra
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_step_node_with_outputs_and_env(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_step_node_with_outputs_and_env(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test step node with outputs containing environment references"""
     # Create mock nodes
     workflow_node = MagicMock()
@@ -433,9 +445,7 @@ async def test_process_single_path_step_node_with_outputs_and_env(mock_graph, mo
     step_node = MagicMock()
     step_node.get_tags.return_value = ["StepNode"]
     step_node.is_checkout = False
-    step_node.outputs = {
-        "step_output": "env.SOME_VAR"
-    }
+    step_node.outputs = {"step_output": "env.SOME_VAR"}
     step_node.hard_gate = False
     step_node.soft_gate = False
 
@@ -465,10 +475,12 @@ async def test_process_single_path_step_node_with_outputs_and_env(mock_graph, mo
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="processed"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="processed"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -481,7 +493,9 @@ async def test_process_single_path_step_node_with_outputs_and_env(mock_graph, mo
 @pytest.mark.asyncio
 async def test_process_single_path_workflow_node_fork_repository(mock_graph, mock_api):
     """Test workflow node with fork repository detection"""
-    with patch("gatox.workflow_graph.visitors.pwn_request_visitor.CacheManager") as MockCache:
+    with patch(
+        "gatox.workflow_graph.visitors.pwn_request_visitor.CacheManager"
+    ) as MockCache:
         # Mock fork repository
         fork_repo = MagicMock()
         fork_repo.is_fork.return_value = True
@@ -520,7 +534,9 @@ async def test_process_single_path_workflow_node_fork_repository(mock_graph, moc
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_workflow_node_excluded(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_workflow_node_excluded(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test workflow node with excluded flag"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target"]
@@ -551,10 +567,15 @@ async def test_process_single_path_workflow_node_excluded(mock_graph, mock_api, 
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_workflow_node_labeled_trigger(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_workflow_node_labeled_trigger(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test workflow node with pull_request_target:labeled trigger"""
     workflow_node = MagicMock()
-    workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target:labeled"]
+    workflow_node.get_tags.return_value = [
+        "WorkflowNode",
+        "pull_request_target:labeled",
+    ]
     workflow_node.excluded.return_value = False
     workflow_node.get_env_vars.return_value = {}
     workflow_node.repo_name.return_value = "test/repo"
@@ -585,10 +606,12 @@ async def test_process_single_path_workflow_node_labeled_trigger(mock_graph, moc
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="processed"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="processed"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -601,7 +624,9 @@ async def test_process_single_path_workflow_node_labeled_trigger(mock_graph, moc
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_workflow_run_trigger(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_workflow_run_trigger(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test workflow_run trigger affects complexity"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "workflow_run"]
@@ -635,10 +660,12 @@ async def test_process_single_path_workflow_run_trigger(mock_graph, mock_api, mo
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="processed"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="processed"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -651,7 +678,9 @@ async def test_process_single_path_workflow_run_trigger(mock_graph, mock_api, mo
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_step_node_hard_gate(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_step_node_hard_gate(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test step node with hard gate breaks execution"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target"]
@@ -692,7 +721,9 @@ async def test_process_single_path_step_node_hard_gate(mock_graph, mock_api, moc
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_step_node_soft_gate(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_step_node_soft_gate(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test step node with soft gate sets approval gate"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target"]
@@ -733,10 +764,12 @@ async def test_process_single_path_step_node_soft_gate(mock_graph, mock_api, moc
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="processed"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="processed"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -749,7 +782,9 @@ async def test_process_single_path_step_node_soft_gate(mock_graph, mock_api, moc
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_action_node_initialization(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_action_node_initialization(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test action node initialization"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target"]
@@ -786,11 +821,13 @@ async def test_process_single_path_action_node_initialization(mock_graph, mock_a
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="processed"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "initialize_action_node") as mock_init_action, \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="processed"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "initialize_action_node") as mock_init_action,
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -802,12 +839,16 @@ async def test_process_single_path_action_node_initialization(mock_graph, mock_a
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_checkout_with_env_metadata(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_checkout_with_env_metadata(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test checkout step with environment variable in metadata"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target"]
     workflow_node.excluded.return_value = False
-    workflow_node.get_env_vars.return_value = {"REF": "github.event.repository.default_branch"}
+    workflow_node.get_env_vars.return_value = {
+        "REF": "github.event.repository.default_branch"
+    }
     workflow_node.repo_name.return_value = "test/repo"
 
     checkout_step = MagicMock()
@@ -836,10 +877,12 @@ async def test_process_single_path_checkout_with_env_metadata(mock_graph, mock_a
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="REF"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="REF"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -850,7 +893,9 @@ async def test_process_single_path_checkout_with_env_metadata(mock_graph, mock_a
 
 
 @pytest.mark.asyncio
-async def test_process_single_path_no_sinks_unknown_confidence(mock_graph, mock_api, mock_cache_manager):
+async def test_process_single_path_no_sinks_unknown_confidence(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test path with no sinks results in unknown confidence"""
     workflow_node = MagicMock()
     workflow_node.get_tags.return_value = ["WorkflowNode", "pull_request_target"]
@@ -884,10 +929,12 @@ async def test_process_single_path_no_sinks_unknown_confidence(mock_graph, mock_
     results = {}
     rule_cache = {}
 
-    with patch.object(VisitorUtils, "process_context_var", return_value="processed"), \
-         patch.object(VisitorUtils, "check_mutable_ref", return_value=True), \
-         patch.object(VisitorUtils, "append_path"), \
-         patch.object(VisitorUtils, "_add_results") as mock_add_results:
+    with (
+        patch.object(VisitorUtils, "process_context_var", return_value="processed"),
+        patch.object(VisitorUtils, "check_mutable_ref", return_value=True),
+        patch.object(VisitorUtils, "append_path"),
+        patch.object(VisitorUtils, "_add_results") as mock_add_results,
+    ):
 
         await PwnRequestVisitor._process_single_path(
             path, mock_graph, mock_api, rule_cache, results
@@ -900,30 +947,36 @@ async def test_process_single_path_no_sinks_unknown_confidence(mock_graph, mock_
 
 
 @pytest.mark.asyncio
-async def test_find_pwn_requests_ignore_workflow_run(mock_graph, mock_api, mock_cache_manager):
+async def test_find_pwn_requests_ignore_workflow_run(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test find_pwn_requests with ignore_workflow_run=True"""
     node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [node]
     mock_graph.dfs_to_tag.return_value = [[node]]
 
     with patch.object(PwnRequestVisitor, "_process_single_path"):
-        await PwnRequestVisitor.find_pwn_requests(mock_graph, mock_api, ignore_workflow_run=True)
+        await PwnRequestVisitor.find_pwn_requests(
+            mock_graph, mock_api, ignore_workflow_run=True
+        )
 
         # Should not include workflow_run in query taglist
         expected_tags = [
             "issue_comment",
-            "pull_request_target", 
-            "pull_request_target:labeled"
+            "pull_request_target",
+            "pull_request_target:labeled",
         ]
         mock_graph.get_nodes_for_tags.assert_called_once_with(expected_tags)
 
 
 @pytest.mark.asyncio
-async def test_find_pwn_requests_with_dfs_exception(mock_graph, mock_api, mock_cache_manager):
+async def test_find_pwn_requests_with_dfs_exception(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test find_pwn_requests handles DFS exceptions gracefully"""
     node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [node]
-    
+
     # Mock DFS to raise an exception
     mock_graph.dfs_to_tag.side_effect = Exception("DFS error")
 
@@ -933,13 +986,19 @@ async def test_find_pwn_requests_with_dfs_exception(mock_graph, mock_api, mock_c
 
 
 @pytest.mark.asyncio
-async def test_find_pwn_requests_with_process_path_exception(mock_graph, mock_api, mock_cache_manager):
+async def test_find_pwn_requests_with_process_path_exception(
+    mock_graph, mock_api, mock_cache_manager
+):
     """Test find_pwn_requests handles path processing exceptions gracefully"""
     node = MagicMock()
     mock_graph.get_nodes_for_tags.return_value = [node]
     mock_graph.dfs_to_tag.return_value = [[node]]
 
-    with patch.object(PwnRequestVisitor, "_process_single_path", side_effect=Exception("Process error")):
+    with patch.object(
+        PwnRequestVisitor,
+        "_process_single_path",
+        side_effect=Exception("Process error"),
+    ):
         # Should not raise exception, just log warning
         result = await PwnRequestVisitor.find_pwn_requests(mock_graph, mock_api)
         assert result == {}
