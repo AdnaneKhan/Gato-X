@@ -1263,7 +1263,7 @@ class Api:
         """
         ymls = []
 
-        resp = await self.call_get(f"/repos/{repo_name}/contents/.github/workflows/")
+        resp = await self.call_get(f"/repos/{repo_name}/contents/.github/workflows")
 
         if resp.status_code == 200:
             objects = resp.json()
@@ -1310,7 +1310,7 @@ class Api:
 
         while True:
             resp = await self.call_get(
-                f"/repos/{repo_name}/contents/.github/workflows/",
+                f"/repos/{repo_name}/contents/.github/workflows",
                 params={"ref": ref, "per_page": per_page, "page": page},
             )
 
