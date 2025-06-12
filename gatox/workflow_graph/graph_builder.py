@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import asyncio
 import logging
 import traceback
 
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowGraphBuilder:
     _instance = None
+    _action_cache_lock = None
 
     def __new__(cls):
         """
@@ -40,6 +42,7 @@ class WorkflowGraphBuilder:
         if cls._instance is None:
             cls._instance = super(WorkflowGraphBuilder, cls).__new__(cls)
             cls._instance.graph = TaggedGraph(cls._instance)
+            cls._action_cache_lock = asyncio.Lock()
 
         return cls._instance
 
@@ -93,12 +96,13 @@ class WorkflowGraphBuilder:
             Returns:
                 str: The contents of the action file.
             """
-            contents = CacheManager().get_action(repo, path, ref)
-            if not contents:
-                contents = await api.retrieve_raw_action(repo, path, ref)
-                if contents:
-                    CacheManager().set_action(repo, path, ref, contents)
-            return contents
+            async with self._action_cache_lock:
+                contents = CacheManager().get_action(repo, path, ref)
+                if not contents:
+                    contents = await api.retrieve_raw_action(repo, path, ref)
+                    if contents:
+                        CacheManager().set_action(repo, path, ref, contents)
+                return contents
 
         ref = node.caller_ref if action_metadata["local"] else action_metadata["ref"]
         contents = await get_action_contents(
