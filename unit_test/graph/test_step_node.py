@@ -42,6 +42,7 @@ def test_step_node_init_action():
 
     assert node.type == "action"
     assert not node.is_checkout
+    assert node.uses == "actions/checkout@v2"
     assert node.params == {"ref": "${{ github.event.pull_request.head.ref }}"}
 
 
