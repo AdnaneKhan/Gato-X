@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import asyncio
+import logging
 
 from gatox.configuration.configuration_manager import ConfigurationManager
 from gatox.caching.cache_manager import CacheManager
@@ -31,6 +32,8 @@ from gatox.workflow_parser.utility import (
     return_recent,
 )
 from gatox.notifications.send_webhook import send_slack_webhook
+
+logger = logging.getLogger(__name__)
 
 
 class VisitorUtils:
@@ -88,6 +91,7 @@ class VisitorUtils:
         """
         tags = node.get_tags()
         if "uninitialized" in tags:
+            logger.info(f"Initializing action node: {node.name}")
             await WorkflowGraphBuilder()._initialize_action_node(node, api)
             graph.remove_tags_from_node(node, ["uninitialized"])
 
