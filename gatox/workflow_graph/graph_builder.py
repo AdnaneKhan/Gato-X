@@ -165,11 +165,20 @@ class WorkflowGraphBuilder:
                 # Handle nested actions within composite actions
                 if "uses" in step:
                     action_name = step["uses"]
+
+                    # Create usage context for nested action
+                    usage_context = {
+                        "workflow_name": f"composite-{node.name}",
+                        "job_id": "composite",
+                        "step_index": iter,
+                    }
+
                     nested_action_node = NodeFactory.create_action_node(
                         action_name,
                         ref,
                         action_metadata["path"],
                         action_metadata["repo"],
+                        usage_context=usage_context,
                     )
                     self.graph.add_node(
                         nested_action_node, **nested_action_node.get_attrs()
@@ -338,17 +347,26 @@ class WorkflowGraphBuilder:
                 # Handle actions
                 if "uses" in step:
                     action_name = step["uses"]
+
+                    # Create usage context to ensure unique action nodes
+                    usage_context = {
+                        "workflow_name": workflow_wrapper.getPath(),
+                        "job_id": job_name,
+                        "step_index": iter,
+                    }
+
                     action_node = NodeFactory.create_action_node(
                         action_name,
                         workflow_wrapper.branch,
                         workflow_wrapper.getPath(),
                         workflow_wrapper.repo_name,
                         params=step.get("with", {}),
+                        usage_context=usage_context,
                     )
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
-                    # if action_node.initialized:
-                    #    prev_step_node = action_node
+                    if action_node.initialized:
+                        prev_step_node = action_node
 
     async def initialize_node(self, node, api):
         tags = node.get_tags()
