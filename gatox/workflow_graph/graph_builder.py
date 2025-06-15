@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 class WorkflowGraphBuilder:
     _instance = None
-    _action_cache_lock = None
+    _action_locks = None
+    _action_locks_lock = None
 
     def __new__(cls):
         """
@@ -42,9 +43,29 @@ class WorkflowGraphBuilder:
         if cls._instance is None:
             cls._instance = super(WorkflowGraphBuilder, cls).__new__(cls)
             cls._instance.graph = TaggedGraph(cls._instance)
-            cls._action_cache_lock = asyncio.Lock()
+            cls._action_locks = {}
+            cls._action_locks_lock = asyncio.Lock()
 
         return cls._instance
+
+    async def _get_action_lock(self, repo: str, path: str, ref: str) -> asyncio.Lock:
+        """
+        Get or create a lock for a specific action identified by repo, path, and ref.
+
+        Args:
+            repo (str): The repository name.
+            path (str): The path to the action file.
+            ref (str): The reference (e.g., branch or tag).
+
+        Returns:
+            asyncio.Lock: A lock specific to this action.
+        """
+        action_key = f"{repo}:{path}:{ref}"
+
+        async with self._action_locks_lock:
+            if action_key not in self._action_locks:
+                self._action_locks[action_key] = asyncio.Lock()
+            return self._action_locks[action_key]
 
     def build_lone_repo_graph(self, repo_wrapper: Repository):
         """
@@ -96,7 +117,8 @@ class WorkflowGraphBuilder:
             Returns:
                 str: The contents of the action file.
             """
-            async with self._action_cache_lock:
+            action_lock = await self._get_action_lock(repo, path, ref)
+            async with action_lock:
                 contents = CacheManager().get_action(repo, path, ref)
                 if not contents:
                     contents = await api.retrieve_raw_action(repo, path, ref)
@@ -325,8 +347,8 @@ class WorkflowGraphBuilder:
                     )
                     self.graph.add_node(action_node, **action_node.get_attrs())
                     self.graph.add_edge(step_node, action_node, relation="uses")
-                    if action_node.initialized:
-                        prev_step_node = action_node
+                    # if action_node.initialized:
+                    #    prev_step_node = action_node
 
     async def initialize_node(self, node, api):
         tags = node.get_tags()
